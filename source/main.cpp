@@ -2,79 +2,8 @@
 #include <tesla.hpp>    // The Tesla Header
 #include <sys/stat.h>
 #include "SaltyNX.h"
-
-uint8_t* FPS_shared = 0;
-uint8_t* FPSmode_shared = 0;
-uint8_t* FPSlocked_shared = 0;
-bool* pluginActive = 0;
-bool* ZeroSync_shared = 0;
-bool _isDocked = false;
-bool _def = true;
-bool PluginRunning = false;
-bool state = false;
-bool closed = false;
-bool check = false;
-bool SaltySD = false;
-bool bak = false;
-bool plugin = false;
-char FPSMode_c[64];
-char FPSTarget_c[32];
-char PFPS_c[32];
-char SyncWait_c[32];
-uint64_t PID = 0;
-uint64_t TID = 0;
-Handle remoteSharedMemory = 1;
-SharedMemory _sharedmemory = {};
-bool SharedMemoryUsed = false;
-
-bool LoadSharedMemory() {
-	if (SaltySD_Connect())
-		return false;
-
-	SaltySD_GetSharedMemoryHandle(&remoteSharedMemory);
-	SaltySD_Term();
-
-	shmemLoadRemote(&_sharedmemory, remoteSharedMemory, 0x1000, Perm_Rw);
-	if (!shmemMap(&_sharedmemory)) {
-		SharedMemoryUsed = true;
-		return true;
-	}
-	return false;
-}
-
-ptrdiff_t searchSharedMemoryBlock(uintptr_t base) {
-	ptrdiff_t search_offset = 0;
-	while(search_offset < 0x1000) {
-		uint32_t* MAGIC_shared = (uint32_t*)(base + search_offset);
-		if (*MAGIC_shared == 0x465053) {
-			return search_offset;
-		}
-		else search_offset += 4;
-	}
-	return -1;
-}
-
-bool CheckPort () {
-	Handle saltysd;
-	for (int i = 0; i < 67; i++) {
-		if (R_SUCCEEDED(svcConnectToNamedPort(&saltysd, "InjectServ"))) {
-			svcCloseHandle(saltysd);
-			break;
-		}
-		else {
-			if (i == 66) return false;
-			svcSleepThread(1'000'000);
-		}
-	}
-	for (int i = 0; i < 67; i++) {
-		if (R_SUCCEEDED(svcConnectToNamedPort(&saltysd, "InjectServ"))) {
-			svcCloseHandle(saltysd);
-			return true;
-		}
-		else svcSleepThread(1'000'000);
-	}
-	return false;
-}
+#include "Lock.hpp"
+#include "Utils.hpp"
 
 class GuiTest : public tsl::Gui {
 public:
@@ -110,7 +39,10 @@ public:
 				renderer->drawString("NX-FPS is not running!", false, x, y+40, 20, renderer->a(0xF33F));
 			}
 			else {
-				renderer->drawString("NX-FPS plugin is running.", false, x, y+20, 20, renderer->a(0xFFFF));
+				if (R_SUCCEEDED(configValid))
+					renderer->drawString("NX-FPS plugin is running.", false, x, y+20, 20, renderer->a(0xFFFF));
+				else
+					renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSMode_c, false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSTarget_c, false, x, y+60, 20, renderer->a(0xFFFF));
 				renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
@@ -180,15 +112,12 @@ public:
 			auto *clickableListItem5 = new tsl::elm::ListItem("Save settings");
 			clickableListItem5->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					char path[64];
-					pminfoGetProgramId(&TID, PID);
-					sprintf(&path[0], "sdmc:/SaltySD/plugins/FPSLocker/%016lX.dat", TID);
 					if (!*FPSlocked_shared && !*ZeroSync_shared) {
-						remove(path);
+						remove(savePath);
 					}
 					else {
 						mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
-						FILE* file = fopen(path, "wb");
+						FILE* file = fopen(savePath, "wb");
 						if (file) {
 							fwrite(FPSlocked_shared, 1, 1, file);
 							fwrite(ZeroSync_shared, 1, 1, file);
@@ -204,7 +133,7 @@ public:
 
 		// Add the list to the frame for it to be drawn
 		frame->setContent(list);
-        
+		
 		// Return the frame to have it become the top level element of this Gui
 		return frame;
 	}
@@ -281,6 +210,16 @@ public:
 				ptrdiff_t rel_offset = searchSharedMemoryBlock(base);
 				if (rel_offset > -1) {
 					pminfoInitialize();
+					pminfoGetProgramId(&TID, PID);
+					pminfoExit();
+					BID = getBID();
+					sprintf(&patchPath[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.bin", TID, BID);
+					sprintf(&configPath[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+					sprintf(&savePath[0], "sdmc:/SaltySD/plugins/FPSLocker/%016lX.dat", TID);
+
+					configValid = LOCK::readConfig(&configPath[0]);
+					if (R_FAILED(configValid))
+						sprintf(&lockInvalid[0], "Config error: 0x%X", configValid);
 					FPS_shared = (uint8_t*)(base + rel_offset + 4);
 					pluginActive = (bool*)(base + rel_offset + 9);
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);
@@ -295,7 +234,6 @@ public:
 	}  // Called at the start to initialize all services necessary for this Overlay
 	
 	virtual void exitServices() override {
-		pminfoExit();
 		shmemClose(&_sharedmemory);
 		fsdevUnmountDevice("sdmc");
 	}  // Callet at the end to clean up all services previously initialized
@@ -310,5 +248,5 @@ public:
 };
 
 int main(int argc, char **argv) {
-    return tsl::loop<OverlayTest>(argc, argv);
+	return tsl::loop<OverlayTest>(argc, argv);
 }
