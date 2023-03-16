@@ -31,7 +31,17 @@ SharedMemory _sharedmemory = {};
 bool SharedMemoryUsed = false;
 
 Result configValid = 10;
+Result patchValid = 0x202;
 char lockInvalid[32] = "";
+char patchChar[64] = "";
+
+uint64_t checkFile(const char* path) {
+    FILE* file = fopen(path, "rb");
+    if (!file)
+        return 0x202;
+    fclose(file);
+    return 0;
+}
 
 uint64_t getBID() {
 	u64 BID_temp = 0;

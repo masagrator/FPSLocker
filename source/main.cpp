@@ -5,6 +5,69 @@
 #include "Lock.hpp"
 #include "Utils.hpp"
 
+class AdvancedGui : public tsl::Gui {
+public:
+    AdvancedGui() {}
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Advanced settings");
+
+		auto list = new tsl::elm::List();
+
+		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+
+			if (R_SUCCEEDED(configValid)) {
+				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(&patchChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
+			}
+			else
+				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
+				
+
+		}), 40);
+
+		list->addItem(new tsl::elm::CategoryHeader("NVN", true));
+		auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
+		clickableListItem3->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				*ZeroSync_shared = !*ZeroSync_shared;
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem3);
+
+		if (R_SUCCEEDED(configValid)) {
+			list->addItem(new tsl::elm::CategoryHeader("Patch will be applied on next game boot", true));
+			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file");
+			clickableListItem->setClickListener([](u64 keys) { 
+				if ((keys & HidNpadButton_A) && PluginRunning) {
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem);
+
+			list->addItem(new tsl::elm::CategoryHeader("Patch won't be applied on next game boot", true));
+			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file");
+			clickableListItem2->setClickListener([](u64 keys) { 
+				if ((keys & HidNpadButton_A) && PluginRunning) {
+					remove(&patchPath[0]);
+					patchValid = false;
+					sprintf(&patchChar[0], "Patch file deleted successfully.");
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem2);
+		}
+
+		frame->setContent(list);
+
+        return frame;
+    }
+};
+
 class GuiTest : public tsl::Gui {
 public:
 	GuiTest(u8 arg1, u8 arg2, bool arg3) { }
@@ -39,15 +102,12 @@ public:
 				renderer->drawString("NX-FPS is not running!", false, x, y+40, 20, renderer->a(0xF33F));
 			}
 			else {
-				if (R_SUCCEEDED(configValid))
-					renderer->drawString("NX-FPS plugin is running.", false, x, y+20, 20, renderer->a(0xFFFF));
-				else
-					renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString("NX-FPS is running.", false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSMode_c, false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSTarget_c, false, x, y+60, 20, renderer->a(0xFFFF));
 				renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
 			}
-	}), 100);
+		}), 100);
 
 		if (PluginRunning && *pluginActive) {
 			auto *clickableListItem = new tsl::elm::ListItem("Increase FPS target");
@@ -99,10 +159,10 @@ public:
 			});
 			list->addItem(clickableListItem4);
 
-			auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait (!)", !*ZeroSync_shared);
+			auto *clickableListItem3 = new tsl::elm::ListItem("Advanced settings");
 			clickableListItem3->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					*ZeroSync_shared = !*ZeroSync_shared;
+					tsl::changeTo<AdvancedGui>();
 					return true;
 				}
 				return false;
@@ -220,6 +280,12 @@ public:
 					configValid = LOCK::readConfig(&configPath[0]);
 					if (R_FAILED(configValid))
 						sprintf(&lockInvalid[0], "Config error: 0x%X", configValid);
+					else {
+						patchValid = checkFile(&patchPath[0]);
+						if (R_FAILED(patchValid))
+							sprintf(&patchChar[0], "Patch file doesn't exist.");
+						else sprintf(&patchChar[0], "Patch file exists.");
+					}
 					FPS_shared = (uint8_t*)(base + rel_offset + 4);
 					pluginActive = (bool*)(base + rel_offset + 9);
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);
