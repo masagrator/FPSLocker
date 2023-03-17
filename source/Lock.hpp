@@ -499,12 +499,44 @@ namespace LOCK {
 			}
 		}
 
+		uint32_t base_offset = 0x30;
+		uint32_t offsets[10] = {0};
+		offsets[0] = base_offset;
+		uint8_t IDs[10] = {0};
+		for (size_t i = 1; i < buffers.size(); i++) {
+			bool found = false;
+			for (size_t x = 0; x < i; x++) {
+				if (buffers[x] -> size != buffers[i] -> size)
+					continue;
+				if (memcmp(buffers[x] -> buffer_ptr, buffers[i] -> buffer_ptr, buffers[x] -> size)) {
+					if ((x + 1 == i) && !found) {
+						IDs[i] = x;
+						offsets[i] = base_offset;
+						base_offset += buffers[i] -> size;
+					}
+					continue;
+				}
+				IDs[i] = IDs[x];
+				offsets[i] = offsets[x];
+				found = true;
+				break;
+			}
+		}
+
+
 		FILE* file = fopen(path, "wb");
 		if (!file)
 			return 0x202;
 		fwrite(&lockMagic[0], 4, 1, file);
 		fwrite(&flags[0], 3, 1, file);
 		fwrite(&unsafeCheck, 1, 1, file);
+		for (size_t i = 0; i < buffers.size(); i++) {
+			fwrite(&offsets[i], 4, 1, file);
+		}
+		for (size_t i = 0; i < buffers.size(); i++) 
+			if (IDs[i] == i)
+				fwrite(&buffers[i] -> buffer_ptr, buffers[i] -> size, 1, file);
+
 		fclose(file);
 		//remove(path);
 		return 1;
