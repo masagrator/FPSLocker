@@ -42,6 +42,11 @@ public:
 			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file");
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
+					patchValid = LOCK::createPatch(&patchPath[0]);
+					if (R_SUCCEEDED(patchValid)) {
+						sprintf(&patchChar[0], "Patch file created successfully.");
+					}
+					else sprintf(&patchChar[0], "Error while creating patch: 0x%x", patchValid);
 					return true;
 				}
 				return false;
@@ -52,9 +57,11 @@ public:
 			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file");
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					remove(&patchPath[0]);
-					patchValid = false;
-					sprintf(&patchChar[0], "Patch file deleted successfully.");
+					if (R_SUCCEEDED(patchValid)) {
+						remove(&patchPath[0]);
+						patchValid = 0x202;
+						sprintf(&patchChar[0], "Patch file deleted successfully.");
+					}
 					return true;
 				}
 				return false;
