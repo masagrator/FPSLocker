@@ -34,6 +34,10 @@ Result configValid = 10;
 Result patchValid = 0x202;
 char lockInvalid[32] = "";
 char patchChar[64] = "";
+char patchAppliedChar[64] = "";
+bool* patchApplied_shared = 0;
+Thread t0;
+bool threadActive = false;
 
 uint64_t checkFile(const char* path) {
     FILE* file = fopen(path, "rb");

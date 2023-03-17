@@ -1,4 +1,6 @@
 #pragma once
+#define NOINLINE __attribute__ ((noinline))
+
 #include "rapidyaml/ryml.hpp"
 #include "c4/std/string.hpp"
 
@@ -12,15 +14,19 @@ namespace LOCK {
 		size_t size;
 		void* buffer_ptr;
 	};
+	std::vector<buffer_data*> buffers;
 
-	void freeBuffers(std::vector<buffer_data*> buffers) {
-		for (size_t i = (buffers.size() - 1); i >= 0; i--) {
-			free(buffers[i] -> buffer_ptr);
+	void freeBuffers() {
+		for (int i = (buffers.size() - 1); i >= 0; i--) {
+			if (buffers[i] -> buffer_ptr) {
+				free(buffers[i] -> buffer_ptr);
+				free(buffers[i]);
+			}
 			buffers.pop_back();
 		}
 	}
 
-	uint8_t getCompareType(std::string compare_type) {
+	uint8_t NOINLINE getCompareType(std::string compare_type) {
 		if (!compare_type.compare(">")) {
 			return 1;
 		}
@@ -42,7 +48,7 @@ namespace LOCK {
 		else return 0;
 	}
 
-	uint8_t getAddressRegion(std::string region) {
+	uint8_t NOINLINE getAddressRegion(std::string region) {
 		if (!region.compare("MAIN")) {
 			return 0x1;
 		}
@@ -55,7 +61,7 @@ namespace LOCK {
 		else return 0;
 	}
 
-	uint8_t getValueType(std::string value_type) {
+	uint8_t NOINLINE getValueType(std::string value_type) {
 		if (!value_type.compare("uint8"))
 			return 0x1;
 		else if (!value_type.compare("uint16"))
@@ -79,7 +85,7 @@ namespace LOCK {
 		else return 0;
 	}
 
-	size_t getTypeSize(std::string value_type) {
+	size_t NOINLINE getTypeSize(std::string value_type) {
 		if (!value_type.compare("int8") || !value_type.compare("uint8"))
 			return sizeof(uint8_t);
 		else if (!value_type.compare("int16") || !value_type.compare("uint16"))
@@ -90,12 +96,11 @@ namespace LOCK {
 			return sizeof(uint64_t);
 		else return 0;
 	}
+
 	template <typename T>
-	Result processEntry(T entry, std::vector<buffer_data*> buffers) {
-		
-		size_t temp_size = 0;
-		size_t old_temp_size = 0;
+	size_t NOINLINE calculateSize(T entry) {
 		std::string string_check = "";
+		size_t temp_size = 0;
 
 		//calculate bytes size
 		
@@ -103,12 +108,12 @@ namespace LOCK {
 
 			entry[i]["type"] >> string_check;
 			
-			temp_size += 1;
+			temp_size++;
 			if (!string_check.compare("write")) {
-				temp_size += 1; // address count
+				temp_size++; // address count
 				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
-				temp_size += 1; // value_type
-				temp_size += 1; // value count
+				temp_size++; // value_type
+				temp_size++; // value count
 				entry[i]["value_type"] >> string_check;
 				if (entry[i]["value"].is_seq()) {
 					temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
@@ -117,15 +122,16 @@ namespace LOCK {
 				
 			}
 			else if (!string_check.compare("compare")) {
+				temp_size++; // compare_address count
 				temp_size += ((entry[i]["compare_address"].num_children() - 1) * 4) + 1; // address array
-				temp_size += 1; // compare_type
-				temp_size += 1; // compare_value_type
+				temp_size++; // compare_type
+				temp_size++; // compare_value_type
 				entry[i]["compare_value_type"] >> string_check;
 				temp_size += getTypeSize(string_check);
-				temp_size += 1; // address count
+				temp_size++; // address count
 				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
-				temp_size += 1; // value_type
-				temp_size += 1; // value count
+				temp_size++; // value_type
+				temp_size++; // value count
 				entry[i]["value_type"] >> string_check;
 				if (entry[i]["value"].is_seq()) {
 					temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
@@ -133,30 +139,32 @@ namespace LOCK {
 				else temp_size += getTypeSize(string_check);
 			}
 			else if (!string_check.compare("block")) {
-				temp_size += 1;
+				temp_size++;
 			}
 			else return 2;
 		}
 		
-		temp_size += 1;
-		
-		uint8_t* buffer = (uint8_t*)calloc(temp_size, sizeof(uint8_t));
-		old_temp_size = temp_size;
-		temp_size = 0;
+		temp_size++;
+		return temp_size;
+	}
 
-		//calculate bytes size
+	template <typename T>
+	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size) {
+		std::string string_check = "";
+		size_t temp_size = 0;
+
 		for (size_t i = 0; i < entry.num_children(); i++) {
 		
 			entry[i]["type"] >> string_check;
 			if (!string_check.compare("write")) {
 				
 				buffer[temp_size] = 1; // type
-				temp_size += 1;
+				temp_size++;
 				buffer[temp_size] = entry[i]["address"].num_children(); // address count
-				temp_size += 1;
+				temp_size++;
 				entry[i]["address"][0] >> string_check;
 				buffer[temp_size] = getAddressRegion(string_check);
-				temp_size += 1;
+				temp_size++;
 				for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
 					entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
 					temp_size += 4;
@@ -164,8 +172,10 @@ namespace LOCK {
 				entry[i]["value_type"] >> string_check;
 				uint8_t value_type = getValueType(string_check);
 				buffer[temp_size] = value_type;
-				temp_size += 1; // value_type
+				temp_size++; // value_type
 				if (entry[i]["value"].is_seq()) {
+					buffer[temp_size] = entry[i]["value"].num_children(); //value_count
+					temp_size++;
 					for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
 						switch(value_type) {
 							case 1:
@@ -186,7 +196,7 @@ namespace LOCK {
 								break;
 							case 0x11:
 								entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
-								temp_size += 1;
+								temp_size++;
 								break;
 							case 0x12:
 								entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
@@ -235,7 +245,7 @@ namespace LOCK {
 							break;
 						case 0x11:
 							entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
-							temp_size += 1;
+							temp_size++;
 							break;
 						case 0x12:
 							entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
@@ -264,22 +274,22 @@ namespace LOCK {
 			}
 			else if (!string_check.compare("compare")) {
 				buffer[temp_size] = 2;
-				temp_size += 1;
+				temp_size++;
 				buffer[temp_size] = entry[i]["compare_address"].num_children();
-				temp_size += 1;
+				temp_size++;
 				entry[i]["compare_address"][0] >> string_check;
 				buffer[temp_size] = getAddressRegion(string_check);
-				temp_size += 1;
+				temp_size++;
 				for (size_t x = 1; x < entry[i]["compare_address"].num_children(); x++) {
 					entry[i]["compare_address"][x] >> *(int32_t*)(&buffer[temp_size]);
 					temp_size += 4;
 				}
 				entry[i]["compare_type"][0] >> string_check;
 				buffer[temp_size] = getCompareType(string_check);
-				temp_size += 1;
+				temp_size++;
 				entry[i]["compare_value_type"] >> string_check;
 				buffer[temp_size] = getValueType(string_check);
-				temp_size += 1;
+				temp_size++;
 				switch(getValueType(string_check)) {
 					case 1:
 						entry[i]["compare_value"] >> buffer[temp_size];
@@ -299,7 +309,7 @@ namespace LOCK {
 						break;
 					case 0x11:
 						entry[i]["compare_value"] >> *(int8_t*)(&buffer[temp_size]);
-						temp_size += 1;
+						temp_size++;
 						break;
 					case 0x12:
 						entry[i]["compare_value"] >> *(int16_t*)(&buffer[temp_size]);
@@ -325,10 +335,10 @@ namespace LOCK {
 						return 4;
 				}
 				buffer[temp_size] = entry[i]["address"].num_children(); // address count
-				temp_size += 1;
+				temp_size++;
 				entry[i]["address"][0] >> string_check;
 				buffer[temp_size] = getAddressRegion(string_check);
-				temp_size += 1;
+				temp_size++;
 				for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
 					entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
 					temp_size += 4;
@@ -336,8 +346,10 @@ namespace LOCK {
 				entry[i]["value_type"] >> string_check;
 				uint8_t value_type = getValueType(string_check);
 				buffer[temp_size] = value_type;
-				temp_size += 1; // value_type
+				temp_size++; // value_type
 				if (entry[i]["value"].is_seq()) {
+					buffer[temp_size] = entry[i]["value"].num_children(); //value_count
+					temp_size++;
 					for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
 						switch(value_type) {
 							case 1:
@@ -358,7 +370,7 @@ namespace LOCK {
 								break;
 							case 0x11:
 								entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
-								temp_size += 1;
+								temp_size++;
 								break;
 							case 0x12:
 								entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
@@ -407,7 +419,7 @@ namespace LOCK {
 							break;
 						case 0x11:
 							entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
-							temp_size += 1;
+							temp_size++;
 							break;
 						case 0x12:
 							entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
@@ -436,23 +448,107 @@ namespace LOCK {
 			}
 			else if (!string_check.compare("block")) {
 				buffer[temp_size] = 3;
-				temp_size += 1;
+				temp_size++;
 				entry[i]["what"] >> string_check;
 				if (!string_check.compare("timing")) {
 					buffer[temp_size] = 1;
-					temp_size += 1;
+					temp_size++;
 				}
 			}
 			else return 2;
 		}
 		buffer[temp_size] = 0xFF;
-		temp_size += 1;
+		temp_size++;
+		*out_size = temp_size;
+		return 0;
+	}
+
+	template <typename T>
+	Result NOINLINE processEntry(T entry) {
+		
+		size_t temp_size = 0;
+		size_t old_temp_size = 0;
+		
+		temp_size = calculateSize(entry);
+
+		uint8_t* buffer = (uint8_t*)calloc(temp_size, sizeof(uint8_t));
+		old_temp_size = temp_size;
+		temp_size = 0;
+
+		Result rc = processEntryImpl(entry, buffer, &temp_size);
+		if (R_FAILED(rc))
+			return rc;
 		if (old_temp_size != temp_size)
 			return 10;
 		buffer_data* new_struct = (buffer_data*)calloc(sizeof(buffer_data), 1);
 		new_struct -> size = temp_size;
 		new_struct -> buffer_ptr = &buffer[0];
 		buffers.push_back(new_struct);
+		return 0;
+	}
+
+	Result createPatch(const char* path) {
+		bool unsafeCheck = false;
+
+		char lockMagic[] = "LOCK";
+		uint8_t flags[3] = {1, 0, 0};
+		tree["unsafeCheck"] >> unsafeCheck;
+		
+		for (size_t i = 0; i < std::size(entries); i++) {
+			Result ret = processEntry(tree[entries[i]]);
+			if (R_FAILED(ret)) {
+				freeBuffers();
+				return ret;
+			}
+		}
+
+		uint32_t base_offset = 0x30;
+		uint32_t offsets[10] = {0};
+		offsets[0] = base_offset;
+		base_offset += buffers[0] -> size;
+		uint8_t IDs[10] = {0};
+		for (size_t i = 1; i < buffers.size(); i++) {
+			for (size_t x = 0; x < i; x++) {
+				if (buffers[x] -> size != buffers[i] -> size) {
+					if (x + 1 == i) {
+						IDs[i] = i;
+						offsets[i] = base_offset;
+						base_offset += buffers[i] -> size;
+					}
+					continue;
+				}
+				if (memcmp(buffers[x] -> buffer_ptr, buffers[i] -> buffer_ptr, buffers[x] -> size)) {
+					if (x + 1 == i) {
+						IDs[i] = i;
+						offsets[i] = base_offset;
+						base_offset += buffers[i] -> size;
+					}
+					continue;
+				}
+				IDs[i] = IDs[x];
+				offsets[i] = offsets[x];
+				break;
+			}
+		}
+
+		if (!buffers.size())
+			return 0x18;
+		FILE* file = fopen(path, "wb");
+		if (!file)
+			return 0x202;
+		fwrite(&lockMagic[0], 4, 1, file);
+		fwrite(&flags[0], 3, 1, file);
+		fwrite(&unsafeCheck, 1, 1, file);
+		for (size_t i = 0; i < std::size(offsets); i++) {
+			fwrite(&offsets[i], 4, 1, file);
+		}
+		for (size_t i = 0; i < buffers.size(); i++) 
+			if (IDs[i] == i)
+				fwrite(buffers[i] -> buffer_ptr, buffers[i] -> size, 1, file);
+
+		fclose(file);
+		freeBuffers();
+		//remove(path);
 		return 0;
 	}
 
@@ -480,65 +576,5 @@ namespace LOCK {
 				return base_err + 0x100 + (5 * i);
 		}
 		return 0;
-	}
-
-	Result createPatch(const char* path) {
-		bool unsafeCheck = false;
-
-		char lockMagic[] = "LOCK";
-		uint8_t flags[3] = {1, 0, 0};
-		tree["unsafeCheck"] >> unsafeCheck;
-
-		std::vector<buffer_data*> buffers;
-		
-		for (size_t i = 0; i < std::size(entries); i++) {
-			Result ret = processEntry(tree[entries[i]], buffers);
-			if (R_FAILED(ret)) {
-				freeBuffers(buffers);
-				return ret;
-			}
-		}
-
-		uint32_t base_offset = 0x30;
-		uint32_t offsets[10] = {0};
-		offsets[0] = base_offset;
-		uint8_t IDs[10] = {0};
-		for (size_t i = 1; i < buffers.size(); i++) {
-			bool found = false;
-			for (size_t x = 0; x < i; x++) {
-				if (buffers[x] -> size != buffers[i] -> size)
-					continue;
-				if (memcmp(buffers[x] -> buffer_ptr, buffers[i] -> buffer_ptr, buffers[x] -> size)) {
-					if ((x + 1 == i) && !found) {
-						IDs[i] = x;
-						offsets[i] = base_offset;
-						base_offset += buffers[i] -> size;
-					}
-					continue;
-				}
-				IDs[i] = IDs[x];
-				offsets[i] = offsets[x];
-				found = true;
-				break;
-			}
-		}
-
-
-		FILE* file = fopen(path, "wb");
-		if (!file)
-			return 0x202;
-		fwrite(&lockMagic[0], 4, 1, file);
-		fwrite(&flags[0], 3, 1, file);
-		fwrite(&unsafeCheck, 1, 1, file);
-		for (size_t i = 0; i < buffers.size(); i++) {
-			fwrite(&offsets[i], 4, 1, file);
-		}
-		for (size_t i = 0; i < buffers.size(); i++) 
-			if (IDs[i] == i)
-				fwrite(&buffers[i] -> buffer_ptr, buffers[i] -> size, 1, file);
-
-		fclose(file);
-		//remove(path);
-		return 1;
 	}
 }

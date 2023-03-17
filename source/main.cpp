@@ -5,6 +5,38 @@
 #include "Lock.hpp"
 #include "Utils.hpp"
 
+void loopThread(void*) {
+	while(R_SUCCEEDED(pmdmntGetApplicationProcessId(&PID)) || threadActive) {
+		switch (*FPSmode_shared) {
+			case 0:
+				//This is usually a sign that game doesn't use SetPresentInterval
+				sprintf(FPSMode_c, "NVN Interval Mode: 0 (Unused)");
+				break;
+			case 1:
+				sprintf(FPSMode_c, "NVN Interval Mode: 1 (60 FPS)");
+				break;
+			case 2:
+				sprintf(FPSMode_c, "NVN Interval Mode: 2 (30 FPS)");
+				break;
+			default:
+				sprintf(FPSMode_c, "NVN Interval Mode: %d (Wrong)", *FPSmode_shared);
+		}
+		if (!*FPSlocked_shared) {
+			sprintf(FPSTarget_c, "Custom FPS Target: Disabled");
+		}
+		else sprintf(FPSTarget_c, "Custom FPS Target: %d", *FPSlocked_shared);
+		if (*patchApplied_shared) {
+			sprintf(patchAppliedChar, "Plugin loaded patch to game");
+		}
+		else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
+		sprintf(PFPS_c, "%d", *FPS_shared);
+		svcSleepThread(1'000'000'000/8);
+	}
+	PluginRunning = false;
+	check = false;
+	closed = true;
+}
+
 class AdvancedGui : public tsl::Gui {
 public:
     AdvancedGui() {}
@@ -19,23 +51,26 @@ public:
 			if (R_SUCCEEDED(configValid)) {
 				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
+				renderer->drawString(&patchAppliedChar[0], false, x, y+60, 20, renderer->a(0xFFFF));
 			}
 			else
 				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
 				
 
-		}), 40);
+		}), 70);
 
-		list->addItem(new tsl::elm::CategoryHeader("NVN", true));
-		auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
-		clickableListItem3->setClickListener([](u64 keys) { 
-			if ((keys & HidNpadButton_A) && PluginRunning) {
-				*ZeroSync_shared = !*ZeroSync_shared;
-				return true;
-			}
-			return false;
-		});
-		list->addItem(clickableListItem3);
+		if (*FPSmode_shared != 255) {
+			list->addItem(new tsl::elm::CategoryHeader("NVN", true));
+			auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
+			clickableListItem3->setClickListener([](u64 keys) { 
+				if ((keys & HidNpadButton_A) && PluginRunning) {
+					*ZeroSync_shared = !*ZeroSync_shared;
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem3);
+		}
 
 		if (R_SUCCEEDED(configValid)) {
 			list->addItem(new tsl::elm::CategoryHeader("Patch will be applied on next game boot", true));
@@ -108,13 +143,18 @@ public:
 				renderer->drawString("Game is running.", false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString("NX-FPS is not running!", false, x, y+40, 20, renderer->a(0xF33F));
 			}
+			else if (!*pluginActive) {
+				renderer->drawString("NX-FPS is running, but no frame was processed.", false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString("Restart overlay to check again.", false, x, y+50, 20, renderer->a(0xFFFF));
+			}
 			else {
 				renderer->drawString("NX-FPS is running.", false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString(FPSMode_c, false, x, y+40, 20, renderer->a(0xFFFF));
+				if (*FPSmode_shared != 255)
+					renderer->drawString(FPSMode_c, false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSTarget_c, false, x, y+60, 20, renderer->a(0xFFFF));
 				renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
 			}
-		}), 100);
+		}), 90);
 
 		if (PluginRunning && *pluginActive) {
 			auto *clickableListItem = new tsl::elm::ListItem("Increase FPS target");
@@ -206,42 +246,7 @@ public:
 	}
 
 	// Called once every frame to update values
-	virtual void update() override {
-		static uint8_t i = 10;
-		Result rc = pmdmntGetApplicationProcessId(&PID);
-		if (R_FAILED(rc) && PluginRunning) {
-			PluginRunning = false;
-			check = false;
-			closed = true;
-		}
-
-		if (PluginRunning) {
-			if (i > 9) {
-				switch (*FPSmode_shared) {
-					case 0:
-						//This is usually a sign that game doesn't use SetPresentInterval
-						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
-						break;
-					case 1:
-						sprintf(FPSMode_c, "Interval Mode: 1 (60 FPS)");
-						break;
-					case 2:
-						sprintf(FPSMode_c, "Interval Mode: 2 (30 FPS)");
-						break;
-					default:
-						sprintf(FPSMode_c, "Interval Mode: %d (Wrong)", *FPSmode_shared);
-				}
-				if (!*FPSlocked_shared) {
-					sprintf(FPSTarget_c, "Custom FPS Target: Disabled");
-				}
-				else sprintf(FPSTarget_c, "Custom FPS Target: %d", *FPSlocked_shared);
-				sprintf(PFPS_c, "%d", *FPS_shared);
-				i = 0;
-			}
-			else i++;
-		}
-	
-	}
+	virtual void update() override {}
 
 	// Called once every frame to handle inputs not handled by other UI elements
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
@@ -298,7 +303,10 @@ public:
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);
 					FPSmode_shared = (uint8_t*)(base + rel_offset + 11);
 					ZeroSync_shared = (bool*)(base + rel_offset + 12);
+					patchApplied_shared = (bool*)(base + rel_offset + 13);
 					PluginRunning = true;
+					threadCreate(&t0, loopThread, NULL, NULL, 0x100, 0x20, 0);
+					threadStart(&t0);
 				}		
 			}
 		
@@ -307,6 +315,9 @@ public:
 	}  // Called at the start to initialize all services necessary for this Overlay
 	
 	virtual void exitServices() override {
+		threadActive = false;
+		threadWaitForExit(&t0);
+		threadClose(&t0);
 		shmemClose(&_sharedmemory);
 		fsdevUnmountDevice("sdmc");
 	}  // Callet at the end to clean up all services previously initialized
