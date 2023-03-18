@@ -2,7 +2,7 @@
 
 An overlay that with companion SaltyNX plugin `NX-FPS` allows to set custom FPS in Nintendo Switch retail games.
 
-Disclaimer: Tool is utilizing detection of graphics API to manipulate FPS. For now it doesn't support manipulating any engine specific locks or timings. So your experience may vary.
+Disclaimer: Tool is utilizing detection of graphics API to manipulate FPS and in special cases it requires using patches made per game for each version to get more than 30 FPS. You can find those patches [HERE](https://github.com/masagrator/FPSLocker-Warehouse)
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
