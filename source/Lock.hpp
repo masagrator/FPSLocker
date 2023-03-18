@@ -8,7 +8,7 @@ namespace LOCK {
 
 	const char entries[10][6] = {"15FPS", "20FPS", "25FPS", "30FPS", "35FPS", "40FPS", "45FPS", "50FPS", "55FPS", "60FPS"};
 	ryml::Tree tree;
-	char configBuffer[32769] = "";
+	char configBuffer[32770] = "";
 
 	struct buffer_data {
 		size_t size;
@@ -26,39 +26,20 @@ namespace LOCK {
 		}
 	}
 
+	const char compare_types[6][3] = {">", ">=", "<", "<=", "==", "!="};
 	uint8_t NOINLINE getCompareType(std::string compare_type) {
-		if (!compare_type.compare(">")) {
-			return 1;
-		}
-		else if (!compare_type.compare(">=")) {
-			return 2;
-		}
-		else if (!compare_type.compare("<")) {
-			return 3;
-		}
-		else if (!compare_type.compare("<=")) {
-			return 4;
-		}
-		else if (!compare_type.compare("==")) {
-			return 5;
-		}
-		else if (!compare_type.compare("!=")) {
-			return 6;
-		}
-		else return 0;
+		for (size_t i = 0; i < std::size(compare_types); i++)
+			if (!compare_type.compare(compare_types[i]))
+				return i + 1;
+		return 0;
 	}
 
+	const char regions[3][6] = {"MAIN", "HEAP", "ALIAS"};
 	uint8_t NOINLINE getAddressRegion(std::string region) {
-		if (!region.compare("MAIN")) {
-			return 0x1;
-		}
-		else if (!region.compare("HEAP")) {
-			return 0x2;
-		}
-		else if (!region.compare("ALIAS")) {
-			return 0x3;	
-		}
-		else return 0;
+		for (size_t i = 0; i < std::size(regions); i++)
+			if (!region.compare(regions[i]))
+				return i + 1;
+		return 0;		
 	}
 
 	uint8_t NOINLINE getValueType(std::string value_type) {
@@ -476,10 +457,14 @@ namespace LOCK {
 		temp_size = 0;
 
 		Result rc = processEntryImpl(entry, buffer, &temp_size);
-		if (R_FAILED(rc))
+		if (R_FAILED(rc)) {
+			free(buffer);
 			return rc;
-		if (old_temp_size != temp_size)
+		}
+		if (old_temp_size != temp_size) {
+			free(buffer);
 			return 10;
+		}
 		buffer_data* new_struct = (buffer_data*)calloc(sizeof(buffer_data), 1);
 		new_struct -> size = temp_size;
 		new_struct -> buffer_ptr = &buffer[0];
@@ -558,6 +543,7 @@ namespace LOCK {
 			return 0x202;
 		fread(&configBuffer, 1, 32768, config);
 		fclose(config);
+		strcat(&configBuffer[0], "\n");
 
 		tree = ryml::parse_in_place(configBuffer);
 		size_t root_id = tree.root_id();
