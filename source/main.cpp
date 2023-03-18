@@ -1,6 +1,7 @@
 #define TESLA_INIT_IMPL // If you have more than one file using the tesla header, only define this in the main one
 #include <tesla.hpp>    // The Tesla Header
 #include <sys/stat.h>
+#include <dirent.h>
 #include "SaltyNX.h"
 #include "Lock.hpp"
 #include "Utils.hpp"
@@ -110,6 +111,200 @@ public:
 			}
 			else i++;
 		}
+	}
+};
+
+class NoGameSub : public tsl::Gui {
+public:
+	uint64_t _titleid = 0;
+	char _titleidc[17] = "";
+	std::string _titleName = "";
+
+	NoGameSub(uint64_t titleID, std::string titleName) {
+		_titleid = titleID;
+		sprintf(&_titleidc[0], "%016lX", _titleid);
+		_titleName = titleName;
+	}
+
+	// Called when this Gui gets loaded to create the UI
+	// Allocate all elements on the heap. libtesla will make sure to clean them up when not needed anymore
+	virtual tsl::elm::Element* createUI() override {
+		// A OverlayFrame is the base element every overlay consists of. This will draw the default Title and Subtitle.
+		// If you need more information in the header or want to change it's look, use a HeaderOverlayFrame.
+		auto frame = new tsl::elm::OverlayFrame(_titleidc, _titleName);
+
+		// A list that can contain sub elements and handles scrolling
+		auto list = new tsl::elm::List();
+
+		auto *clickableListItem = new tsl::elm::ListItem("Delete settings");
+		clickableListItem->setClickListener([this](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				char path[512] = "";
+				if (_titleid != 0x1234567890ABCDEF) {
+					sprintf(&path[0], "sdmc:/SaltySD/plugins/FPSLocker/%016lx.dat", _titleid);
+					remove(path);
+				}
+				else {
+					struct dirent *entry;
+    				DIR *dp;
+					sprintf(&path[0], "sdmc:/SaltySD/plugins/FPSLocker/");
+
+					dp = opendir(path);
+					if (!dp)
+						return true;
+					while ((entry = readdir(dp))) {
+						if (entry -> d_type != DT_DIR && std::string(entry -> d_name).find(".dat") != std::string::npos) {
+							sprintf(&path[0], "sdmc:/SaltySD/plugins/FPSLocker/%s", entry->d_name);
+							remove(path);
+						}
+					}
+					closedir(dp);
+				}
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem);
+
+		auto *clickableListItem2 = new tsl::elm::ListItem("Delete patches");
+		clickableListItem2->setClickListener([this](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				char folder[640] = "";
+				if (_titleid != 0x1234567890ABCDEF) {
+					sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lx/", _titleid);
+
+					struct dirent *entry;
+    				DIR *dp;
+
+					dp = opendir(folder);
+					if (!dp)
+						return true;
+					while ((entry = readdir(dp))) {
+						if (entry -> d_type != DT_DIR && std::string(entry -> d_name).find(".bin") != std::string::npos) {
+							sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lx/%s", _titleid, entry -> d_name);
+							remove(folder);
+						}
+					}
+					closedir(dp);
+				}
+				else {
+					struct dirent *entry;
+					struct dirent *entry2;
+    				DIR *dp;
+					DIR *dp2;
+
+					sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/");
+					dp = opendir(folder);
+					if (!dp)
+						return true;
+					while ((entry = readdir(dp))) {
+						if (entry -> d_type != DT_DIR)
+							continue;
+						sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%s/", entry -> d_name);
+						dp2 = opendir(folder);
+						while ((entry2 = readdir(dp2))) {
+							if (entry2 -> d_type != DT_DIR && std::string(entry2 -> d_name).find(".bin") != std::string::npos) {
+								sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%s/%s", entry -> d_name, entry2 -> d_name);
+								remove(folder);
+							}
+						}
+						closedir(dp2);
+					}
+					closedir(dp);
+				}
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem2);
+
+		frame->setContent(list);
+
+		return frame;
+	}
+};
+
+class NoGame : public tsl::Gui {
+public:
+
+	Result rc = 1;
+	NoGame(Result result, u8 arg2, bool arg3) {
+		rc = result;
+	}
+
+	// Called when this Gui gets loaded to create the UI
+	// Allocate all elements on the heap. libtesla will make sure to clean them up when not needed anymore
+	virtual tsl::elm::Element* createUI() override {
+		// A OverlayFrame is the base element every overlay consists of. This will draw the default Title and Subtitle.
+		// If you need more information in the header or want to change it's look, use a HeaderOverlayFrame.
+		auto frame = new tsl::elm::OverlayFrame("FPSLocker", APP_VERSION);
+
+		// A list that can contain sub elements and handles scrolling
+		auto list = new tsl::elm::List();
+
+		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+			if (!SaltySD) {
+				renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
+			}
+			else if (!plugin) {
+				renderer->drawString("Can't detect NX-FPS plugin on sdcard!", false, x, y+20, 20, renderer->a(0xF33F));
+			}
+			else if (!check) {
+				renderer->drawString("Game is not running!", false, x, y+20, 19, renderer->a(0xF33F));
+			}
+		}), 30);
+
+		if (R_FAILED(rc)) {
+			char error[24] = "";
+			sprintf(&error[0], "Err: 0x%x", rc);
+			auto *clickableListItem2 = new tsl::elm::ListItem(error);
+			clickableListItem2->setClickListener([](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem2);
+		}
+		else {
+			auto *clickableListItem3 = new tsl::elm::ListItem("All");
+			clickableListItem3->setClickListener([](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					tsl::changeTo<NoGameSub>(0x1234567890ABCDEF, "Everything");
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem3);
+
+			for (size_t i = 0; i < titles.size(); i++) {
+				auto *clickableListItem = new tsl::elm::ListItem(titles[i].TitleName);
+				clickableListItem->setClickListener([i](u64 keys) { 
+					if (keys & HidNpadButton_A) {
+						tsl::changeTo<NoGameSub>(titles[i].TitleID, titles[i].TitleName);
+						return true;
+					}
+					return false;
+				});
+
+				list->addItem(clickableListItem);
+			}
+		}
+
+		frame->setContent(list);
+
+		return frame;
+	}
+
+	virtual void update() override {}
+
+	// Called once every frame to handle inputs not handled by other UI elements
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		return false;   // Return true here to singal the inputs have been consumed
 	}
 };
 
@@ -341,6 +536,7 @@ public:
 		threadWaitForExit(&t0);
 		threadClose(&t0);
 		shmemClose(&_sharedmemory);
+		nsExit();
 		fsdevUnmountDevice("sdmc");
 	}  // Callet at the end to clean up all services previously initialized
 
@@ -349,7 +545,16 @@ public:
 	virtual void onHide() override {}    // Called before overlay wants to change from visible to invisible state
 
 	virtual std::unique_ptr<tsl::Gui> loadInitialGui() override {
-		return initially<GuiTest>(1, 2, true);  // Initial Gui to load. It's possible to pass arguments to it's constructor like this
+		if (SaltySD && check && plugin) {
+			return initially<GuiTest>(1, 2, true);  // Initial Gui to load. It's possible to pass arguments to it's constructor like this
+		}
+		else {
+			tsl::hlp::doWithSmSession([]{
+				nsInitialize();
+			});
+			Result rc = getTitles(32);
+			return initially<NoGame>(rc, 2, true);
+		}
 	}
 };
 

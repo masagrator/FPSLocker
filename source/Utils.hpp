@@ -39,6 +39,14 @@ bool* patchApplied_shared = 0;
 Thread t0;
 bool threadActive = true;
 
+struct Title
+{
+	uint64_t TitleID;
+	std::string TitleName;
+};
+
+std::vector<Title> titles;
+
 uint64_t checkFile(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file)
@@ -125,4 +133,48 @@ bool CheckPort () {
 		else svcSleepThread(1'000'000);
 	}
 	return false;
+}
+
+std::string getAppName(uint64_t Tid)
+{
+	NsApplicationControlData appControlData;
+	size_t appControlDataSize = 0;
+	if (R_FAILED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, &appControlData, sizeof(NsApplicationControlData), &appControlDataSize))) {
+		char returnTID[18];
+		sprintf(returnTID, "%016lx-", Tid);
+		return (std::string)returnTID;
+	}
+	
+	NacpLanguageEntry *languageEntry = nullptr;
+	Result rc = nsGetApplicationDesiredLanguage(&appControlData.nacp, &languageEntry);
+	if (R_FAILED(rc)) {
+		char returnTID[18];
+		sprintf(returnTID, "0x%X", rc);
+		return (std::string)returnTID;
+	}
+	
+	return std::string(languageEntry->name);
+}
+
+Result getTitles(int32_t count)
+{
+  NsApplicationRecord appRecords = {};
+  int32_t actualAppRecordCnt = 0;
+  Result rc;
+
+  while (1)
+  {
+    static int32_t offset = 0;
+    rc = nsListApplicationRecord(&appRecords, 1, offset, &actualAppRecordCnt);
+    if (R_FAILED(rc) || (actualAppRecordCnt < 1) || (offset >= count)) break;
+    if (appRecords.application_id != 0) {
+        Title title;
+        title.TitleID = appRecords.application_id;
+        title.TitleName = getAppName(appRecords.application_id);
+        titles.push_back(title);
+    }
+    offset++;
+    appRecords = {};
+  }
+  return rc;
 }
