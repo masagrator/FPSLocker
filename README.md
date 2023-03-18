@@ -6,21 +6,34 @@ Disclaimer: Tool is utilizing detection of graphics API to manipulate FPS and in
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 0.5.0+](https://github.com/masagrator/SaltyNX/releases)
-- [NX-FPS 1.0+](https://github.com/masagrator/NX-FPS/releases)
+- [My fork of SaltyNX, version 0.5.1+](https://github.com/masagrator/SaltyNX/releases)
+- [NX-FPS 1.1+](https://github.com/masagrator/NX-FPS/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 
 # Usage
 
-Run game and open FPSLocker overlay. If game is supported by SaltyNX and you installed everything correctly, you will see menu where first line states `NX-FPS plugin is running`.
+Overlay runs in two modes:<br>
+> When game is running
+
+If game is supported by SaltyNX and you installed everything correctly, you will see menu where first line states `NX-FPS plugin is running`.
 Explanation of each line:
 - `Interval Mode` - it's used by NVN API to set limiter to either 30 FPS (2) or 60 FPS (1 or 0 (0 means that game never bothered to set it, it can be also a sign that game is not utilizing NVN but EGL or Vulkan))
 - `Custom FPS Target` - it's used to lock game to certain FPS. If game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
 - `Increase/Decrease FPS target` - Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS. If FPS is set above 30 FPS, it sets `interval mode` to 1. Otherwise it sets interval to 2.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
-- `Sync Wait (!)` - this is dangerous setting that disabled in most cases will crash game (for example Witcher 3 and Breath of The Wild), but in some can bring benefit of disabling double buffer at the cost of small graphical glitches (for example Xenoblade Chronicles 3). Use it with caution.
-- `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash, otherwise you will be forced to delete saved profile manually. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
+- Advanced settings - submenu which consists of:
+  - `Sync Wait` - this is dangerous setting that disabled in most cases will crash game (for example Witcher 3 and Breath of The Wild), but in some can bring benefit of disabling double buffer at the cost of small graphical glitches (for example Xenoblade Chronicles 3). Use it with caution.
+  - `Convert config to patch file` - if proper config file exists for this game and version, you will get an option to convert it to patch file that will be loaded when you will run this game next time. Patch is saved to `SaltySD/plugins/FPSLocker/patches/*titleid_uppercase*/*buildid_uppercase*.bin`
+  - `Delete patch file` - if proper config file exists for this game and version, you will get an option to delete patch file so it won't be loaded when you will run this game next time.
+- `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
+
+> When game is not running
+
+It will list installed games (max 32) and as first option it's available "All" submenu.<br>
+Inside each one you will find two options:
+- `Delete settings` - it will delete file created by "Save settings" option
+- `Delete patches` - it will delete file created by "Convert config to patch file" option
 
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
