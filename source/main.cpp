@@ -6,31 +6,9 @@
 #include "Utils.hpp"
 
 void loopThread(void*) {
-	while(R_SUCCEEDED(pmdmntGetApplicationProcessId(&PID)) || threadActive) {
-		switch (*FPSmode_shared) {
-			case 0:
-				//This is usually a sign that game doesn't use SetPresentInterval
-				sprintf(FPSMode_c, "NVN Interval Mode: 0 (Unused)");
-				break;
-			case 1:
-				sprintf(FPSMode_c, "NVN Interval Mode: 1 (60 FPS)");
-				break;
-			case 2:
-				sprintf(FPSMode_c, "NVN Interval Mode: 2 (30 FPS)");
-				break;
-			default:
-				sprintf(FPSMode_c, "NVN Interval Mode: %d (Wrong)", *FPSmode_shared);
-		}
-		if (!*FPSlocked_shared) {
-			sprintf(FPSTarget_c, "Custom FPS Target: Disabled");
-		}
-		else sprintf(FPSTarget_c, "Custom FPS Target: %d", *FPSlocked_shared);
-		if (*patchApplied_shared) {
-			sprintf(patchAppliedChar, "Plugin loaded patch to game");
-		}
-		else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
-		sprintf(PFPS_c, "%d", *FPS_shared);
-		svcSleepThread(1'000'000'000/8);
+	while(threadActive) {
+		if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) break;
+		svcSleepThread(125'000'000);
 	}
 	PluginRunning = false;
 	check = false;
@@ -39,7 +17,17 @@ void loopThread(void*) {
 
 class AdvancedGui : public tsl::Gui {
 public:
-    AdvancedGui() {}
+    AdvancedGui() {
+		configValid = LOCK::readConfig(&configPath[0]);
+		if (R_FAILED(configValid))
+			sprintf(&lockInvalid[0], "Config error: 0x%X", configValid);
+		else {
+			patchValid = checkFile(&patchPath[0]);
+			if (R_FAILED(patchValid))
+				sprintf(&patchChar[0], "Patch file doesn't exist.");
+			else sprintf(&patchChar[0], "Patch file exists.");
+		}
+	}
 
     virtual tsl::elm::Element* createUI() override {
         auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Advanced settings");
@@ -108,6 +96,21 @@ public:
 
         return frame;
     }
+
+	virtual void update() override {
+		static uint8_t i = 10;
+
+		if (PluginRunning) {
+			if (i > 9) {
+				if (*patchApplied_shared) {
+					sprintf(patchAppliedChar, "Plugin loaded patch to game");
+				}
+				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
+				i = 0;
+			}
+			else i++;
+		}
+	}
 };
 
 class GuiTest : public tsl::Gui {
@@ -246,7 +249,35 @@ public:
 	}
 
 	// Called once every frame to update values
-	virtual void update() override {}
+	virtual void update() override {
+		static uint8_t i = 10;
+
+		if (PluginRunning) {
+			if (i > 9) {
+				switch (*FPSmode_shared) {
+					case 0:
+						//This is usually a sign that game doesn't use SetPresentInterval
+						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
+						break;
+					case 1:
+						sprintf(FPSMode_c, "Interval Mode: 1 (60 FPS)");
+						break;
+					case 2:
+						sprintf(FPSMode_c, "Interval Mode: 2 (30 FPS)");
+						break;
+					default:
+						sprintf(FPSMode_c, "Interval Mode: %d (Wrong)", *FPSmode_shared);
+				}
+				if (!*FPSlocked_shared) {
+					sprintf(FPSTarget_c, "Custom FPS Target: Disabled");
+				}
+				else sprintf(FPSTarget_c, "Custom FPS Target: %d", *FPSlocked_shared);
+				sprintf(PFPS_c, "%d", *FPS_shared);
+				i = 0;
+			}
+			else i++;
+		}
+	}
 
 	// Called once every frame to handle inputs not handled by other UI elements
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
@@ -289,15 +320,6 @@ public:
 					sprintf(&configPath[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
 					sprintf(&savePath[0], "sdmc:/SaltySD/plugins/FPSLocker/%016lX.dat", TID);
 
-					configValid = LOCK::readConfig(&configPath[0]);
-					if (R_FAILED(configValid))
-						sprintf(&lockInvalid[0], "Config error: 0x%X", configValid);
-					else {
-						patchValid = checkFile(&patchPath[0]);
-						if (R_FAILED(patchValid))
-							sprintf(&patchChar[0], "Patch file doesn't exist.");
-						else sprintf(&patchChar[0], "Patch file exists.");
-					}
 					FPS_shared = (uint8_t*)(base + rel_offset + 4);
 					pluginActive = (bool*)(base + rel_offset + 9);
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);

@@ -37,7 +37,7 @@ char patchChar[64] = "";
 char patchAppliedChar[64] = "";
 bool* patchApplied_shared = 0;
 Thread t0;
-bool threadActive = false;
+bool threadActive = true;
 
 uint64_t checkFile(const char* path) {
     FILE* file = fopen(path, "rb");
