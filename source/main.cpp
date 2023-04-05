@@ -48,17 +48,27 @@ public:
 
 		}), 70);
 
-		if (*FPSmode_shared != 255) {
-			list->addItem(new tsl::elm::CategoryHeader("NVN", true));
-			auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
-			clickableListItem3->setClickListener([](u64 keys) { 
-				if ((keys & HidNpadButton_A) && PluginRunning) {
-					*ZeroSync_shared = !*ZeroSync_shared;
-					return true;
+		if (*API_shared) {
+			switch(*API_shared) {
+				case 1: {
+					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
+					auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
+					clickableListItem3->setClickListener([](u64 keys) { 
+						if ((keys & HidNpadButton_A) && PluginRunning) {
+							*ZeroSync_shared = !*ZeroSync_shared;
+							return true;
+						}
+						return false;
+					});
+					list->addItem(clickableListItem3);
+					break;
 				}
-				return false;
-			});
-			list->addItem(clickableListItem3);
+				case 2:
+					list->addItem(new tsl::elm::CategoryHeader("EGL", true));
+					break;
+				case 3:
+					list->addItem(new tsl::elm::CategoryHeader("Vulkan", true));
+			}
 		}
 
 		if (R_SUCCEEDED(configValid)) {
@@ -347,7 +357,7 @@ public:
 			}
 			else {
 				renderer->drawString("NX-FPS is running.", false, x, y+20, 20, renderer->a(0xFFFF));
-				if (*FPSmode_shared != 255)
+				if ((*API_shared > 0) && (*API_shared <= 2))
 					renderer->drawString(FPSMode_c, false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSTarget_c, false, x, y+60, 20, renderer->a(0xFFFF));
 				renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
@@ -451,7 +461,7 @@ public:
 			if (i > 9) {
 				switch (*FPSmode_shared) {
 					case 0:
-						//This is usually a sign that game doesn't use SetPresentInterval
+						//This is usually a sign that game doesn't use interval
 						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
 						break;
 					case 1:
@@ -521,6 +531,7 @@ public:
 					FPSmode_shared = (uint8_t*)(base + rel_offset + 11);
 					ZeroSync_shared = (bool*)(base + rel_offset + 12);
 					patchApplied_shared = (bool*)(base + rel_offset + 13);
+					API_shared = (uint8_t*)(base + rel_offset + 14);
 					PluginRunning = true;
 					threadCreate(&t0, loopThread, NULL, NULL, 0x100, 0x20, 0);
 					threadStart(&t0);

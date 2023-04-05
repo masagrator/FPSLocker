@@ -3,6 +3,7 @@
 uint8_t* FPS_shared = 0;
 uint8_t* FPSmode_shared = 0;
 uint8_t* FPSlocked_shared = 0;
+uint8_t* API_shared = 0;
 bool* pluginActive = 0;
 bool* ZeroSync_shared = 0;
 bool _isDocked = false;
