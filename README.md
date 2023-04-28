@@ -24,7 +24,7 @@ Explanation of each line:
 - `Increase/Decrease FPS target` - Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS. If FPS is set above 30 FPS, it sets `interval mode` to 1. Otherwise it sets interval to 2.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
 - Advanced settings - submenu which consists of:
-  - `Sync Wait` - this is dangerous setting that disabled in most cases will crash game (for example Witcher 3 and Breath of The Wild), but in some can bring benefit of disabling double buffer at the cost of small graphical glitches (for example Xenoblade Chronicles 3). Use it with caution.
+  - `Sync Wait` - this is dangerous setting that disabled in most cases will crash game (for example Witcher 3 and Breath of The Wild), but in some can bring benefit of disabling double buffer at the cost of small graphical glitches (check list of games compatible with this solution at the bottom of README). Use it with caution.
   - `Convert config to patch file` - if proper config file exists for this game and version, you will get an option to convert it to patch file that will be loaded when you will run this game next time. Patch is saved to `SaltySD/plugins/FPSLocker/patches/*titleid_uppercase*/*buildid_uppercase*.bin`
   - `Delete patch file` - if proper config file exists for this game and version, you will get an option to delete patch file so it won't be loaded when you will run this game next time.
 - `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
@@ -38,3 +38,10 @@ Inside each one you will find two options:
 
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
+
+# Sync Wait
+In those games you can disable double buffer by turning off Sync Wait in FPSLocker:
+- Xenoblade Chronicles: Definitive Edition
+- Xenoblade Chronicles 2
+- Xenoblade Chronicles 3
+- Pokemon Legends: Arceus
