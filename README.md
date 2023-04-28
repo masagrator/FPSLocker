@@ -41,7 +41,9 @@ Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for t
 
 # Sync Wait
 In those games you can disable double buffer by turning off Sync Wait in FPSLocker:
+- Pokemon Legends: Arceus
+- Pokemon Scarlet
+- Pokemon Violet
 - Xenoblade Chronicles: Definitive Edition
 - Xenoblade Chronicles 2
 - Xenoblade Chronicles 3
-- Pokemon Legends: Arceus
