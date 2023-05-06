@@ -36,17 +36,20 @@ public:
 		auto list = new tsl::elm::List();
 
 		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-
+			
 			if (R_SUCCEEDED(configValid)) {
 				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchAppliedChar[0], false, x, y+60, 20, renderer->a(0xFFFF));
+				renderer->drawString(&nvnBuffers[0], false, x, y+80, 20, renderer->a(0xFFFF));
 			}
-			else
+			else {
 				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(&nvnBuffers[0], false, x, y+40, 90, renderer->a(0xFFFF));
+			}
 				
 
-		}), 70);
+		}), 80);
 
 		if (*API_shared) {
 			switch(*API_shared) {
@@ -114,9 +117,14 @@ public:
 		if (PluginRunning) {
 			if (i > 9) {
 				if (*patchApplied_shared) {
-					sprintf(patchAppliedChar, "Plugin loaded patch to game");
+					sprintf(patchAppliedChar, "Patch was loaded to game");
 				}
 				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
+				if (*API_shared == 1) {
+					if (*Buffers_shared >= 2 && *Buffers_shared <= 4) {
+						sprintf(&nvnBuffers[0], "Buffered frames: %d", *Buffers_shared);
+					}
+				}
 				i = 0;
 			}
 			else i++;
@@ -532,6 +540,7 @@ public:
 					ZeroSync_shared = (bool*)(base + rel_offset + 12);
 					patchApplied_shared = (bool*)(base + rel_offset + 13);
 					API_shared = (uint8_t*)(base + rel_offset + 14);
+					Buffers_shared = (uint8_t*)(base + rel_offset + 55);
 					PluginRunning = true;
 					threadCreate(&t0, loopThread, NULL, NULL, 0x100, 0x20, 0);
 					threadStart(&t0);

@@ -4,6 +4,7 @@ uint8_t* FPS_shared = 0;
 uint8_t* FPSmode_shared = 0;
 uint8_t* FPSlocked_shared = 0;
 uint8_t* API_shared = 0;
+uint8_t* Buffers_shared = 0;
 bool* pluginActive = 0;
 bool* ZeroSync_shared = 0;
 bool _isDocked = false;
@@ -18,6 +19,7 @@ bool plugin = false;
 char FPSMode_c[64];
 char FPSTarget_c[32];
 char PFPS_c[32];
+char nvnBuffers[32] = "";
 char SyncWait_c[32];
 
 char configPath[128] = "";
