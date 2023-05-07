@@ -45,7 +45,7 @@ public:
 			}
 			else {
 				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString(&nvnBuffers[0], false, x, y+40, 90, renderer->a(0xFFFF));
+				renderer->drawString(&nvnBuffers[0], false, x, y+40, 20, renderer->a(0xFFFF));
 			}
 				
 
