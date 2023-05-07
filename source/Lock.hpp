@@ -101,10 +101,6 @@ namespace LOCK {
 					}
 					else temp_size += getTypeSize(string_check);
 				}
-				else if (!string_check.compare("assembly")) {
-					temp_size += 4; // main_offset
-					temp_size += entry[i]["instructions"].num_children() * 4;
-				}
 				else return 2;
 			}
 			temp_size++;
