@@ -475,11 +475,8 @@ public:
 						//This is usually a sign that game doesn't use interval
 						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
 						break;
-					case 1:
-						sprintf(FPSMode_c, "Interval Mode: 1 (60 FPS)");
-						break;
-					case 2:
-						sprintf(FPSMode_c, "Interval Mode: 2 (30 FPS)");
+					case 1...5:
+						sprintf(FPSMode_c, "Interval Mode: %d (%d FPS)", *FPSmode_shared, 60 / *FPSmode_shared);
 						break;
 					default:
 						sprintf(FPSMode_c, "Interval Mode: %d (Wrong)", *FPSmode_shared);
