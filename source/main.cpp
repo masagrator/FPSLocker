@@ -41,7 +41,7 @@ public:
 				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchAppliedChar[0], false, x, y+60, 20, renderer->a(0xFFFF));
-				renderer->drawString(&nvnBuffers[0], false, x, y+80, 20, renderer->a(0xFFFF));
+				renderer->drawString(&nvnBuffers[0], false, x, y+82, 20, renderer->a(0xFFFF));
 			}
 			else {
 				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
@@ -49,7 +49,7 @@ public:
 			}
 				
 
-		}), 80);
+		}), 85);
 
 		if (*API_shared) {
 			switch(*API_shared) {
@@ -116,11 +116,8 @@ public:
 
 		if (PluginRunning) {
 			if (i > 9) {
-				if (*patchApplied_shared == 1) {
+				if (*patchApplied_shared) {
 					sprintf(patchAppliedChar, "Patch was loaded to game");
-				}
-				else if (*patchApplied_shared == 2) {
-					sprintf(patchAppliedChar, "Master Write was applied to game");
 				}
 				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
 				if (*API_shared == 1) {
@@ -475,9 +472,8 @@ public:
 						//This is usually a sign that game doesn't use interval
 						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
 						break;
-					case 1...5:
+					case 1 ... 5:
 						sprintf(FPSMode_c, "Interval Mode: %d (%d FPS)", *FPSmode_shared, 60 / *FPSmode_shared);
-						break;
 					default:
 						sprintf(FPSMode_c, "Interval Mode: %d (Wrong)", *FPSmode_shared);
 				}
@@ -538,7 +534,7 @@ public:
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);
 					FPSmode_shared = (uint8_t*)(base + rel_offset + 11);
 					ZeroSync_shared = (bool*)(base + rel_offset + 12);
-					patchApplied_shared = (uint8_t*)(base + rel_offset + 13);
+					patchApplied_shared = (bool*)(base + rel_offset + 13);
 					API_shared = (uint8_t*)(base + rel_offset + 14);
 					Buffers_shared = (uint8_t*)(base + rel_offset + 55);
 					PluginRunning = true;
