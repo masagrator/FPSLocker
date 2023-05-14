@@ -116,8 +116,11 @@ public:
 
 		if (PluginRunning) {
 			if (i > 9) {
-				if (*patchApplied_shared) {
+				if (*patchApplied_shared == 1) {
 					sprintf(patchAppliedChar, "Patch was loaded to game");
+				}
+				else if (*patchApplied_shared == 2) {
+					sprintf(patchAppliedChar, "Master Write was loaded to game");
 				}
 				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
 				if (*API_shared == 1) {
@@ -534,7 +537,7 @@ public:
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);
 					FPSmode_shared = (uint8_t*)(base + rel_offset + 11);
 					ZeroSync_shared = (bool*)(base + rel_offset + 12);
-					patchApplied_shared = (bool*)(base + rel_offset + 13);
+					patchApplied_shared = (uint8_t*)(base + rel_offset + 13);
 					API_shared = (uint8_t*)(base + rel_offset + 14);
 					Buffers_shared = (uint8_t*)(base + rel_offset + 55);
 					PluginRunning = true;
