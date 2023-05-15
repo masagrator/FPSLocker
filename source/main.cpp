@@ -20,12 +20,8 @@ class AdvancedGui : public tsl::Gui {
 public:
     AdvancedGui() {
 		configValid = LOCK::readConfig(&configPath[0]);
-		if (R_FAILED(configValid)) {
-			if (configValid == 0x202) {
-				sprintf(&lockInvalid[0], "Game config file not found");
-			}
-			else sprintf(&lockInvalid[0], "Game config error: 0x%X", configValid);
-		}
+		if (R_FAILED(configValid))
+			sprintf(&lockInvalid[0], "Config error: 0x%X", configValid);
 		else {
 			patchValid = checkFile(&patchPath[0]);
 			if (R_FAILED(patchValid))
@@ -45,7 +41,7 @@ public:
 				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchAppliedChar[0], false, x, y+60, 20, renderer->a(0xFFFF));
-				renderer->drawString(&nvnBuffers[0], false, x, y+82, 20, renderer->a(0xFFFF));
+				renderer->drawString(&nvnBuffers[0], false, x, y+80, 20, renderer->a(0xFFFF));
 			}
 			else {
 				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
@@ -53,23 +49,21 @@ public:
 			}
 				
 
-		}), 85);
+		}), 80);
 
 		if (*API_shared) {
 			switch(*API_shared) {
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
-					if (*Buffers_shared == 2) {
-						auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
-						clickableListItem3->setClickListener([](u64 keys) { 
-							if ((keys & HidNpadButton_A) && PluginRunning) {
-								*ZeroSync_shared = !*ZeroSync_shared;
-								return true;
-							}
-							return false;
-						});
-						list->addItem(clickableListItem3);
-					}
+					auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
+					clickableListItem3->setClickListener([](u64 keys) { 
+						if ((keys & HidNpadButton_A) && PluginRunning) {
+							*ZeroSync_shared = !*ZeroSync_shared;
+							return true;
+						}
+						return false;
+					});
+					list->addItem(clickableListItem3);
 					break;
 				}
 				case 2:
@@ -122,11 +116,8 @@ public:
 
 		if (PluginRunning) {
 			if (i > 9) {
-				if (*patchApplied_shared == 1) {
+				if (*patchApplied_shared) {
 					sprintf(patchAppliedChar, "Patch was loaded to game");
-				}
-				else if (*patchApplied_shared == 2) {
-					sprintf(patchAppliedChar, "Master Write was loaded to game");
 				}
 				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
 				if (*API_shared == 1) {
@@ -481,8 +472,11 @@ public:
 						//This is usually a sign that game doesn't use interval
 						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
 						break;
-					case 1 ... 5:
-						sprintf(FPSMode_c, "Interval Mode: %d (%d FPS)", *FPSmode_shared, 60 / *FPSmode_shared);
+					case 1:
+						sprintf(FPSMode_c, "Interval Mode: 1 (60 FPS)");
+						break;
+					case 2:
+						sprintf(FPSMode_c, "Interval Mode: 2 (30 FPS)");
 						break;
 					default:
 						sprintf(FPSMode_c, "Interval Mode: %d (Wrong)", *FPSmode_shared);
@@ -544,7 +538,7 @@ public:
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);
 					FPSmode_shared = (uint8_t*)(base + rel_offset + 11);
 					ZeroSync_shared = (bool*)(base + rel_offset + 12);
-					patchApplied_shared = (uint8_t*)(base + rel_offset + 13);
+					patchApplied_shared = (bool*)(base + rel_offset + 13);
 					API_shared = (uint8_t*)(base + rel_offset + 14);
 					Buffers_shared = (uint8_t*)(base + rel_offset + 55);
 					PluginRunning = true;

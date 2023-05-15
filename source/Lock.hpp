@@ -9,7 +9,6 @@ namespace LOCK {
 	const char entries[10][6] = {"15FPS", "20FPS", "25FPS", "30FPS", "35FPS", "40FPS", "45FPS", "50FPS", "55FPS", "60FPS"};
 	ryml::Tree tree;
 	char configBuffer[32770] = "";
-	uint8_t gen = 1;
 
 	struct buffer_data {
 		size_t size;
@@ -80,32 +79,11 @@ namespace LOCK {
 	}
 
 	template <typename T>
-	size_t NOINLINE calculateSize(T entry, bool masterWrite = false) {
+	size_t NOINLINE calculateSize(T entry) {
 		std::string string_check = "";
 		size_t temp_size = 0;
 
 		//calculate bytes size
-
-		if (masterWrite) {
-			for (size_t i = 0; i < entry.num_children(); i++) {
-				temp_size++;
-				entry[i]["type"] >> string_check;
-
-				if (!string_check.compare("bytes")) {
-					temp_size += 4; // main_offset
-					temp_size++; // value_type
-					temp_size++; // value count
-					entry[i]["value_type"] >> string_check;
-					if (entry[i]["value"].is_seq()) {
-						temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
-					}
-					else temp_size += getTypeSize(string_check);
-				}
-				else return 2;
-			}
-			temp_size++;
-			return temp_size;
-		}
 		
 		for (size_t i = 0; i < entry.num_children(); i++) {
 
@@ -152,127 +130,10 @@ namespace LOCK {
 	}
 
 	template <typename T>
-	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size, bool masterWrite = false) {
+	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size) {
 		std::string string_check = "";
 		size_t temp_size = 0;
-		if (masterWrite) {
-			for (size_t i = 0; i < entry.num_children(); i++) {
-				entry[i]["type"] >> string_check;
-				if (!string_check.compare("bytes")) {
-					buffer[temp_size] = 1; // type
-					temp_size++;
-					entry[i]["main_offset"] >> *(uint32_t*)(&buffer[temp_size]);
-					temp_size += 4;
-					entry[i]["value_type"] >> string_check;
-					uint8_t value_type = getValueType(string_check);
-					buffer[temp_size] = value_type;
-					temp_size++;
-					if (entry[i]["value"].is_seq()) {
-						buffer[temp_size] = entry[i]["value"].num_children(); //value_count
-						temp_size++;
-						for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
-							switch(value_type) {
-								case 1:
-									entry[i]["value"][x] >> buffer[temp_size];
-									temp_size++;
-									break;
-								case 2:
-									entry[i]["value"][x] >> *(uint16_t*)(&buffer[temp_size]);
-									temp_size += 2;
-									break;
-								case 4:
-									entry[i]["value"][x] >> *(uint32_t*)(&buffer[temp_size]);
-									temp_size += 4;
-									break;
-								case 8:
-									entry[i]["value"][x] >> *(uint64_t*)(&buffer[temp_size]);
-									temp_size += 8;
-									break;
-								case 0x11:
-									entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
-									temp_size++;
-									break;
-								case 0x12:
-									entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
-									temp_size += 2;
-									break;
-								case 0x14:
-									entry[i]["value"][x] >> *(int32_t*)(&buffer[temp_size]);
-									temp_size += 4;
-									break;
-								case 0x18:
-									entry[i]["value"][x] >> *(int64_t*)(&buffer[temp_size]);
-									temp_size += 8;
-									break;
-								case 0x24:
-									entry[i]["value"][x] >> *(float*)(&buffer[temp_size]);
-									temp_size += 4;
-									break;
-								case 0x28:
-									entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
-									temp_size += 8;
-									break;
-								default:
-									return 4;
-							}
-						}
-					}
-					else {
-						buffer[temp_size] = 1;
-						temp_size++;
-						switch(value_type) {
-							case 1:
-								entry[i]["value"] >> buffer[temp_size];
-								temp_size++;
-								break;
-							case 2:
-								entry[i]["value"] >> *(uint16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 4:
-								entry[i]["value"] >> *(uint32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 8:
-								entry[i]["value"] >> *(uint64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x11:
-								entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
-								temp_size++;
-								break;
-							case 0x12:
-								entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 0x14:
-								entry[i]["value"] >> *(int32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x18:
-								entry[i]["value"] >> *(int64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x24:
-								entry[i]["value"] >> *(float*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x28:
-								entry[i]["value"] >> *(double*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							default:
-								return 4;
-						}
-					}					
-				}
-				else return 2;
-			}
-			buffer[temp_size] = 0xFF;
-			temp_size++;
-			*out_size = temp_size;
-			return 0;
-		}
+
 		for (size_t i = 0; i < entry.num_children(); i++) {
 		
 			entry[i]["type"] >> string_check;
@@ -584,18 +445,18 @@ namespace LOCK {
 	}
 
 	template <typename T>
-	Result NOINLINE processEntry(T entry, bool masterWrite = false) {
+	Result NOINLINE processEntry(T entry) {
 		
 		size_t temp_size = 0;
 		size_t old_temp_size = 0;
 		
-		temp_size = calculateSize(entry, masterWrite);
+		temp_size = calculateSize(entry);
 
 		uint8_t* buffer = (uint8_t*)calloc(temp_size, sizeof(uint8_t));
 		old_temp_size = temp_size;
 		temp_size = 0;
 
-		Result rc = processEntryImpl(entry, buffer, &temp_size, masterWrite);
+		Result rc = processEntryImpl(entry, buffer, &temp_size);
 		if (R_FAILED(rc)) {
 			free(buffer);
 			return rc;
@@ -626,27 +487,11 @@ namespace LOCK {
 			}
 		}
 
-		if (gen == 2) {
-			Result ret = processEntry(tree["MASTER_WRITE"], true);
-			if (R_FAILED(ret)) {
-				freeBuffers();
-				return ret;
-			}
-			flags[0] = 2;
-		}
-
 		uint32_t base_offset = 0x30;
-		if (gen == 2) {
-			base_offset += 4;
-		}
-		uint8_t entries_count = 10;
-		if (gen == 2) {
-			entries_count++;
-		}
-		uint32_t* offsets = (uint32_t*)calloc(entries_count, 4);
+		uint32_t offsets[10] = {0};
 		offsets[0] = base_offset;
 		base_offset += buffers[0] -> size;
-		uint8_t* IDs = (uint8_t*)calloc(entries_count, 1);;
+		uint8_t IDs[10] = {0};
 		for (size_t i = 1; i < buffers.size(); i++) {
 			for (size_t x = 0; x < i; x++) {
 				if (buffers[x] -> size != buffers[i] -> size) {
@@ -671,22 +516,15 @@ namespace LOCK {
 			}
 		}
 
-		if (!buffers.size()) {
-			free(offsets);
-			free(IDs);
+		if (!buffers.size())
 			return 0x18;
-		}
 		FILE* file = fopen(path, "wb");
-		if (!file) {
-			freeBuffers();
-			free(offsets);
-			free(IDs);
+		if (!file)
 			return 0x202;
-		}
 		fwrite(&lockMagic[0], 4, 1, file);
 		fwrite(&flags[0], 3, 1, file);
 		fwrite(&unsafeCheck, 1, 1, file);
-		for (size_t i = 0; i < entries_count; i++) {
+		for (size_t i = 0; i < std::size(offsets); i++) {
 			fwrite(&offsets[i], 4, 1, file);
 		}
 		for (size_t i = 0; i < buffers.size(); i++) 
@@ -695,8 +533,6 @@ namespace LOCK {
 
 		fclose(file);
 		freeBuffers();
-		free(offsets);
-		free(IDs);
 		//remove(path);
 		return 0;
 	}
@@ -711,19 +547,16 @@ namespace LOCK {
 
 		tree = ryml::parse_in_place(configBuffer);
 		size_t root_id = tree.root_id();
-
 		if (!tree.is_map(root_id))
 			return 4;
-		if (tree.find_child(root_id, "unsafeCheck") == c4::yml::NONE)
+		if (strncmp(&tree["unsafeCheck"].key()[0], "unsafeCheck", 11))
 			return 1;
 		if (!tree["unsafeCheck"].is_keyval())
 			return 2;
-		if (tree.find_child(root_id, "MASTER_WRITE") != c4::yml::NONE)
-			gen = 2;
 
 		Result base_err = 0x15;
 		for (size_t i = 0; i < std::size(entries); i++) {
-			if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
+			if (strncmp(&tree[entries[i]].key()[0], entries[i], 5))
 				return base_err + (5 * i);
 			if (!tree[entries[i]].is_seq())
 				return base_err + 0x100 + (5 * i);
