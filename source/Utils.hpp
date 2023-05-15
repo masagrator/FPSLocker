@@ -38,7 +38,7 @@ Result patchValid = 0x202;
 char lockInvalid[32] = "";
 char patchChar[64] = "";
 char patchAppliedChar[64] = "";
-bool* patchApplied_shared = 0;
+uint8_t* patchApplied_shared = 0;
 Thread t0;
 bool threadActive = true;
 
