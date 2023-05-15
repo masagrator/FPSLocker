@@ -60,7 +60,7 @@ public:
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
 					if (*Buffers_shared == 2) {
-						auto *clickableListItem3 = new tsl::elm::ToggleListItem("Sync Wait", !*ZeroSync_shared);
+						auto *clickableListItem3 = new tsl::elm::ToggleListItem("Window Sync Wait", !*ZeroSync_shared);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								*ZeroSync_shared = !*ZeroSync_shared;
