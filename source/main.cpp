@@ -20,8 +20,12 @@ class AdvancedGui : public tsl::Gui {
 public:
     AdvancedGui() {
 		configValid = LOCK::readConfig(&configPath[0]);
-		if (R_FAILED(configValid))
-			sprintf(&lockInvalid[0], "Config error: 0x%X", configValid);
+		if (R_FAILED(configValid)) {
+			if (configValid == 0x202) {
+				sprintf(&lockInvalid[0], "Game config file not found");
+			}
+			else sprintf(&lockInvalid[0], "Game config error: 0x%X", configValid);
+		}
 		else {
 			patchValid = checkFile(&patchPath[0]);
 			if (R_FAILED(patchValid))
