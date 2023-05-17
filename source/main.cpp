@@ -16,6 +16,112 @@ void loopThread(void*) {
 	closed = true;
 }
 
+class SyncMode : public tsl::Gui {
+public:
+    SyncMode() {}
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("NVN Window Sync Wait", "Mode");
+
+		auto list = new tsl::elm::List();
+
+		auto *clickableListItem = new tsl::elm::ListItem("Enabled");
+		clickableListItem->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				ZeroSyncMode = "On";
+				*ZeroSync_shared = 0;
+				tsl::goBack();
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem);
+
+		auto *clickableListItem2 = new tsl::elm::ListItem("Disabled");
+		clickableListItem2->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				ZeroSyncMode = "Off";
+				*ZeroSync_shared = 6;
+				tsl::goBack();
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem2);
+
+		auto *clickableListItem3 = new tsl::elm::ListItem("1F");
+		clickableListItem3->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				ZeroSyncMode = "1F";
+				*ZeroSync_shared = 1;
+				tsl::goBack();
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem3);
+
+		auto *clickableListItem4 = new tsl::elm::ListItem("2F");
+		clickableListItem4->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				ZeroSyncMode = "2F";
+				*ZeroSync_shared = 2;
+				tsl::goBack();
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem4);
+
+		auto *clickableListItem5 = new tsl::elm::ListItem("3F");
+		clickableListItem5->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				ZeroSyncMode = "3F";
+				*ZeroSync_shared = 3;
+				tsl::goBack();
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem5);
+
+		auto *clickableListItem6 = new tsl::elm::ListItem("4F");
+		clickableListItem6->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				ZeroSyncMode = "4F";
+				*ZeroSync_shared = 4;
+				tsl::goBack();
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem6);
+
+		auto *clickableListItem7 = new tsl::elm::ListItem("5F");
+		clickableListItem7->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				ZeroSyncMode = "5F";
+				*ZeroSync_shared = 5;
+				tsl::goBack();
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem7);
+		
+        frame->setContent(list);
+
+        return frame;
+    }
+};
+
 class AdvancedGui : public tsl::Gui {
 public:
     AdvancedGui() {
@@ -31,6 +137,28 @@ public:
 			if (R_FAILED(patchValid))
 				sprintf(&patchChar[0], "Patch file doesn't exist.");
 			else sprintf(&patchChar[0], "Patch file exists.");
+		}
+		switch(*ZeroSync_shared) {
+			case 0:
+				ZeroSyncMode = "On";
+				break;
+			case 1:
+				ZeroSyncMode = "1F";
+				break;
+			case 2:
+				ZeroSyncMode = "2F";
+				break;
+			case 3:
+				ZeroSyncMode = "3F";
+				break;
+			case 4:
+				ZeroSyncMode = "4F";
+				break;
+			case 5:
+				ZeroSyncMode = "5F";
+				break;
+			case 6:
+				ZeroSyncMode = "Off";
 		}
 	}
 
@@ -60,10 +188,10 @@ public:
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
 					if (*Buffers_shared == 2) {
-						auto *clickableListItem3 = new tsl::elm::ToggleListItem("Window Sync Wait", !*ZeroSync_shared);
+						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
-								*ZeroSync_shared = !*ZeroSync_shared;
+								tsl::changeTo<SyncMode>();
 								return true;
 							}
 							return false;
@@ -543,7 +671,7 @@ public:
 					pluginActive = (bool*)(base + rel_offset + 9);
 					FPSlocked_shared = (uint8_t*)(base + rel_offset + 10);
 					FPSmode_shared = (uint8_t*)(base + rel_offset + 11);
-					ZeroSync_shared = (bool*)(base + rel_offset + 12);
+					ZeroSync_shared = (uint8_t*)(base + rel_offset + 12);
 					patchApplied_shared = (uint8_t*)(base + rel_offset + 13);
 					API_shared = (uint8_t*)(base + rel_offset + 14);
 					Buffers_shared = (uint8_t*)(base + rel_offset + 55);

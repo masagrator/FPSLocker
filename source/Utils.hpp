@@ -6,7 +6,7 @@ uint8_t* FPSlocked_shared = 0;
 uint8_t* API_shared = 0;
 uint8_t* Buffers_shared = 0;
 bool* pluginActive = 0;
-bool* ZeroSync_shared = 0;
+uint8_t* ZeroSync_shared = 0;
 bool _isDocked = false;
 bool _def = true;
 bool PluginRunning = false;
@@ -41,6 +41,7 @@ char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
 Thread t0;
 bool threadActive = true;
+std::string ZeroSyncMode = "";
 
 struct Title
 {
