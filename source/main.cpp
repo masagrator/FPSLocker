@@ -38,11 +38,11 @@ public:
 		});
 		list->addItem(clickableListItem);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem("Disabled");
+		auto *clickableListItem2 = new tsl::elm::ListItem("Semi-Enabled");
 		clickableListItem2->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "Off";
-				*ZeroSync_shared = 6;
+				ZeroSyncMode = "Semi";
+				*ZeroSync_shared = 2;
 				tsl::goBack();
 				tsl::goBack();
 				return true;
@@ -51,10 +51,10 @@ public:
 		});
 		list->addItem(clickableListItem2);
 
-		auto *clickableListItem3 = new tsl::elm::ListItem("1F");
+		auto *clickableListItem3 = new tsl::elm::ListItem("Disabled");
 		clickableListItem3->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "1F";
+				ZeroSyncMode = "Off";
 				*ZeroSync_shared = 1;
 				tsl::goBack();
 				tsl::goBack();
@@ -63,58 +63,6 @@ public:
 			return false;
 		});
 		list->addItem(clickableListItem3);
-
-		auto *clickableListItem4 = new tsl::elm::ListItem("2F");
-		clickableListItem4->setClickListener([](u64 keys) { 
-			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "2F";
-				*ZeroSync_shared = 2;
-				tsl::goBack();
-				tsl::goBack();
-				return true;
-			}
-			return false;
-		});
-		list->addItem(clickableListItem4);
-
-		auto *clickableListItem5 = new tsl::elm::ListItem("3F");
-		clickableListItem5->setClickListener([](u64 keys) { 
-			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "3F";
-				*ZeroSync_shared = 3;
-				tsl::goBack();
-				tsl::goBack();
-				return true;
-			}
-			return false;
-		});
-		list->addItem(clickableListItem5);
-
-		auto *clickableListItem6 = new tsl::elm::ListItem("4F");
-		clickableListItem6->setClickListener([](u64 keys) { 
-			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "4F";
-				*ZeroSync_shared = 4;
-				tsl::goBack();
-				tsl::goBack();
-				return true;
-			}
-			return false;
-		});
-		list->addItem(clickableListItem6);
-
-		auto *clickableListItem7 = new tsl::elm::ListItem("5F");
-		clickableListItem7->setClickListener([](u64 keys) { 
-			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "5F";
-				*ZeroSync_shared = 5;
-				tsl::goBack();
-				tsl::goBack();
-				return true;
-			}
-			return false;
-		});
-		list->addItem(clickableListItem7);
 		
         frame->setContent(list);
 
@@ -143,22 +91,10 @@ public:
 				ZeroSyncMode = "On";
 				break;
 			case 1:
-				ZeroSyncMode = "1F";
+				ZeroSyncMode = "Off";
 				break;
 			case 2:
-				ZeroSyncMode = "2F";
-				break;
-			case 3:
-				ZeroSyncMode = "3F";
-				break;
-			case 4:
-				ZeroSyncMode = "4F";
-				break;
-			case 5:
-				ZeroSyncMode = "5F";
-				break;
-			case 6:
-				ZeroSyncMode = "Off";
+				ZeroSyncMode = "Semi";
 		}
 	}
 
