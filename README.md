@@ -7,8 +7,8 @@ Max supported yaml size is 32kB, though it can be expanded in next updates.
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 0.5.1+](https://github.com/masagrator/SaltyNX/releases)
-- [NX-FPS 1.1+](https://github.com/masagrator/NX-FPS/releases)
+- [My fork of SaltyNX, version 0.6.0+](https://github.com/masagrator/SaltyNX/releases)
+- [NX-FPS 1.5.1+](https://github.com/masagrator/NX-FPS/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 
 How to setup everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
