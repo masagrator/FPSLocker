@@ -42,7 +42,7 @@ Inside each one you will find two options:
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
 
 # Sync Wait
-In those games you can disable double buffer by turning off Sync Wait in FPSLocker:
+In those games you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
 - Pokemon Legends: Arceus
 - Pokemon Scarlet
 - Pokemon Violet
