@@ -20,7 +20,7 @@ Overlay runs in two modes:<br>
 
 If game is supported by SaltyNX and you installed everything correctly, you will see menu where first line states `NX-FPS plugin is running`.
 Explanation of each line:
-- `Interval Mode` - it's used by NVN API to set limiter to either 30 FPS (2) or 60 FPS (1 or 0 (0 means that game never bothered to set it, it can be also a sign that game is not utilizing NVN but EGL or Vulkan))
+- `Interval Mode` - it's used by NVN API to set limiter to either 30 FPS (2) or 60 FPS (1). 
 - `Custom FPS Target` - it's used to lock game to certain FPS. If game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
 - `Increase/Decrease FPS target` - Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS. If FPS is set above 30 FPS, it sets `interval mode` to 1. Otherwise it sets interval to 2.
