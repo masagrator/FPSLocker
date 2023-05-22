@@ -16,6 +16,53 @@ void loopThread(void*) {
 	closed = true;
 }
 
+class SetBuffers : public tsl::Gui {
+public:
+    SetBuffers() {}
+
+    virtual tsl::elm::Element* createUI() override {
+		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Triple Buffer");
+		if (SetBuffers_save == 2) {
+			if (!*(SetBuffers_shared)) {
+				frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Double Buffer, not applied");
+			}
+			else frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Double Buffer");
+		}
+		else if (*SetBuffers_shared == 2) {
+			frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Triple Buffer, not applied");
+		}
+
+		auto list = new tsl::elm::List();
+		list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot.", false));
+		list->addItem(new tsl::elm::CategoryHeader("Remember to save settings after change.", true));
+		auto *clickableListItem = new tsl::elm::ListItem("Double");
+		clickableListItem->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				SetBuffers_save = 2;
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem);
+
+		auto *clickableListItem2 = new tsl::elm::ListItem("Triple");
+		clickableListItem2->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				SetBuffers_save = 0;
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem2);
+		
+        frame->setContent(list);
+
+        return frame;
+    }
+};
+
 class SyncMode : public tsl::Gui {
 public:
     SyncMode() {}
@@ -117,17 +164,28 @@ public:
 			}
 				
 
-		}), 85);
+		}), 88);
 
 		if (*API_shared) {
 			switch(*API_shared) {
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
-					if (*Buffers_shared == 2) {
+					if (*Buffers_shared == 2 || *SetBuffers_shared == 2) {
 						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
+								return true;
+							}
+							return false;
+						});
+						list->addItem(clickableListItem3);
+					}
+					if (*Buffers_shared > 2) {
+						auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering");
+						clickableListItem3->setClickListener([](u64 keys) { 
+							if ((keys & HidNpadButton_A) && PluginRunning) {
+								tsl::changeTo<SetBuffers>();
 								return true;
 							}
 							return false;
@@ -145,7 +203,7 @@ public:
 		}
 
 		if (R_SUCCEEDED(configValid)) {
-			list->addItem(new tsl::elm::CategoryHeader("Patch will be applied on next game boot", true));
+			list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot", true));
 			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file");
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -160,7 +218,6 @@ public:
 			});
 			list->addItem(clickableListItem);
 
-			list->addItem(new tsl::elm::CategoryHeader("Patch won't be applied on next game boot", true));
 			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file");
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -194,8 +251,13 @@ public:
 				}
 				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
 				if (*API_shared == 1) {
-					if (*Buffers_shared >= 2 && *Buffers_shared <= 4) {
-						sprintf(&nvnBuffers[0], "Buffered frames: %d", *Buffers_shared);
+					if ((*Buffers_shared >= 2 && *Buffers_shared <= 4)) {
+						if (!*SetBuffers_shared) {
+							sprintf(&nvnBuffers[0], "Buffered frames: %d", *Buffers_shared);
+						}
+						else {
+							sprintf(&nvnBuffers[0], "Buffered frames: %d (originally: %d)", *SetBuffers_shared, *Buffers_shared);
+						}
 					}
 				}
 				i = 0;
@@ -508,7 +570,7 @@ public:
 			auto *clickableListItem5 = new tsl::elm::ListItem("Save settings");
 			clickableListItem5->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					if (!*FPSlocked_shared && !*ZeroSync_shared) {
+					if (!*FPSlocked_shared && !*ZeroSync_shared && !SetBuffers_save) {
 						remove(savePath);
 					}
 					else {
@@ -517,6 +579,9 @@ public:
 						if (file) {
 							fwrite(FPSlocked_shared, 1, 1, file);
 							fwrite(ZeroSync_shared, 1, 1, file);
+							if (SetBuffers_save) {
+								fwrite(&SetBuffers_save, 1, 1, file);
+							}
 							fclose(file);
 						}
 					}
@@ -611,6 +676,8 @@ public:
 					patchApplied_shared = (uint8_t*)(base + rel_offset + 13);
 					API_shared = (uint8_t*)(base + rel_offset + 14);
 					Buffers_shared = (uint8_t*)(base + rel_offset + 55);
+					SetBuffers_shared = (uint8_t*)(base + rel_offset + 56);
+					SetBuffers_save = *SetBuffers_shared;
 					PluginRunning = true;
 					threadCreate(&t0, loopThread, NULL, NULL, 0x100, 0x20, 0);
 					threadStart(&t0);
