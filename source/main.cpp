@@ -19,18 +19,53 @@ void loopThread(void*) {
 class SetBuffers : public tsl::Gui {
 public:
     SetBuffers() {}
-
+	std::string subtitle = "";
+	std::string doubleBuffer = "Set to Double Buffer";
+	std::string tripleBuffer = "Set to Triple Buffer";
+	std::string quadrupleBuffer = "Set to Quadruple Buffer";
+	std::string not_applied = ", not applied";
     virtual tsl::elm::Element* createUI() override {
-		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Triple Buffer");
-		if (SetBuffers_save == 2) {
-			if (!*(SetBuffers_shared)) {
-				frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Double Buffer, not applied");
+		if (!*SetBuffers_shared) {
+			if (SetBuffers_save == 0) {
+				if (*Buffers_shared == 3) {
+					subtitle = tripleBuffer;
+				}
+				else subtitle = quadrupleBuffer;
 			}
-			else frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Double Buffer");
+			else if (SetBuffers_save == 2) {
+				subtitle = doubleBuffer + not_applied;
+			}
+			else subtitle = tripleBuffer + not_applied;
 		}
 		else if (*SetBuffers_shared == 2) {
-			frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "Set to Triple Buffer, not applied");
+			if (SetBuffers_save == 2) {
+				subtitle = doubleBuffer;
+			}
+			else if (SetBuffers_save == 3) {
+				subtitle = tripleBuffer + not_applied;
+			}
+			else {
+				if (*Buffers_shared == 3) {
+					subtitle = tripleBuffer + not_applied;
+				}
+				else subtitle = quadrupleBuffer + not_applied;
+			}
 		}
+		else {
+			if (SetBuffers_save == 2) {
+				subtitle = doubleBuffer + not_applied;
+			}
+			else if (SetBuffers_save == 3) {
+				subtitle = tripleBuffer;
+			}
+			else {
+				if (*Buffers_shared == 3) {
+					subtitle = tripleBuffer;
+				}
+				else subtitle = quadrupleBuffer + not_applied;
+			}
+		}
+		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", subtitle);
 
 		auto list = new tsl::elm::List();
 		list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot.", false));
@@ -49,7 +84,10 @@ public:
 		auto *clickableListItem2 = new tsl::elm::ListItem("Triple");
 		clickableListItem2->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				SetBuffers_save = 0;
+				if (*Buffers_shared == 4) {
+					SetBuffers_save = 3;
+				}
+				else SetBuffers_save = 0;
 				tsl::goBack();
 				return true;
 			}
@@ -57,6 +95,18 @@ public:
 		});
 		list->addItem(clickableListItem2);
 		
+		if (*Buffers_shared == 4) {
+			auto *clickableListItem3 = new tsl::elm::ListItem("Quadruple");
+			clickableListItem3->setClickListener([](u64 keys) { 
+				if ((keys & HidNpadButton_A) && PluginRunning) {
+					SetBuffers_save = 0;
+					tsl::goBack();
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem3);
+		}
         frame->setContent(list);
 
         return frame;
@@ -578,6 +628,9 @@ public:
 						FILE* file = fopen(savePath, "wb");
 						if (file) {
 							fwrite(FPSlocked_shared, 1, 1, file);
+							if (SetBuffers_save > 2 || (!SetBuffers_save && *Buffers_shared > 2)) {
+								*ZeroSync_shared = 0;
+							}
 							fwrite(ZeroSync_shared, 1, 1, file);
 							if (SetBuffers_save) {
 								fwrite(&SetBuffers_save, 1, 1, file);
