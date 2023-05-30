@@ -37,7 +37,7 @@ bool SharedMemoryUsed = false;
 
 Result configValid = 10;
 Result patchValid = 0x202;
-char lockInvalid[32] = "";
+char lockInvalid[96] = "";
 char patchChar[64] = "";
 char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
