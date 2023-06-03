@@ -45,6 +45,7 @@ Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for t
 
 # Sync Wait
 In those games you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
+- Batman - The Telltale Series
 - Pokemon Legends: Arceus
 - Pokemon Scarlet
 - Pokemon Violet
