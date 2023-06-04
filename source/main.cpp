@@ -173,7 +173,7 @@ public:
 		configValid = LOCK::readConfig(&configPath[0]);
 		if (R_FAILED(configValid)) {
 			if (configValid == 0x202) {
-				sprintf(&lockInvalid[0], "Game config file not found");
+				sprintf(&lockInvalid[0], "Game config file not found\nTID: %016lX\nBID: %016lX", TID, BID);
 			}
 			else sprintf(&lockInvalid[0], "Game config error: 0x%X", configValid);
 		}
@@ -195,13 +195,23 @@ public:
 		}
 	}
 
+	size_t base_height = 68;
+
     virtual tsl::elm::Element* createUI() override {
         auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Advanced settings");
 
 		auto list = new tsl::elm::List();
 
-		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-			
+		if (configValid == 0x202) {
+			base_height = 108;
+		}
+		else if (R_SUCCEEDED(configValid)) {
+			base_height = 88;
+		}
+		else base_height = 68;
+
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+
 			if (R_SUCCEEDED(configValid)) {
 				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
@@ -210,11 +220,14 @@ public:
 			}
 			else {
 				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString(&nvnBuffers[0], false, x, y+40, 20, renderer->a(0xFFFF));
+				if (configValid == 0x202) {
+					renderer->drawString(&nvnBuffers[0], false, x, y+85, 20, renderer->a(0xFFFF));
+				}
+				else renderer->drawString(&nvnBuffers[0], false, x, y+40, 20, renderer->a(0xFFFF));
 			}
 				
 
-		}), 88);
+		}), base_height);
 
 		if (*API_shared) {
 			switch(*API_shared) {
