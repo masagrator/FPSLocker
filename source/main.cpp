@@ -19,53 +19,9 @@ void loopThread(void*) {
 class SetBuffers : public tsl::Gui {
 public:
     SetBuffers() {}
-	std::string subtitle = "";
-	std::string doubleBuffer = "Set to Double Buffer";
-	std::string tripleBuffer = "Set to Triple Buffer";
-	std::string quadrupleBuffer = "Set to Quadruple Buffer";
-	std::string not_applied = ", not applied";
+
     virtual tsl::elm::Element* createUI() override {
-		if (!*SetBuffers_shared) {
-			if (SetBuffers_save == 0) {
-				if (*Buffers_shared == 3) {
-					subtitle = tripleBuffer;
-				}
-				else subtitle = quadrupleBuffer;
-			}
-			else if (SetBuffers_save == 2) {
-				subtitle = doubleBuffer + not_applied;
-			}
-			else subtitle = tripleBuffer + not_applied;
-		}
-		else if (*SetBuffers_shared == 2) {
-			if (SetBuffers_save == 2) {
-				subtitle = doubleBuffer;
-			}
-			else if (SetBuffers_save == 3) {
-				subtitle = tripleBuffer + not_applied;
-			}
-			else {
-				if (*Buffers_shared == 3) {
-					subtitle = tripleBuffer + not_applied;
-				}
-				else subtitle = quadrupleBuffer + not_applied;
-			}
-		}
-		else {
-			if (SetBuffers_save == 2) {
-				subtitle = doubleBuffer + not_applied;
-			}
-			else if (SetBuffers_save == 3) {
-				subtitle = tripleBuffer;
-			}
-			else {
-				if (*Buffers_shared == 3) {
-					subtitle = tripleBuffer;
-				}
-				else subtitle = quadrupleBuffer + not_applied;
-			}
-		}
-		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", subtitle);
+		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "");
 
 		auto list = new tsl::elm::List();
 		list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot.", false));
@@ -81,23 +37,21 @@ public:
 		});
 		list->addItem(clickableListItem);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem("Triple");
-		clickableListItem2->setClickListener([](u64 keys) { 
-			if ((keys & HidNpadButton_A) && PluginRunning) {
-				if (*Buffers_shared == 4) {
+		if (*SetActiveBuffers_shared == 2 && *Buffers_shared == 3 && !SetBuffers_save) {
+			auto *clickableListItem2 = new tsl::elm::ListItem("Triple (force)");
+			clickableListItem2->setClickListener([](u64 keys) { 
+				if ((keys & HidNpadButton_A) && PluginRunning) {
 					SetBuffers_save = 3;
+					tsl::goBack();
+					return true;
 				}
-				else SetBuffers_save = 0;
-				tsl::goBack();
-				return true;
-			}
-			return false;
-		});
-		list->addItem(clickableListItem2);
-		
-		if (*Buffers_shared == 4) {
-			auto *clickableListItem3 = new tsl::elm::ListItem("Quadruple");
-			clickableListItem3->setClickListener([](u64 keys) { 
+				return false;
+			});
+			list->addItem(clickableListItem2);
+		}
+		else {
+			auto *clickableListItem2 = new tsl::elm::ListItem("Triple");
+			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					SetBuffers_save = 0;
 					tsl::goBack();
@@ -105,9 +59,37 @@ public:
 				}
 				return false;
 			});
-			list->addItem(clickableListItem3);
+			list->addItem(clickableListItem2);
 		}
-        frame->setContent(list);
+		
+		if (*Buffers_shared == 4) {
+			if (*SetActiveBuffers_shared < 4 && *Buffers_shared == 4) {
+				auto *clickableListItem3 = new tsl::elm::ListItem("Quadruple (force)");
+				clickableListItem3->setClickListener([](u64 keys) { 
+					if ((keys & HidNpadButton_A) && PluginRunning) {
+						SetBuffers_save = 4;
+						tsl::goBack();
+						return true;
+					}
+					return false;
+				});
+				list->addItem(clickableListItem3);	
+			}
+			else {
+				auto *clickableListItem3 = new tsl::elm::ListItem("Quadruple");
+				clickableListItem3->setClickListener([](u64 keys) { 
+					if ((keys & HidNpadButton_A) && PluginRunning) {
+						SetBuffers_save = 0;
+						tsl::goBack();
+						return true;
+					}
+					return false;
+				});
+				list->addItem(clickableListItem3);
+			}
+		}
+
+		frame->setContent(list);
 
         return frame;
     }
@@ -233,7 +215,7 @@ public:
 			switch(*API_shared) {
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
-					if (*Buffers_shared == 2 || *SetBuffers_shared == 2) {
+					if (*Buffers_shared == 2 || *SetBuffers_shared == 2 || *ActiveBuffers_shared == 2) {
 						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -315,12 +297,7 @@ public:
 				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
 				if (*API_shared == 1) {
 					if ((*Buffers_shared >= 2 && *Buffers_shared <= 4)) {
-						if (!*SetBuffers_shared) {
-							sprintf(&nvnBuffers[0], "Buffered frames: %d", *Buffers_shared);
-						}
-						else {
-							sprintf(&nvnBuffers[0], "Buffered frames: %d (originally: %d)", *SetBuffers_shared, *Buffers_shared);
-						}
+						sprintf(&nvnBuffers[0], "Set/Active/Available buffers: %d/%d/%d", *SetActiveBuffers_shared, *ActiveBuffers_shared, *Buffers_shared);
 					}
 				}
 				i = 0;
@@ -743,6 +720,8 @@ public:
 					API_shared = (uint8_t*)(base + rel_offset + 14);
 					Buffers_shared = (uint8_t*)(base + rel_offset + 55);
 					SetBuffers_shared = (uint8_t*)(base + rel_offset + 56);
+					ActiveBuffers_shared = (uint8_t*)(base + rel_offset + 57);
+					SetActiveBuffers_shared = (uint8_t*)(base + rel_offset + 58);
 					SetBuffers_save = *SetBuffers_shared;
 					PluginRunning = true;
 					threadCreate(&t0, loopThread, NULL, NULL, 0x100, 0x20, 0);
