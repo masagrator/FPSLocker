@@ -18,7 +18,7 @@ bool closed = false;
 bool check = false;
 bool SaltySD = false;
 bool bak = false;
-bool plugin = false;
+bool plugin = true;
 uint8_t SetBuffers_save = 0;
 char FPSMode_c[64];
 char FPSTarget_c[32];

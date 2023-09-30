@@ -687,13 +687,6 @@ public:
 			SaltySD = CheckPort();
 			if (!SaltySD) return;
 
-			FILE* temp = fopen("sdmc:/SaltySD/plugins/NX-FPS.elf", "rb");
-			if (temp) {
-				fclose(temp);
-				plugin = true;
-			}
-			else return;
-
 			if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) return;
 			check = true;
 			
