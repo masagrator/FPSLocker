@@ -1,14 +1,13 @@
 # FPSLocker
 
-An overlay that with companion SaltyNX plugin `NX-FPS` allows to set custom FPS in Nintendo Switch retail games.
+An overlay that with SaltyNX allows to set custom FPS in Nintendo Switch retail games.
 
 Disclaimer: Tool is utilizing detection of graphics API to manipulate FPS and in special cases it requires using patches made per game for each version to get more than 30 FPS. You can find those patches [HERE](https://github.com/masagrator/FPSLocker-Warehouse)<br>
 Max supported yaml size is 32kB, though it can be expanded in next updates.
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 0.6.0+](https://github.com/masagrator/SaltyNX/releases)
-- [NX-FPS 1.5.2+](https://github.com/masagrator/NX-FPS/releases)
+- [My fork of SaltyNX, version 0.7.0+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 
 How to setup everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
