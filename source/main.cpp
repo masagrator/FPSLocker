@@ -614,7 +614,16 @@ public:
 						remove(savePath);
 					}
 					else {
-						mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
+						DIR* dir = opendir("sdmc:/SaltySD/plugins/");
+						if (!dir) {
+							mkdir("sdmc:/SaltySD/plugins/", 777);
+						}
+						else closedir(dir);
+						dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/");
+						if (!dir) {
+							mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
+						}
+						else closedir(dir);
 						FILE* file = fopen(savePath, "wb");
 						if (file) {
 							fwrite(FPSlocked_shared, 1, 1, file);
