@@ -1,15 +1,159 @@
 #define TESLA_INIT_IMPL // If you have more than one file using the tesla header, only define this in the main one
 #include <tesla.hpp>    // The Tesla Header
+#include "MiniList.hpp"
 #include <sys/stat.h>
 #include <dirent.h>
 #include "SaltyNX.h"
 #include "Lock.hpp"
 #include "Utils.hpp"
+#include <curl/curl.h>
+
+Result downloadPatch() {
+
+    static const SocketInitConfig socketInitConfig = {
+
+        .tcp_tx_buf_size = 0x800,
+        .tcp_rx_buf_size = 0x800,
+        .tcp_tx_buf_max_size = 0x8000,
+        .tcp_rx_buf_max_size = 0x8000,
+
+        .udp_tx_buf_size = 0,
+        .udp_rx_buf_size = 0,
+
+        .sb_efficiency = 1,
+		.bsd_service_type = BsdServiceType_Auto
+    };
+
+	smInitialize();
+
+
+	nifmInitialize(NifmServiceType_System);
+	u32 dummy = 0;
+	NifmInternetConnectionType NifmConnectionType = (NifmInternetConnectionType)-1;
+	NifmInternetConnectionStatus NifmConnectionStatus = (NifmInternetConnectionStatus)-1;
+	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
+		nifmExit();
+		smExit();
+		return 0x412;
+	}
+	nifmExit();
+
+	socketInitialize(&socketInitConfig);
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+	CURL *curl = curl_easy_init();
+
+	Result error_code = 0;
+
+    if (curl) {
+
+		char download_path[133] = "";
+		snprintf(download_path, sizeof(download_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/", TID);
+		
+		DIR* dir = opendir("sdmc:/SaltySD/plugins/");
+		if (!dir) {
+			mkdir("sdmc:/SaltySD/plugins/", 777);
+		}
+		else closedir(dir);
+		dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/");
+		if (!dir) {
+			mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
+		}
+		else closedir(dir);
+		dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/patches/");
+		if (!dir) {
+			mkdir("sdmc:/SaltySD/plugins/FPSLocker/patches/", 777);
+		}
+		else closedir(dir);
+		dir = opendir(download_path);
+		if (!dir) {
+			mkdir(download_path, 777);
+		}
+		else closedir(dir);
+
+		snprintf(download_path, sizeof(download_path), "https://github.com/masagrator/FPSLocker-Warehouse/raw/main/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+        curl_easy_setopt(curl, CURLOPT_URL, download_path);
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+		curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+
+        CURLcode res = curl_easy_perform(curl);
+
+		if (res != CURLE_OK) {
+			curl_easy_cleanup(curl);
+			curl_global_cleanup();
+			socketExit();
+			smExit();
+			return 0x512;
+		}
+
+		curl_off_t dResult = 0;
+		curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &dResult);
+
+		if (dResult > 0x8000) {
+			curl_easy_cleanup(curl);
+			curl_global_cleanup();
+			socketExit();
+			smExit();
+			return 0x212;			
+		}
+
+		FILE* fp = fopen(configPath, "wb+");
+		if (!fp) {
+			curl_easy_cleanup(curl);
+			curl_global_cleanup();
+			socketExit();
+			smExit();
+			return 0x101;
+		}
+
+		curl_easy_setopt(curl, CURLOPT_HEADER, 0L);
+		curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+
+		res = curl_easy_perform(curl);
+
+		if (res != CURLE_OK) {
+			fclose(fp);
+			remove(configPath);
+			error_code = 0x200 + res;
+		}
+		else {
+			size_t filesize = ftell(fp);
+			if (filesize > 512) {
+				filesize = 512;
+			}
+			fseek(fp, 0, SEEK_SET);
+			char* buffer = (char*)calloc(1, filesize + 1);
+			fread(buffer, 1, filesize, fp);
+			fclose(fp);
+			char BID_char[18] = "";
+			snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
+			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
+				remove(configPath);
+				error_code = 0x312;
+			}
+			free(buffer);
+		}
+
+        curl_easy_cleanup(curl);
+    }
+
+    curl_global_cleanup();
+	socketExit();
+	smExit();
+	return error_code;
+}
 
 void loopThread(void*) {
 	while(threadActive) {
 		if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) break;
-		svcSleepThread(125'000'000);
+		svcSleepThread(1'000'000'000);
 	}
 	PluginRunning = false;
 	check = false;
@@ -188,7 +332,7 @@ public:
 			base_height = 108;
 		}
 		else if (R_SUCCEEDED(configValid)) {
-			base_height = 88;
+			base_height = 128;
 		}
 		else base_height = 68;
 
@@ -204,6 +348,7 @@ public:
 				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
 				if (configValid == 0x202) {
 					renderer->drawString(&nvnBuffers[0], false, x, y+85, 20, renderer->a(0xFFFF));
+					renderer->drawString(&patchChar[0], false, x, y+105, 20, renderer->a(0xFFFF));
 				}
 				else renderer->drawString(&nvnBuffers[0], false, x, y+40, 20, renderer->a(0xFFFF));
 			}
@@ -216,7 +361,7 @@ public:
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
 					if (*Buffers_shared == 2 || *SetBuffers_shared == 2 || *ActiveBuffers_shared == 2) {
-						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode);
+						auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
@@ -227,7 +372,7 @@ public:
 						list->addItem(clickableListItem3);
 					}
 					if (*Buffers_shared > 2) {
-						auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering");
+						auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -249,7 +394,7 @@ public:
 
 		if (R_SUCCEEDED(configValid)) {
 			list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot", true));
-			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file");
+			auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
@@ -263,7 +408,7 @@ public:
 			});
 			list->addItem(clickableListItem);
 
-			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file");
+			auto *clickableListItem2 = new tsl::elm::MiniListItem("Delete patch file");
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
@@ -277,6 +422,36 @@ public:
 			});
 			list->addItem(clickableListItem2);
 		}
+		list->addItem(new tsl::elm::CategoryHeader("This can freeze overlay up to one minute.", false));
+		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download patch file");
+		clickableListItem4->setClickListener([](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+
+				Result rc = downloadPatch();
+				if (rc == 0x212 || rc == 0x312) {
+					sprintf(&patchChar[0], "Patch is not available! RC: 0x%x", rc);
+				}
+				else if (rc == 0x412) {
+					sprintf(&patchChar[0], "Internet connection not available!");
+				}
+				else if (R_SUCCEEDED(rc)) {
+					patchValid = LOCK::createPatch(&patchPath[0]);
+					if (R_SUCCEEDED(patchValid)) {
+						sprintf(&patchChar[0], "Patch file created successfully.");
+					}
+					else {
+						sprintf(&patchChar[0], "Error while creating patch: 0x%x", patchValid);
+						remove(configPath);
+					}
+				}
+				else {
+					sprintf(&patchChar[0], "Patch downloading failed! RC: 0x%x", rc);
+				}
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem4);
 
 		frame->setContent(list);
 
