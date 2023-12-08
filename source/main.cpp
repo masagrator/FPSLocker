@@ -8,6 +8,8 @@
 #include "Utils.hpp"
 #include <curl/curl.h>
 
+bool FileDownloaded = false;
+
 Result downloadPatch() {
 
     static const SocketInitConfig socketInitConfig = {
@@ -48,6 +50,7 @@ Result downloadPatch() {
     if (curl) {
 
 		char download_path[143] = "";
+		char file_path[67] = "";
 		snprintf(download_path, sizeof(download_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/", TID);
 		
 		DIR* dir = opendir("sdmc:/SaltySD/plugins/");
@@ -71,8 +74,9 @@ Result downloadPatch() {
 		}
 		else closedir(dir);
 
+		snprintf(file_path, sizeof(file_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/temp.yaml", TID);
 
-		FILE* fp = fopen(configPath, "wb+");
+		FILE* fp = fopen(file_path, "wb+");
 		if (!fp) {
 			curl_easy_cleanup(curl);
 			curl_global_cleanup();
@@ -96,7 +100,7 @@ Result downloadPatch() {
 
 		if (res != CURLE_OK) {
 			fclose(fp);
-			remove(configPath);
+			remove(file_path);
 			error_code = 0x200 + res;
 		}
 		else {
@@ -111,7 +115,7 @@ Result downloadPatch() {
 			char BID_char[18] = "";
 			snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
 			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
-				remove(configPath);
+				remove(file_path);
 				char Not_found[] = "404: Not Found";
 				if (std::search(&buffer[0], &buffer[filesize], &Not_found[0], &Not_found[strlen(Not_found)]) != &buffer[filesize]) {
 					error_code = 0x404;
@@ -119,6 +123,49 @@ Result downloadPatch() {
 				else error_code = 0x312;
 			}
 			free(buffer);
+		}
+
+		if (!error_code) {
+			fp = fopen(file_path, "rb");
+			fseek(fp, 0, SEEK_END);
+			size_t filesize1 = ftell(fp);
+			fseek(fp, 0, SEEK_SET);
+			char* buffer1 = (char*)calloc(1, filesize1 + 1);
+			fread(buffer1, 1, filesize1, fp);
+			fclose(fp);
+			fp = fopen(configPath, "rb");
+			if (fp) {
+				fseek(fp, 0, SEEK_END);
+				size_t filesize2 = ftell(fp);
+				fseek(fp, 0, SEEK_SET);
+				if (filesize2 != filesize1) {
+					fclose(fp);
+					free(buffer1);
+					FileDownloaded = true;
+				}
+				else {
+					char* buffer2 = (char*)calloc(1, filesize2 + 1);
+					fread(buffer2, 1, filesize2, fp);
+					fclose(fp);
+					if (memcmp(buffer1, buffer2, filesize1)) {
+						FileDownloaded = true;
+					}
+					else {
+						error_code = 0x104;
+						remove(file_path);
+					}
+					free(buffer1);
+					free(buffer2);
+				}
+			}
+			else {
+				free(buffer1);
+				FileDownloaded = true;
+			}
+			if (!error_code) {
+				remove(configPath);
+				rename(file_path, configPath);
+			}
 		}
 
         curl_easy_cleanup(curl);
@@ -285,8 +332,14 @@ public:
 		}
 		else {
 			patchValid = checkFile(&patchPath[0]);
-			if (R_FAILED(patchValid))
-				sprintf(&patchChar[0], "Patch file doesn't exist.");
+			if (R_FAILED(patchValid)) {
+				if (!FileDownloaded) {
+					sprintf(&patchChar[0], "Patch file doesn't exist.");
+				}
+				else {
+					sprintf(&patchChar[0], "New config downloaded successfully.");
+				}
+			}
 			else sprintf(&patchChar[0], "Patch file exists.");
 		}
 		switch(*ZeroSync_shared) {
@@ -402,8 +455,8 @@ public:
 			});
 			list->addItem(clickableListItem2);
 		}
-		list->addItem(new tsl::elm::CategoryHeader("This can freeze overlay up to one minute.", false));
-		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download patch file");
+		list->addItem(new tsl::elm::CategoryHeader("If exists, it will also remove existing patch file.", false));
+		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
 		clickableListItem4->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 
@@ -414,10 +467,18 @@ public:
 				else if (rc == 0x404) {
 					sprintf(&patchChar[0], "Patch is not available! Err 404");
 				}
+				else if (rc == 0x104) {
+					sprintf(&patchChar[0], "No new config available.");
+				}
 				else if (rc == 0x412) {
 					sprintf(&patchChar[0], "Internet connection not available!");
 				}
 				else if (R_SUCCEEDED(rc)) {
+					FILE* fp = fopen(patchPath, "rb");
+					if (fp) {
+						fclose(fp);
+						remove(patchPath);
+					}
 					tsl::goBack();
 					tsl::changeTo<AdvancedGui>();
 				}
