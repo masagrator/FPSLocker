@@ -47,7 +47,7 @@ Result downloadPatch() {
 
     if (curl) {
 
-		char download_path[133] = "";
+		char download_path[143] = "";
 		snprintf(download_path, sizeof(download_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/", TID);
 		
 		DIR* dir = opendir("sdmc:/SaltySD/plugins/");
@@ -71,36 +71,6 @@ Result downloadPatch() {
 		}
 		else closedir(dir);
 
-		snprintf(download_path, sizeof(download_path), "https://github.com/masagrator/FPSLocker-Warehouse/raw/main/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
-        curl_easy_setopt(curl, CURLOPT_URL, download_path);
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-		curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-
-        CURLcode res = curl_easy_perform(curl);
-
-		if (res != CURLE_OK) {
-			curl_easy_cleanup(curl);
-			curl_global_cleanup();
-			socketExit();
-			smExit();
-			return 0x512;
-		}
-
-		curl_off_t dResult = 0;
-		curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &dResult);
-
-		if (dResult > 0x8000) {
-			curl_easy_cleanup(curl);
-			curl_global_cleanup();
-			socketExit();
-			smExit();
-			return 0x212;			
-		}
 
 		FILE* fp = fopen(configPath, "wb+");
 		if (!fp) {
@@ -111,12 +81,18 @@ Result downloadPatch() {
 			return 0x101;
 		}
 
-		curl_easy_setopt(curl, CURLOPT_HEADER, 0L);
-		curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
+		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/main/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+        curl_easy_setopt(curl, CURLOPT_URL, download_path);
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 
-		res = curl_easy_perform(curl);
+        CURLcode res = curl_easy_perform(curl);
 
 		if (res != CURLE_OK) {
 			fclose(fp);
@@ -136,7 +112,11 @@ Result downloadPatch() {
 			snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
 			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
 				remove(configPath);
-				error_code = 0x312;
+				char Not_found[] = "404: Not Found";
+				if (std::search(&buffer[0], &buffer[filesize], &Not_found[0], &Not_found[strlen(Not_found)]) != &buffer[filesize]) {
+					error_code = 0x404;
+				}
+				else error_code = 0x312;
 			}
 			free(buffer);
 		}
@@ -329,10 +309,10 @@ public:
 		auto list = new tsl::elm::List();
 
 		if (configValid == 0x202) {
-			base_height = 108;
+			base_height = 128;
 		}
 		else if (R_SUCCEEDED(configValid)) {
-			base_height = 128;
+			base_height = 108;
 		}
 		else base_height = 68;
 
@@ -431,18 +411,15 @@ public:
 				if (rc == 0x212 || rc == 0x312) {
 					sprintf(&patchChar[0], "Patch is not available! RC: 0x%x", rc);
 				}
+				else if (rc == 0x404) {
+					sprintf(&patchChar[0], "Patch is not available! Err 404");
+				}
 				else if (rc == 0x412) {
 					sprintf(&patchChar[0], "Internet connection not available!");
 				}
 				else if (R_SUCCEEDED(rc)) {
-					patchValid = LOCK::createPatch(&patchPath[0]);
-					if (R_SUCCEEDED(patchValid)) {
-						sprintf(&patchChar[0], "Patch file created successfully.");
-					}
-					else {
-						sprintf(&patchChar[0], "Error while creating patch: 0x%x", patchValid);
-						remove(configPath);
-					}
+					tsl::goBack();
+					tsl::changeTo<AdvancedGui>();
 				}
 				else {
 					sprintf(&patchChar[0], "Patch downloading failed! RC: 0x%x", rc);
