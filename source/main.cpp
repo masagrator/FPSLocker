@@ -939,7 +939,7 @@ public:
 					SetActiveBuffers_shared = (uint8_t*)(base + rel_offset + 58);
 					SetBuffers_save = *SetBuffers_shared;
 					PluginRunning = true;
-					threadCreate(&t0, loopThread, NULL, NULL, 0x100, 0x20, 0);
+					threadCreate(&t0, loopThread, NULL, NULL, 0x1000, 0x20, 0);
 					threadStart(&t0);
 				}		
 			}
