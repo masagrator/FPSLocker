@@ -48,11 +48,11 @@ Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for t
 
 # Sync Wait
 In those games you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
-- Batman - The Telltale Series
+- Batman - The Telltale Series (Warehouse patch enables triple buffer, so there is no need to use this option)
 - Pokemon Legends: Arceus
 - Pokemon Scarlet
 - Pokemon Violet
-- The Legend of Zelda: Tears of the Kingdom 
+- The Legend of Zelda: Tears of the Kingdom
 - Xenoblade Chronicles: Definitive Edition
 - Xenoblade Chronicles 2
 - Xenoblade Chronicles 3
