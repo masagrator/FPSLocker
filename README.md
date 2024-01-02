@@ -52,6 +52,7 @@ In those games you can disable double buffer vsync by turning off Window Sync Wa
 - Pokemon Legends: Arceus
 - Pokemon Scarlet
 - Pokemon Violet
+- Sonic Frontier
 - The Legend of Zelda: Tears of the Kingdom
 - Xenoblade Chronicles: Definitive Edition
 - Xenoblade Chronicles 2
