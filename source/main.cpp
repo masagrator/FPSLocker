@@ -49,30 +49,11 @@ Result downloadPatch() {
 
     if (curl) {
 
-		char download_path[143] = "";
-		char file_path[67] = "";
+		char download_path[256] = "";
+		char file_path[192] = "";
 		snprintf(download_path, sizeof(download_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/", TID);
 		
-		DIR* dir = opendir("sdmc:/SaltySD/plugins/");
-		if (!dir) {
-			mkdir("sdmc:/SaltySD/plugins/", 777);
-		}
-		else closedir(dir);
-		dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/");
-		if (!dir) {
-			mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
-		}
-		else closedir(dir);
-		dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/patches/");
-		if (!dir) {
-			mkdir("sdmc:/SaltySD/plugins/FPSLocker/patches/", 777);
-		}
-		else closedir(dir);
-		dir = opendir(download_path);
-		if (!dir) {
-			mkdir(download_path, 777);
-		}
-		else closedir(dir);
+		std::filesystem::create_directories(download_path);
 
 		snprintf(file_path, sizeof(file_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/temp.yaml", TID);
 
@@ -165,6 +146,32 @@ Result downloadPatch() {
 			if (!error_code) {
 				remove(configPath);
 				rename(file_path, configPath);
+				FILE* config = fopen(configPath, "r");
+				fread(&LOCK::configBuffer, 1, 32768, config);
+				fclose(config);
+				strcat(&LOCK::configBuffer[0], "\n");
+				LOCK::tree = ryml::parse_in_place(LOCK::configBuffer);
+				size_t root_id = LOCK::tree.root_id();
+				if (LOCK::tree.is_map(root_id) && LOCK::tree.find_child(root_id, "Addons") != c4::yml::NONE && !LOCK::tree["Addons"].is_keyval() && LOCK::tree["Addons"].num_children() > 0) {
+					for (size_t i = 0; i < LOCK::tree["Addons"].num_children(); i++) {
+						std::string temp = "";
+						LOCK::tree["Addons"][i] >> temp;
+						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/main/" + temp;
+						std::string path = "sdmc:/" + temp;
+						strncpy(&download_path[0], dpath.c_str(), 255);
+						strncpy(&file_path[0], path.c_str(), 191);
+						curl_easy_setopt(curl, CURLOPT_URL, download_path);
+						FILE* fp = fopen(file_path, "wb");
+						if (!fp) {
+							std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
+							fp = fopen(file_path, "wb");
+						}
+						if (fp) {
+							curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+							res = curl_easy_perform(curl);
+						}
+					}
+				}
 			}
 		}
 
