@@ -169,6 +169,7 @@ Result downloadPatch() {
 						if (fp) {
 							curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 							res = curl_easy_perform(curl);
+							fclose(fp);
 						}
 					}
 				}
