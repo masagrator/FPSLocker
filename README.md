@@ -53,7 +53,7 @@ In those games you can disable double buffer vsync by turning off Window Sync Wa
 - Pokemon Scarlet
 - Pokemon Violet
 - Sonic Frontier
-- The Legend of Zelda: Tears of the Kingdom
+- The Legend of Zelda: Tears of the Kingdom  (Warehouse patch enables triple buffer, so there is no need to use this option)
 - Xenoblade Chronicles: Definitive Edition
 - Xenoblade Chronicles 2
 - Xenoblade Chronicles 3
