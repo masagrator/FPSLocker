@@ -232,7 +232,8 @@ public:
 			auto *clickableListItem2 = new tsl::elm::ListItem("Triple");
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					SetBuffers_save = 0;
+					if (*Buffers_shared == 4) SetBuffers_save = 3;
+					else SetBuffers_save = 0;
 					tsl::goBack();
 					return true;
 				}
@@ -242,7 +243,7 @@ public:
 		}
 		
 		if (*Buffers_shared == 4) {
-			if (*SetActiveBuffers_shared < 4 && *Buffers_shared == 4) {
+			if (*SetActiveBuffers_shared < 4 && *SetActiveBuffers_shared > 0 && *Buffers_shared == 4) {
 				auto *clickableListItem3 = new tsl::elm::ListItem("Quadruple (force)");
 				clickableListItem3->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
