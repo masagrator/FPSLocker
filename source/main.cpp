@@ -812,12 +812,21 @@ public:
 						u64 PID = 0;
 						Result rc = pmdmntGetApplicationProcessId(&PID);
 						if (!displaySync == true && R_SUCCEEDED(rc) && FPSlocked_shared && *FPSlocked_shared) {
-							if (*FPSlocked_shared < 40)
+							if (*FPSlocked_shared < 40) {
 								SaltySD_SetDisplayRefreshRate(60);
-							else SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
+								*displaySync_shared = 0;
+								refreshRate_g = 0;
+							}
+							else {
+								SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
+								*displaySync_shared = *FPSlocked_shared;
+								refreshRate_g = *FPSlocked_shared;
+							}
 						}
-						else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning))
+						else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
 							SaltySD_SetDisplayRefreshRate(60);
+							refreshRate_g = 0;
+						}
 						SaltySD_Term();
 						displaySync = !displaySync;
 					}
