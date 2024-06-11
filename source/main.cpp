@@ -816,7 +816,7 @@ public:
 								SaltySD_SetDisplayRefreshRate(60);
 							else SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
 						}
-						else if (!displaySync == true && R_FAILED(rc))
+						else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning))
 							SaltySD_SetDisplayRefreshRate(60);
 						SaltySD_Term();
 						displaySync = !displaySync;
@@ -1138,18 +1138,18 @@ public:
 				return false;
 			});
 			list->addItem(clickableListItem5);
+		}
 
-			if (!isOLED && SaltySD) {
-				auto *clickableListItem6 = new tsl::elm::ListItem("Display settings", "\uE151");
-				clickableListItem6->setClickListener([](u64 keys) { 
-					if ((keys & HidNpadButton_A) && PluginRunning) {
-						tsl::changeTo<WarningDisplayGui>();
-						return true;
-					}
-					return false;
-				});
-				list->addItem(clickableListItem6);
-			}
+		if (!isOLED && SaltySD) {
+			auto *clickableListItem6 = new tsl::elm::ListItem("Display settings", "\uE151");
+			clickableListItem6->setClickListener([](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					tsl::changeTo<WarningDisplayGui>();
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem6);
 		}
 
 		// Add the list to the frame for it to be drawn
