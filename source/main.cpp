@@ -766,7 +766,8 @@ public:
 							SaltySD_SetDisplayRefreshRate(this -> refreshRate);
 							svcSleepThread(100'000);
 							SaltySD_GetDisplayRefreshRate(&(this -> refreshRate));
-							*displaySync_shared = this -> refreshRate;
+							if (displaySync_shared)
+								*displaySync_shared = this -> refreshRate;
 							SaltySD_Term();
 						}
 						refreshRate_g = this -> refreshRate;
@@ -787,7 +788,8 @@ public:
 							SaltySD_SetDisplayRefreshRate(this -> refreshRate);
 							svcSleepThread(100'000);
 							SaltySD_GetDisplayRefreshRate(&(this -> refreshRate));
-							*displaySync_shared = this -> refreshRate;
+							if (displaySync_shared)
+								*displaySync_shared = this -> refreshRate;
 							SaltySD_Term();
 						}
 						refreshRate_g = this -> refreshRate;
@@ -1229,10 +1231,13 @@ public:
 			check = true;
 			
 			if(!LoadSharedMemory()) return;
+			
+			uintptr_t base = (uintptr_t)shmemGetAddr(&_sharedmemory);
+			ptrdiff_t rel_offset = searchSharedMemoryBlock(base);
+			if (rel_offset > -1)
+				displaySync_shared = (uint8_t*)(base + rel_offset + 59);
 
 			if (!PluginRunning) {
-				uintptr_t base = (uintptr_t)shmemGetAddr(&_sharedmemory);
-				ptrdiff_t rel_offset = searchSharedMemoryBlock(base);
 				if (rel_offset > -1) {
 					pminfoInitialize();
 					pminfoGetProgramId(&TID, PID);
@@ -1253,7 +1258,6 @@ public:
 					SetBuffers_shared = (uint8_t*)(base + rel_offset + 56);
 					ActiveBuffers_shared = (uint8_t*)(base + rel_offset + 57);
 					SetActiveBuffers_shared = (uint8_t*)(base + rel_offset + 58);
-					displaySync_shared = (uint8_t*)(base + rel_offset + 59);
 					SetBuffers_save = *SetBuffers_shared;
 					PluginRunning = true;
 					threadCreate(&t0, loopThread, NULL, NULL, 0x1000, 0x20, 0);
