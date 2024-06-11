@@ -805,11 +805,15 @@ public:
 					if (R_SUCCEEDED(SaltySD_Connect())) {
 						SaltySD_SetDisplaySync(!displaySync);
 						svcSleepThread(100'000);
-						if (!displaySync == true && FPSlocked_shared && *FPSlocked_shared) {
+						u64 PID = 0;
+						Result rc = pmdmntGetApplicationProcessId(&PID);
+						if (!displaySync == true && R_SUCCEEDED(rc) && FPSlocked_shared && *FPSlocked_shared) {
 							if (*FPSlocked_shared < 40)
 								SaltySD_SetDisplayRefreshRate(60);
 							else SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
 						}
+						else if (!displaySync == true && R_FAILED(rc))
+							SaltySD_SetDisplayRefreshRate(60);
 						SaltySD_Term();
 						displaySync = !displaySync;
 					}
