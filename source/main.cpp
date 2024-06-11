@@ -1081,6 +1081,7 @@ public:
 					if (displaySync) {
 						if (!oldSalty && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(60);
+							*displaySync_shared = 0;
 							SaltySD_Term();
 						}
 					}
