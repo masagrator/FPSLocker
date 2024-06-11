@@ -663,7 +663,7 @@ public:
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
 
-		if (oldSalty || isOLED) {
+		if (oldSalty || isOLED || !SaltySD) {
 			list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 				if (!SaltySD) {
 					renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
@@ -1278,7 +1278,7 @@ public:
 				nsInitialize();
 			});
 			Result rc = getTitles(32);
-			if (oldSalty || isOLED)
+			if (oldSalty || isOLED || !SaltySD)
 				return initially<NoGame2>(rc, 2, true);
 			else return initially<NoGame>(rc, 2, true);
 		}
