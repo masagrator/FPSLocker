@@ -9,6 +9,10 @@
 #include <curl/curl.h>
 
 bool FileDownloaded = false;
+bool displaySync = false;
+bool isOLED = false;
+uint8_t refreshRate_g = 60;
+bool oldSalty = false;
 
 Result downloadPatch() {
 
@@ -641,11 +645,11 @@ public:
 	}
 };
 
-class NoGame : public tsl::Gui {
+class NoGame2 : public tsl::Gui {
 public:
 
 	Result rc = 1;
-	NoGame(Result result, u8 arg2, bool arg3) {
+	NoGame2(Result result, u8 arg2, bool arg3) {
 		rc = result;
 	}
 
@@ -659,17 +663,19 @@ public:
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
 
-		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-			if (!SaltySD) {
-				renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
-			}
-			else if (!plugin) {
-				renderer->drawString("Can't detect NX-FPS plugin on sdcard!", false, x, y+20, 20, renderer->a(0xF33F));
-			}
-			else if (!check) {
-				renderer->drawString("Game is not running!", false, x, y+20, 19, renderer->a(0xF33F));
-			}
-		}), 30);
+		if (oldSalty || isOLED) {
+			list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+				if (!SaltySD) {
+					renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
+				}
+				else if (!plugin) {
+					renderer->drawString("Can't detect NX-FPS plugin on sdcard!", false, x, y+20, 20, renderer->a(0xF33F));
+				}
+				else if (!check) {
+					renderer->drawString("Game is not running!", false, x, y+20, 19, renderer->a(0xF33F));
+				}
+			}), 30);
+		}
 
 		if (R_FAILED(rc)) {
 			char error[24] = "";
@@ -709,6 +715,231 @@ public:
 				list->addItem(clickableListItem);
 			}
 		}
+
+		frame->setContent(list);
+
+		return frame;
+	}
+
+	virtual void update() override {}
+
+	// Called once every frame to handle inputs not handled by other UI elements
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		return false;   // Return true here to singal the inputs have been consumed
+	}
+};
+
+class DisplayGui : public tsl::Gui {
+private:
+	char refreshRate_c[32] = "";
+	uint8_t refreshRate = 0;
+public:
+    DisplayGui() {
+		if (R_SUCCEEDED(SaltySD_Connect())) {
+			SaltySD_GetDisplayRefreshRate(&refreshRate);
+			svcSleepThread(100'000);
+			SaltySD_Term();
+			refreshRate_g = refreshRate;
+		}
+	}
+
+	size_t base_height = 128;
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Display settings");
+
+		auto list = new tsl::elm::List();
+
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+
+			renderer->drawString(this -> refreshRate_c, false, x, y+20, 20, renderer->a(0xFFFF));
+		}), 50);
+
+		if (!displaySync) {
+
+			auto *clickableListItem = new tsl::elm::ListItem("Increase Refresh Rate");
+			clickableListItem->setClickListener([this](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					if ((this -> refreshRate >= 40) && (this -> refreshRate < 60)) {
+						this -> refreshRate += 5;
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							SaltySD_SetDisplayRefreshRate(this -> refreshRate);
+							svcSleepThread(100'000);
+							SaltySD_GetDisplayRefreshRate(&(this -> refreshRate));
+							SaltySD_Term();
+						}
+						refreshRate_g = this -> refreshRate;
+					}
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem);
+
+			auto *clickableListItem2 = new tsl::elm::ListItem("Decrease Refresh Rate");
+			clickableListItem2->setClickListener([this](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					if (this -> refreshRate > 40) {
+						this -> refreshRate -= 5;
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							SaltySD_SetDisplayRefreshRate(this -> refreshRate);
+							svcSleepThread(100'000);
+							SaltySD_GetDisplayRefreshRate(&(this -> refreshRate));
+							SaltySD_Term();
+						}
+						refreshRate_g = this -> refreshRate;
+					}
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem2);
+		}
+
+		if (!oldSalty) {
+			auto *clickableListItem3 = new tsl::elm::ToggleListItem("Display Sync", displaySync);
+			clickableListItem3->setClickListener([this](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					if (R_SUCCEEDED(SaltySD_Connect())) {
+						SaltySD_SetDisplaySync(!displaySync);
+						svcSleepThread(100'000);
+						if (!displaySync == true && FPSlocked_shared && *FPSlocked_shared) {
+							if (*FPSlocked_shared < 40)
+								SaltySD_SetDisplayRefreshRate(60);
+							else SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
+						}
+						SaltySD_Term();
+						displaySync = !displaySync;
+					}
+					tsl::goBack();
+					tsl::changeTo<DisplayGui>();
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem3);
+		}
+		
+		frame->setContent(list);
+
+        return frame;
+    }
+
+	virtual void update() override {
+		snprintf(refreshRate_c, sizeof(refreshRate_c), "LCD Refresh Rate: %d Hz", refreshRate);
+	}
+};
+
+class WarningDisplayGui : public tsl::Gui {
+private:
+	uint8_t refreshRate = 0;
+	std::string Warning =	"THIS IS EXPERIMENTAL FUNCTION!\n\n"
+							"It can cause irreparable damage\n"
+							"to your display.\n\n"
+							"By pressing Accept you are taking\n"
+							"full responsibility for anything\n"
+							"that can occur because of this tool.";
+public:
+    WarningDisplayGui() {
+		
+	}
+
+	size_t base_height = 128;
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Display settings warning");
+
+		auto list = new tsl::elm::List();
+
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+
+			renderer->drawString(Warning.c_str(), false, x, y+20, 20, renderer->a(0xFFFF));
+		}), 200);
+
+		auto *clickableListItem1 = new tsl::elm::ListItem("Decline");
+		clickableListItem1->setClickListener([this](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem1);
+
+		auto *clickableListItem2 = new tsl::elm::ListItem("Accept");
+		clickableListItem2->setClickListener([this](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				tsl::goBack();
+				tsl::changeTo<DisplayGui>();
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem2);
+		
+		frame->setContent(list);
+
+        return frame;
+    }
+};
+
+class NoGame : public tsl::Gui {
+public:
+
+	Result rc = 1;
+	NoGame(Result result, u8 arg2, bool arg3) {
+		rc = result;
+	}
+
+	// Called when this Gui gets loaded to create the UI
+	// Allocate all elements on the heap. libtesla will make sure to clean them up when not needed anymore
+	virtual tsl::elm::Element* createUI() override {
+		// A OverlayFrame is the base element every overlay consists of. This will draw the default Title and Subtitle.
+		// If you need more information in the header or want to change it's look, use a HeaderOverlayFrame.
+		auto frame = new tsl::elm::OverlayFrame("FPSLocker", APP_VERSION);
+
+		// A list that can contain sub elements and handles scrolling
+		auto list = new tsl::elm::List();
+
+		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+			if (!SaltySD) {
+				renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
+			}
+			else if (!plugin) {
+				renderer->drawString("Can't detect NX-FPS plugin on sdcard!", false, x, y+20, 20, renderer->a(0xF33F));
+			}
+			else if (!check) {
+				renderer->drawString("Game is not running!", false, x, y+20, 19, renderer->a(0xF33F));
+			}
+		}), 30);
+
+		auto *clickableListItem2 = new tsl::elm::ListItem("Games list");
+		clickableListItem2->setClickListener([this](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				tsl::changeTo<NoGame2>(this -> rc, 2, true);
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem2);
+
+		auto *clickableListItem3 = new tsl::elm::ListItem("Display settings", "\uE151");
+		clickableListItem3->setClickListener([](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				tsl::changeTo<WarningDisplayGui>();
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem3);
+
 
 		frame->setContent(list);
 
@@ -782,6 +1013,20 @@ public:
 					else if (*FPSlocked_shared < 60) {
 						*FPSlocked_shared += 5;
 					}
+					if (!oldSalty && displaySync) {
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							if (*FPSlocked_shared >= 40) {
+								SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
+								refreshRate_g = *FPSlocked_shared;
+							}
+							else {
+								SaltySD_SetDisplayRefreshRate(60);
+								refreshRate_g = 60;
+							}
+							
+							SaltySD_Term();
+						}
+					}
 					return true;
 				}
 				return false;
@@ -801,6 +1046,19 @@ public:
 					else if (*FPSlocked_shared > 15) {
 						*FPSlocked_shared -= 5;
 					}
+					if (!oldSalty && displaySync) {
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							if (*FPSlocked_shared >= 40) {
+								SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
+								refreshRate_g = *FPSlocked_shared;
+							}
+							else {
+								SaltySD_SetDisplayRefreshRate(60);
+								refreshRate_g = 60;
+							}
+							SaltySD_Term();
+						}
+					}
 					return true;
 				}
 				return false;
@@ -812,6 +1070,12 @@ public:
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (*FPSlocked_shared) {
 						*FPSlocked_shared = 0;
+					}
+					if (displaySync) {
+						if (!oldSalty && R_SUCCEEDED(SaltySD_Connect())) {
+							SaltySD_SetDisplayRefreshRate(60);
+							SaltySD_Term();
+						}
 					}
 					return true;
 				}
@@ -864,6 +1128,18 @@ public:
 				return false;
 			});
 			list->addItem(clickableListItem5);
+
+			if (!isOLED && SaltySD) {
+				auto *clickableListItem6 = new tsl::elm::ListItem("Display settings", "\uE151");
+				clickableListItem6->setClickListener([](u64 keys) { 
+					if ((keys & HidNpadButton_A) && PluginRunning) {
+						tsl::changeTo<WarningDisplayGui>();
+						return true;
+					}
+					return false;
+				});
+				list->addItem(clickableListItem6);
+			}
 		}
 
 		// Add the list to the frame for it to be drawn
@@ -885,7 +1161,7 @@ public:
 						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
 						break;
 					case 1 ... 5:
-						sprintf(FPSMode_c, "Interval Mode: %d (%d FPS)", *FPSmode_shared, 60 / *FPSmode_shared);
+						sprintf(FPSMode_c, "Interval Mode: %d (%d FPS)", *FPSmode_shared, refreshRate_g / *FPSmode_shared);
 						break;
 					default:
 						sprintf(FPSMode_c, "Interval Mode: %d (Wrong)", *FPSmode_shared);
@@ -914,9 +1190,32 @@ public:
 
 		tsl::hlp::doWithSmSession([]{
 			
+			setsysInitialize();
+			SetSysProductModel model;
+			if (R_SUCCEEDED(setsysGetProductModel(&model))) {
+				if (model == SetSysProductModel_Aula) {
+					isOLED = true;
+					remove("sdmc:/SaltySD/flags/displaysync.flag");
+				}
+			}
+			setsysExit();
 			fsdevMountSdmc();
+			FILE* file = fopen("sdmc:/SaltySD/flags/displaysync.flag", "rb");
+			if (file) {
+				displaySync = true;
+				fclose(file);
+			}
 			SaltySD = CheckPort();
 			if (!SaltySD) return;
+
+			if (R_SUCCEEDED(SaltySD_Connect())) {
+				if (R_FAILED(SaltySD_GetDisplayRefreshRate(&refreshRate_g))) {
+					refreshRate_g = 60;
+					oldSalty = true;
+				}
+				svcSleepThread(100'000);
+				SaltySD_Term();
+			}
 
 			if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) return;
 			check = true;
@@ -979,7 +1278,9 @@ public:
 				nsInitialize();
 			});
 			Result rc = getTitles(32);
-			return initially<NoGame>(rc, 2, true);
+			if (oldSalty || isOLED)
+				return initially<NoGame2>(rc, 2, true);
+			else return initially<NoGame>(rc, 2, true);
 		}
 	}
 };
