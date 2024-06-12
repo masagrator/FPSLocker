@@ -665,7 +665,7 @@ public:
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
 
-		if (oldSalty || isOLED) {
+		if (oldSalty || isOLED || !SaltySD) {
 			list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 				if (!SaltySD) {
 					renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
@@ -737,6 +737,13 @@ private:
 	uint8_t refreshRate = 0;
 public:
     DisplayGui() {
+		apmGetPerformanceMode(&performanceMode);
+		if (performanceMode == ApmPerformanceMode_Boost) {
+			isDocked = true;
+		}
+		else if (performanceMode == ApmPerformanceMode_Normal) {
+			isDocked = false;
+		}
 		if (!isDocked && R_SUCCEEDED(SaltySD_Connect())) {
 			SaltySD_GetDisplayRefreshRate(&refreshRate);
 			svcSleepThread(100'000);
@@ -761,13 +768,15 @@ public:
 
 			auto *clickableListItem = new tsl::elm::ListItem("Increase Refresh Rate");
 			clickableListItem->setClickListener([this](u64 keys) { 
-				if (keys & HidNpadButton_A) {
+				if ((keys & HidNpadButton_A) && !isDocked) {
 					if ((this -> refreshRate >= 40) && (this -> refreshRate < 60)) {
 						this -> refreshRate += 5;
 						if (!isDocked && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(this -> refreshRate);
 							svcSleepThread(100'000);
 							SaltySD_GetDisplayRefreshRate(&(this -> refreshRate));
+							if (displaySync_shared)
+								*displaySync_shared = this -> refreshRate;
 							SaltySD_Term();
 							refreshRate_g = this -> refreshRate;
 						}
@@ -781,13 +790,15 @@ public:
 
 			auto *clickableListItem2 = new tsl::elm::ListItem("Decrease Refresh Rate");
 			clickableListItem2->setClickListener([this](u64 keys) { 
-				if (keys & HidNpadButton_A) {
+				if ((keys & HidNpadButton_A) && !isDocked) {
 					if (this -> refreshRate > 40) {
 						this -> refreshRate -= 5;
 						if (!isDocked && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(this -> refreshRate);
 							svcSleepThread(100'000);
 							SaltySD_GetDisplayRefreshRate(&(this -> refreshRate));
+							if (displaySync_shared)
+								*displaySync_shared = this -> refreshRate;
 							SaltySD_Term();
 							refreshRate_g = this -> refreshRate;
 						}
@@ -807,10 +818,23 @@ public:
 					if (R_SUCCEEDED(SaltySD_Connect())) {
 						SaltySD_SetDisplaySync(!displaySync);
 						svcSleepThread(100'000);
-						if (!displaySync == true && FPSlocked_shared && *FPSlocked_shared) {
-							if (*FPSlocked_shared < 40)
+						u64 PID = 0;
+						Result rc = pmdmntGetApplicationProcessId(&PID);
+						if (!isDocked && !displaySync == true && R_SUCCEEDED(rc) && FPSlocked_shared && *FPSlocked_shared) {
+							if (*FPSlocked_shared < 40) {
 								SaltySD_SetDisplayRefreshRate(60);
-							else SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
+								*displaySync_shared = 0;
+								refreshRate_g = 0;
+							}
+							else {
+								SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
+								*displaySync_shared = *FPSlocked_shared;
+								refreshRate_g = *FPSlocked_shared;
+							}
+						}
+						else if (!isDocked && !displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
+							SaltySD_SetDisplayRefreshRate(60);
+							refreshRate_g = 0;
 						}
 						SaltySD_Term();
 						displaySync = !displaySync;
@@ -831,7 +855,16 @@ public:
     }
 
 	virtual void update() override {
-		snprintf(refreshRate_c, sizeof(refreshRate_c), "LCD Refresh Rate: %d Hz", refreshRate);
+		apmGetPerformanceMode(&performanceMode);
+		if (performanceMode == ApmPerformanceMode_Boost) {
+			isDocked = true;
+		}
+		else if (performanceMode == ApmPerformanceMode_Normal) {
+			isDocked = false;
+		}
+		if (!isDocked)
+			snprintf(refreshRate_c, sizeof(refreshRate_c), "LCD Refresh Rate: %d Hz", refreshRate);
+		else strncpy(refreshRate_c, "Not available in docked mode!", 30);
 	}
 };
 
@@ -844,9 +877,19 @@ private:
 							"By pressing Accept you are taking\n"
 							"full responsibility for anything\n"
 							"that can occur because of this tool.";
+
+	std::string Docked =	"This function is not available\n"
+							"in docked mode!\n\n"
+							"Accept button is disabled.";
 public:
     WarningDisplayGui() {
-		
+		apmGetPerformanceMode(&performanceMode);
+		if (performanceMode == ApmPerformanceMode_Boost) {
+			isDocked = true;
+		}
+		else if (performanceMode == ApmPerformanceMode_Normal) {
+			isDocked = false;
+		}
 	}
 
 	size_t base_height = 128;
@@ -857,8 +900,9 @@ public:
 		auto list = new tsl::elm::List();
 
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-
-			renderer->drawString(Warning.c_str(), false, x, y+20, 20, renderer->a(0xFFFF));
+			if (!isDocked)
+				renderer->drawString(Warning.c_str(), false, x, y+20, 20, renderer->a(0xFFFF));
+			else renderer->drawString(Docked.c_str(), false, x, y+20, 20, renderer->a(0xFFFF));
 		}), 200);
 
 		auto *clickableListItem1 = new tsl::elm::ListItem("Decline");
@@ -874,7 +918,7 @@ public:
 
 		auto *clickableListItem2 = new tsl::elm::ListItem("Accept");
 		clickableListItem2->setClickListener([this](u64 keys) { 
-			if (keys & HidNpadButton_A) {
+			if ((keys & HidNpadButton_A) && !isDocked) {
 				tsl::goBack();
 				tsl::changeTo<DisplayGui>();
 				return true;
@@ -1025,7 +1069,7 @@ public:
 								SaltySD_SetDisplayRefreshRate(60);
 								refreshRate_g = 60;
 							}
-							
+							*displaySync_shared = refreshRate_g;
 							SaltySD_Term();
 						}
 					}
@@ -1059,6 +1103,7 @@ public:
 								refreshRate_g = 60;
 							}
 							SaltySD_Term();
+							*displaySync_shared = refreshRate_g;
 						}
 					}
 					return true;
@@ -1076,6 +1121,7 @@ public:
 					if (displaySync) {
 						if (!oldSalty && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(60);
+							*displaySync_shared = 0;
 							SaltySD_Term();
 						}
 					}
@@ -1130,18 +1176,18 @@ public:
 				return false;
 			});
 			list->addItem(clickableListItem5);
+		}
 
-			if (!isOLED && SaltySD) {
-				auto *clickableListItem6 = new tsl::elm::ListItem("Display settings", "\uE151");
-				clickableListItem6->setClickListener([](u64 keys) { 
-					if ((keys & HidNpadButton_A) && PluginRunning) {
-						tsl::changeTo<WarningDisplayGui>();
-						return true;
-					}
-					return false;
-				});
-				list->addItem(clickableListItem6);
-			}
+		if (!isOLED && SaltySD) {
+			auto *clickableListItem6 = new tsl::elm::ListItem("Display settings", "\uE151");
+			clickableListItem6->setClickListener([](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					tsl::changeTo<WarningDisplayGui>();
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem6);
 		}
 
 		// Add the list to the frame for it to be drawn
@@ -1156,15 +1202,15 @@ public:
 		static uint8_t i = 10;
 
 		if (PluginRunning) {
-			apmGetPerformanceMode(&performanceMode);
-			if (performanceMode == ApmPerformanceMode_Boost) {
-				isDocked = true;
-				refreshRate_g = 60;
-			}
-			else if (performanceMode == ApmPerformanceMode_Normal) {
-				isDocked = false;
-			}
 			if (i > 9) {
+				apmGetPerformanceMode(&performanceMode);
+				if (performanceMode == ApmPerformanceMode_Boost) {
+					isDocked = true;
+					refreshRate_g = 60;
+				}
+				else if (performanceMode == ApmPerformanceMode_Normal) {
+					isDocked = false;
+				}
 				switch (*FPSmode_shared) {
 					case 0:
 						//This is usually a sign that game doesn't use interval
@@ -1200,8 +1246,8 @@ public:
 
 		tsl::hlp::doWithSmSession([]{
 			
-			setsysInitialize();
 			apmInitialize();
+			setsysInitialize();
 			SetSysProductModel model;
 			if (R_SUCCEEDED(setsysGetProductModel(&model))) {
 				if (model == SetSysProductModel_Aula) {
@@ -1232,10 +1278,13 @@ public:
 			check = true;
 			
 			if(!LoadSharedMemory()) return;
+			
+			uintptr_t base = (uintptr_t)shmemGetAddr(&_sharedmemory);
+			ptrdiff_t rel_offset = searchSharedMemoryBlock(base);
+			if (rel_offset > -1)
+				displaySync_shared = (uint8_t*)(base + rel_offset + 59);
 
 			if (!PluginRunning) {
-				uintptr_t base = (uintptr_t)shmemGetAddr(&_sharedmemory);
-				ptrdiff_t rel_offset = searchSharedMemoryBlock(base);
 				if (rel_offset > -1) {
 					pminfoInitialize();
 					pminfoGetProgramId(&TID, PID);
@@ -1290,7 +1339,7 @@ public:
 				nsInitialize();
 			});
 			Result rc = getTitles(32);
-			if (oldSalty || isOLED)
+			if (oldSalty || isOLED || !SaltySD)
 				return initially<NoGame2>(rc, 2, true);
 			else return initially<NoGame>(rc, 2, true);
 		}
