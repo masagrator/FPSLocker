@@ -3,6 +3,8 @@
 
 #include "rapidyaml/ryml.hpp"
 #include "c4/std/string.hpp"
+#include "tinyexpr/tinyexpr.h"
+#include <cmath>
 
 namespace LOCK {
 
@@ -10,6 +12,7 @@ namespace LOCK {
 	ryml::Tree tree;
 	char configBuffer[32770] = "";
 	uint8_t gen = 1;
+	bool ALL_FPS = false;
 
 	struct buffer_data {
 		size_t size;
@@ -79,6 +82,12 @@ namespace LOCK {
 		else return 0;
 	}
 
+	double TruncDec(double value, double truncator) {
+		uint64_t factor = pow(10, truncator);
+		return trunc(value*factor) / factor;
+	}
+
+
 	template <typename T>
 	size_t NOINLINE calculateSize(T entry, bool masterWrite = false) {
 		std::string string_check = "";
@@ -112,7 +121,7 @@ namespace LOCK {
 			entry[i]["type"] >> string_check;
 			
 			temp_size++;
-			if (!string_check.compare("write")) {
+			if (!string_check.compare("write") || !string_check.compare("evaluate_write")) {
 				temp_size++; // address count
 				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // value_type
@@ -152,7 +161,7 @@ namespace LOCK {
 	}
 
 	template <typename T>
-	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size, bool masterWrite = false) {
+	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size, bool masterWrite = false, double fps_target = 0) {
 		std::string string_check = "";
 		size_t temp_size = 0;
 		if (masterWrite) {
@@ -276,8 +285,12 @@ namespace LOCK {
 		for (size_t i = 0; i < entry.num_children(); i++) {
 		
 			entry[i]["type"] >> string_check;
-			if (!string_check.compare("write")) {
+			if (!string_check.compare("write") || !string_check.compare("evaluate_write")) {
 				
+				bool evaluate_write = false;
+				if (!string_check.compare("evaluate_write"))
+					evaluate_write = true;
+
 				buffer[temp_size] = 1; // type
 				temp_size++;
 				buffer[temp_size] = entry[i]["address"].num_children(); // address count
@@ -297,45 +310,86 @@ namespace LOCK {
 					buffer[temp_size] = entry[i]["value"].num_children(); //value_count
 					temp_size++;
 					for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
+						double evaluated_value = 0;
+						if (evaluate_write) {
+							double FPS_TARGET = fps_target;
+							double FPS_LOCK_TARGET = fps_target;
+							if (fps_target >= 60)
+								FPS_LOCK_TARGET = 120;
+							double FRAMETIME_TARGET = 1000.0 / fps_target;
+							double VSYNC_TARGET = 60 / fps_target;
+							te_variable vars[] = {
+								{"TruncDec", (const void*)TruncDec, TE_FUNCTION2}, /* TE_FUNCTION2 used because my_sum takes two arguments. */
+								{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
+								{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
+								{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
+								{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
+							};
+							std::string equation = "";
+							entry[i]["value"][x] >> equation;
+							te_expr *n = te_compile(equation.c_str(), vars, 4, 0);
+							evaluated_value = te_eval(n);
+							te_free(n);
+						}
 						switch(value_type) {
 							case 1:
-								entry[i]["value"][x] >> buffer[temp_size];
+								if (evaluate_write)
+									buffer[temp_size] = (uint8_t)evaluated_value;
+								else entry[i]["value"][x] >> buffer[temp_size];
 								temp_size++;
 								break;
 							case 2:
-								entry[i]["value"][x] >> *(uint16_t*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(uint16_t*)(&buffer[temp_size]) = (uint16_t)evaluated_value;
+								else entry[i]["value"][x] >> *(uint16_t*)(&buffer[temp_size]);
 								temp_size += 2;
 								break;
 							case 4:
-								entry[i]["value"][x] >> *(uint32_t*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(uint32_t*)(&buffer[temp_size]) = (uint32_t)evaluated_value;
+								else entry[i]["value"][x] >> *(uint32_t*)(&buffer[temp_size]);
 								temp_size += 4;
 								break;
 							case 8:
-								entry[i]["value"][x] >> *(uint64_t*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(uint64_t*)(&buffer[temp_size]) = (uint64_t)evaluated_value;
+								else entry[i]["value"][x] >> *(uint64_t*)(&buffer[temp_size]);
 								temp_size += 8;
 								break;
 							case 0x11:
-								entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(int8_t*)(&buffer[temp_size]) = (int8_t)evaluated_value;
+								else entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
 								temp_size++;
 								break;
 							case 0x12:
-								entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(int16_t*)(&buffer[temp_size]) = (int16_t)evaluated_value;
+								else entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
 								temp_size += 2;
 								break;
 							case 0x14:
-								entry[i]["value"][x] >> *(int32_t*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(int32_t*)(&buffer[temp_size]) = (int32_t)evaluated_value;
+								else entry[i]["value"][x] >> *(int32_t*)(&buffer[temp_size]);
 								temp_size += 4;
 								break;
 							case 0x18:
-								entry[i]["value"][x] >> *(int64_t*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(int64_t*)(&buffer[temp_size]) = (int64_t)evaluated_value;
+								else entry[i]["value"][x] >> *(int64_t*)(&buffer[temp_size]);
 								temp_size += 8;
 								break;
 							case 0x24:
-								entry[i]["value"][x] >> *(float*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(float*)(&buffer[temp_size]) = (float)evaluated_value;
+								else entry[i]["value"][x] >> *(float*)(&buffer[temp_size]);
 								temp_size += 4;
 								break;
 							case 0x28:
-								entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
+								if (evaluate_write)
+									*(double*)(&buffer[temp_size]) = (uint8_t)evaluated_value;
+								else entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
 								temp_size += 8;
 								break;
 							default:
@@ -346,45 +400,82 @@ namespace LOCK {
 				else {
 					buffer[temp_size] = 1;
 					temp_size++;
+					double evaluated_value = 0;
+					if (evaluate_write) {
+						double FPS_TARGET = fps_target;
+						double FRAMETIME_TARGET = 1000.0 / fps_target;
+						double VSYNC_TARGET = 60 / fps_target;
+						te_variable vars[] = {
+							{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
+							{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
+							{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
+							{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
+						};
+						std::string equation = "";
+						entry[i]["value"] >> equation;
+						te_expr *n = te_compile(equation.c_str(), vars, 4, 0);
+						evaluated_value = te_eval(n);
+						te_free(n);
+					}	
 					switch(value_type) {
 						case 1:
-							entry[i]["value"] >> buffer[temp_size];
+							if (evaluate_write)
+								buffer[temp_size] = (uint8_t)evaluated_value;
+							else entry[i]["value"] >> buffer[temp_size];
 							temp_size++;
 							break;
 						case 2:
-							entry[i]["value"] >> *(uint16_t*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(uint16_t*)(&buffer[temp_size]) = (uint16_t)evaluated_value;
+							else entry[i]["value"] >> *(uint16_t*)(&buffer[temp_size]);
 							temp_size += 2;
 							break;
 						case 4:
-							entry[i]["value"] >> *(uint32_t*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(uint32_t*)(&buffer[temp_size]) = (uint32_t)evaluated_value;
+							else entry[i]["value"] >> *(uint32_t*)(&buffer[temp_size]);
 							temp_size += 4;
 							break;
 						case 8:
-							entry[i]["value"] >> *(uint64_t*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(uint64_t*)(&buffer[temp_size]) = (uint64_t)evaluated_value;
+							else entry[i]["value"] >> *(uint64_t*)(&buffer[temp_size]);
 							temp_size += 8;
 							break;
 						case 0x11:
-							entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(int8_t*)(&buffer[temp_size]) = (int8_t)evaluated_value;
+							else entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
 							temp_size++;
 							break;
 						case 0x12:
-							entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(int16_t*)(&buffer[temp_size]) = (int16_t)evaluated_value;
+							else entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
 							temp_size += 2;
 							break;
 						case 0x14:
-							entry[i]["value"] >> *(int32_t*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(int32_t*)(&buffer[temp_size]) = (int32_t)evaluated_value;
+							else entry[i]["value"] >> *(int32_t*)(&buffer[temp_size]);
 							temp_size += 4;
 							break;
 						case 0x18:
-							entry[i]["value"] >> *(int64_t*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(int64_t*)(&buffer[temp_size]) = (int64_t)evaluated_value;
+							else entry[i]["value"] >> *(int64_t*)(&buffer[temp_size]);
 							temp_size += 8;
 							break;
 						case 0x24:
-							entry[i]["value"] >> *(float*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(float*)(&buffer[temp_size]) = (float)evaluated_value;
+							else entry[i]["value"] >> *(float*)(&buffer[temp_size]);
 							temp_size += 4;
 							break;
 						case 0x28:
-							entry[i]["value"] >> *(double*)(&buffer[temp_size]);
+							if (evaluate_write)
+								*(double*)(&buffer[temp_size]) = evaluated_value;
+							else entry[i]["value"] >> *(double*)(&buffer[temp_size]);
 							temp_size += 8;
 							break;
 						default:
@@ -584,7 +675,7 @@ namespace LOCK {
 	}
 
 	template <typename T>
-	Result NOINLINE processEntry(T entry, bool masterWrite = false) {
+	Result NOINLINE processEntry(T entry, bool masterWrite = false, double fps_target = 0) {
 		
 		size_t temp_size = 0;
 		size_t old_temp_size = 0;
@@ -595,7 +686,7 @@ namespace LOCK {
 		old_temp_size = temp_size;
 		temp_size = 0;
 
-		Result rc = processEntryImpl(entry, buffer, &temp_size, masterWrite);
+		Result rc = processEntryImpl(entry, buffer, &temp_size, masterWrite, fps_target);
 		if (R_FAILED(rc)) {
 			free(buffer);
 			return rc;
@@ -615,11 +706,25 @@ namespace LOCK {
 		bool unsafeCheck = false;
 
 		char lockMagic[] = "LOCK";
-		uint8_t flags[3] = {1, 0, 0};
 		tree["unsafeCheck"] >> unsafeCheck;
+		uint8_t flags[4] = {1, 0, 0, unsafeCheck};
 		
 		for (size_t i = 0; i < std::size(entries); i++) {
-			Result ret = processEntry(tree[entries[i]]);
+			Result ret = -1;
+			if (ALL_FPS) {
+				size_t root_id = tree.root_id();
+				if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
+					ret = processEntry(tree["ALL_FPS"], false, atoi(entries[i]));
+				else {
+					for (size_t x = 0; i < tree["ALL_FPS"].num_children(); x++) {
+						size_t temp = tree[entries[i]].num_children();
+						tree[entries[i]].append_child();
+						tree[entries[i]][temp] = tree["ALL_FPS"][x];
+					}
+					ret = processEntry(tree[entries[i]], false, atoi(entries[i]));
+				}
+			}
+			else ret = processEntry(tree[entries[i]], false, atoi(entries[i]));
 			if (R_FAILED(ret)) {
 				freeBuffers();
 				return ret;
@@ -627,7 +732,7 @@ namespace LOCK {
 		}
 
 		if (gen == 2) {
-			Result ret = processEntry(tree["MASTER_WRITE"], true);
+			Result ret = processEntry(tree["MASTER_WRITE"], true, 0);
 			if (R_FAILED(ret)) {
 				freeBuffers();
 				return ret;
@@ -684,8 +789,7 @@ namespace LOCK {
 			return 0x202;
 		}
 		fwrite(&lockMagic[0], 4, 1, file);
-		fwrite(&flags[0], 3, 1, file);
-		fwrite(&unsafeCheck, 1, 1, file);
+		fwrite(&flags[0], 4, 1, file);
 		for (size_t i = 0; i < entries_count; i++) {
 			fwrite(&offsets[i], 4, 1, file);
 		}
@@ -720,13 +824,17 @@ namespace LOCK {
 			return 2;
 		if (tree.find_child(root_id, "MASTER_WRITE") != c4::yml::NONE)
 			gen = 2;
+		if (tree.find_child(root_id, "ALL_FPS") != c4::yml::NONE)
+			ALL_FPS = true;
 
-		Result base_err = 0x15;
-		for (size_t i = 0; i < std::size(entries); i++) {
-			if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
-				return base_err + (5 * i);
-			if (!tree[entries[i]].is_seq())
-				return base_err + 0x100 + (5 * i);
+		if (!ALL_FPS) {
+			Result base_err = 0x15;
+			for (size_t i = 0; i < std::size(entries); i++) {
+				if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
+					return base_err + (5 * i);
+				if (!tree[entries[i]].is_seq())
+					return base_err + 0x100 + (5 * i);
+			}
 		}
 		return 0;
 	}
