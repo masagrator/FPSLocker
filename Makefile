@@ -42,7 +42,7 @@ APP_VERSION	:=	1.2.8a
 
 TARGET		:=	FPSLocker
 BUILD		:=	build
-SOURCES		:=	source source/c4 source/c4/yml
+SOURCES		:=	source source/c4 source/c4/yml source/tinyexpr
 DATA		:=	data
 INCLUDES	:=	include libs/libtesla/include source
 
