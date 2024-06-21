@@ -9,6 +9,7 @@
 namespace LOCK {
 
 	const char entries[10][6] = {"15FPS", "20FPS", "25FPS", "30FPS", "35FPS", "40FPS", "45FPS", "50FPS", "55FPS", "60FPS"};
+	const char entries_rr[4][9] = {"40.3Hz", "45.225Hz", "50.15Hz", "55.075Hz"};
 	ryml::Tree tree;
 	char configBuffer[32770] = "";
 	uint8_t gen = 1;
@@ -314,7 +315,9 @@ namespace LOCK {
 						if (evaluate_write) {
 							double FPS_TARGET = fps_target;
 							double FPS_LOCK_TARGET = fps_target;
-							if (fps_target >= 60)
+							if (std::fmod(fps_target, 1) != 0)
+								FPS_LOCK_TARGET = 0;
+							else if (fps_target >= 60)
 								FPS_LOCK_TARGET = 120;
 							double FRAMETIME_TARGET = 1000.0 / fps_target;
 							double VSYNC_TARGET = 60 / fps_target;
@@ -709,22 +712,44 @@ namespace LOCK {
 		tree["unsafeCheck"] >> unsafeCheck;
 		uint8_t flags[4] = {1, 0, 0, unsafeCheck};
 		
+		if (ALL_FPS) flags[1] = 1;
 		for (size_t i = 0; i < std::size(entries); i++) {
 			Result ret = -1;
+			char* end = 0;
 			if (ALL_FPS) {
 				size_t root_id = tree.root_id();
 				if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
-					ret = processEntry(tree["ALL_FPS"], false, atoi(entries[i]));
+					ret = processEntry(tree["ALL_FPS"], false, strtod(entries[i], &end));
 				else {
 					for (size_t x = 0; i < tree["ALL_FPS"].num_children(); x++) {
 						size_t temp = tree[entries[i]].num_children();
 						tree[entries[i]].append_child();
 						tree[entries[i]][temp] = tree["ALL_FPS"][x];
 					}
-					ret = processEntry(tree[entries[i]], false, atoi(entries[i]));
+					ret = processEntry(tree[entries[i]], false, strtod(entries[i], &end));
 				}
 			}
-			else ret = processEntry(tree[entries[i]], false, atoi(entries[i]));
+			else ret = processEntry(tree[entries[i]], false, strtod(entries[i], &end));
+			if (R_FAILED(ret)) {
+				freeBuffers();
+				return ret;
+			}
+		}
+
+		if (ALL_FPS) for (size_t i = 0; i < std::size(entries_rr); i++) {
+			Result ret = -1;
+			char* end = 0;
+			size_t root_id = tree.root_id();
+			if (tree.find_child(root_id, entries_rr[i]) == c4::yml::NONE)
+				ret = processEntry(tree["ALL_FPS"], false, strtod(entries_rr[i], &end));
+			else {
+				for (size_t x = 0; i < tree["ALL_FPS"].num_children(); x++) {
+					size_t temp = tree[entries_rr[i]].num_children();
+					tree[entries_rr[i]].append_child();
+					tree[entries_rr[i]][temp] = tree["ALL_FPS"][x];
+				}
+				ret = processEntry(tree[entries_rr[i]], false, strtod(entries_rr[i], &end));
+			}
 			if (R_FAILED(ret)) {
 				freeBuffers();
 				return ret;
@@ -740,14 +765,11 @@ namespace LOCK {
 			flags[0] = 2;
 		}
 
-		uint32_t base_offset = 0x30;
-		if (gen == 2) {
-			base_offset += 4;
-		}
-		uint8_t entries_count = 10;
+		uint8_t entries_count = (sizeof(entries) / sizeof(entries[0])) + (sizeof(entries_rr) / sizeof(entries_rr[0]));
 		if (gen == 2) {
 			entries_count++;
 		}
+		uint32_t base_offset = strlen(lockMagic) + sizeof(flags) + (4 * entries_count);
 		uint32_t* offsets = (uint32_t*)calloc(entries_count, 4);
 		offsets[0] = base_offset;
 		base_offset += buffers[0] -> size;
