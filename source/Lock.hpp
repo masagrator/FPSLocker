@@ -315,9 +315,7 @@ namespace LOCK {
 						if (evaluate_write) {
 							double FPS_TARGET = fps_target;
 							double FPS_LOCK_TARGET = fps_target;
-							if (std::fmod(fps_target, 1) != 0)
-								FPS_LOCK_TARGET = 0;
-							else if (fps_target >= 60)
+							if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
 								FPS_LOCK_TARGET = 120;
 							double FRAMETIME_TARGET = 1000.0 / fps_target;
 							double VSYNC_TARGET = 60 / fps_target;
