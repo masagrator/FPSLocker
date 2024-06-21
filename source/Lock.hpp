@@ -765,7 +765,7 @@ namespace LOCK {
 			flags[0] = 2;
 		}
 
-		uint8_t entries_count = (sizeof(entries) / sizeof(entries[0])) + (sizeof(entries_rr) / sizeof(entries_rr[0]));
+		uint8_t entries_count = (sizeof(entries) / sizeof(entries[0])) + (ALL_FPS ? (sizeof(entries_rr) / sizeof(entries_rr[0])) : 0);
 		if (gen == 2) {
 			entries_count++;
 		}
