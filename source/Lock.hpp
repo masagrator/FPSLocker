@@ -9,7 +9,7 @@
 namespace LOCK {
 
 	const char entries[10][6] = {"15FPS", "20FPS", "25FPS", "30FPS", "35FPS", "40FPS", "45FPS", "50FPS", "55FPS", "60FPS"};
-	const char entries_rr[4][9] = {"40.02Hz", "44.999Hz", "49.96Hz", "54.995Hz"};
+	const char entries_rr[4][9] = {"40.001Hz", "45.001Hz", "50.001Hz", "55.001Hz"};
 	ryml::Tree tree;
 	char configBuffer[32770] = "";
 	uint8_t gen = 1;
