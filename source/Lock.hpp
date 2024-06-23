@@ -9,6 +9,7 @@
 namespace LOCK {
 
 	const char entries[10][6] = {"15FPS", "20FPS", "25FPS", "30FPS", "35FPS", "40FPS", "45FPS", "50FPS", "55FPS", "60FPS"};
+	const char entries_rr[4][5] = {"40Hz", "45Hz", "50Hz", "55Hz"};
 	ryml::Tree tree;
 	char configBuffer[32770] = "";
 	uint8_t gen = 1;
@@ -791,6 +792,8 @@ namespace LOCK {
 		char lockMagic[] = "LOCK";
 		tree["unsafeCheck"] >> unsafeCheck;
 		uint8_t flags[4] = {1, 0, 0, unsafeCheck};
+
+		if (ALL_FPS) flags[1] = 1;
 		
 		for (size_t i = 0; i < std::size(entries); i++) {
 			Result ret = -1;
@@ -815,6 +818,26 @@ namespace LOCK {
 			}
 		}
 
+		if (ALL_FPS) for (size_t i = 0; i < std::size(entries_rr); i++) {
+			Result ret = -1;
+			char* end = 0;
+			size_t root_id = tree.root_id();
+			if (tree.find_child(root_id, entries_rr[i]) == c4::yml::NONE)
+				ret = processEntry(tree["ALL_FPS"], false, strtod(entries_rr[i], &end));
+			else {
+				for (size_t x = 0; i < tree["ALL_FPS"].num_children(); x++) {
+					size_t temp = tree[entries_rr[i]].num_children();
+					tree[entries_rr[i]].append_child();
+					tree[entries_rr[i]][temp] = tree["ALL_FPS"][x];
+				}
+				ret = processEntry(tree[entries_rr[i]], false, strtod(entries_rr[i], &end));
+			}
+			if (R_FAILED(ret)) {
+				freeBuffers();
+				return ret;
+			}
+		}
+
 		if (gen == 2) {
 			Result ret = processEntry(tree["MASTER_WRITE"], true, 0);
 			if (R_FAILED(ret)) {
@@ -824,7 +847,7 @@ namespace LOCK {
 			flags[0] = 2;
 		}
 
-		uint8_t entries_count = (sizeof(entries) / sizeof(entries[0]));
+		uint8_t entries_count = (sizeof(entries) / sizeof(entries[0])) + (ALL_FPS ? (sizeof(entries_rr) / sizeof(entries_rr[0])) : 0);
 		if (gen == 2) {
 			entries_count++;
 		}
