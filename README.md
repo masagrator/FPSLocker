@@ -37,7 +37,7 @@ Explanation of each line:
 - `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
 - `Display settings` - submenu available only for non OLED model users. Consists of:
   - `Increase refresh rate` - change display refresh rate up to 60 Hz.
-  - `Decrease refresh rate` change display refresh rate down to 40 Hz.
+  - `Decrease refresh rate` - change display refresh rate down to 40 Hz.
   - `Display Sync` - When turned on, both options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target. In case if FPS Target is below 40 FPS, refresh rate is restored to 60 Hz. 
 
 > When game is not running
@@ -50,8 +50,29 @@ You will have two submenus to choose from (if you are using OLED model, you will
   - `Delete patches` - it will delete file created by "Convert config to patch file" option
 - `Display settings` - submenu available only for non OLED model users. Consists of:
   - `Increase refresh rate` - change display refresh rate up to 60 Hz.
-  - `Decrease refresh rate` change display refresh rate down to 40 Hz.
+  - `Decrease refresh rate` - change display refresh rate down to 40 Hz.
   - `Display Sync` - change display refresh rate only when game is running, match refresh rate with FPS Target. In case if FPS Target is below 40 FPS, refresh rate is restored to 60 Hz.
+
+# Information about changing refresh rates
+
+I want to use this space to clarify few things.<br>
+
+OLED screens were getting often issues with green tint and blur. 45 Hz works for some people properly only above certain brightness. I have decided to block OLED model completely until somebody will find more reliable way to change refresh rate for those displays.<br>
+
+From all reports I got, only one LCD screen was getting issue with small flickering in left bottom corner when running at 40 Hz (they were using `InnoLux P062CCA-AZ2`, but there were other users who also got this display and had no issues at 40 Hz - me included). No other issues were found.<br>
+
+I have decided to limit down to 40 Hz since lower refresh rates not only were not beneficial to user, also this allows avoid certain risks with underclocking display too much.<br>
+
+LCD can be overclocked up to 70 Hz without issues but decided to leave max 60 Hz since I have decided there are no visible benefits running display at 70 Hz. From 75 Hz all users were reporting issues with glitchy image. OLED above 65 Hz was freezing and only way to got it back working again was lowering refresh rate to 65 Hz and lower.
+
+This works only for builtin display, you cannot change refresh rate in docked mode. 
+If Display Sync is turned off, custom refresh rate is not restored after sleep mode.
+
+Changing refresh rate affects animations speed of OS and Tesla overlays, making them more sluggigsh at lower refresh rates.
+
+Adding support for custom display refresh rate required changing how game configs are written, so you are advised to redownload all FPSLocker Warehouse configs if you want them to properly support custom refresh rates.
+
+Refresh rates set up by FPSLocker are not perfect, they are usually off by max 0.01‰. Only 45 Hz seems to be so close that offset is below 0.0002‰. It's not possible with current method to set them more precisely.
 
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
