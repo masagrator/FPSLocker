@@ -325,7 +325,7 @@ namespace LOCK {
 							double FRAMETIME_TARGET = 1000.0 / fps_target;
 							double VSYNC_TARGET = trunc(60 / fps_target);
 							te_variable vars[] = {
-								{"TruncDec", (const void*)TruncDec, TE_FUNCTION2}, /* TE_FUNCTION2 used because my_sum takes two arguments. */
+								{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
 								{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
 								{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
 								{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
