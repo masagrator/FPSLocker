@@ -57,7 +57,7 @@ You will have two submenus to choose from (if you are using OLED model, you will
 
 I want to use this space to clarify few things.<br>
 
-OLED screens were getting often issues with green tint and blur. 45 Hz works for some people properly only above certain brightness. I have decided to block OLED model completely until somebody will find more reliable way to change refresh rate for those displays.<br>
+OLED screens were getting often issues with green tint and blur below 60 Hz. 45 Hz works for some people properly only above certain brightness. I have decided to block OLED model completely until somebody will find more reliable way to change refresh rate for those displays.<br>
 
 From all reports I got, only one LCD screen was getting issue with small flickering in left bottom corner when running at 40 Hz (they were using `InnoLux P062CCA-AZ2`, but there were other users who also got this display and had no issues at 40 Hz - me included). No other issues were found.<br>
 
