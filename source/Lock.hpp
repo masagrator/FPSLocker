@@ -9,7 +9,7 @@
 namespace LOCK {
 
 	const char entries[10][6] = {"15FPS", "20FPS", "25FPS", "30FPS", "35FPS", "40FPS", "45FPS", "50FPS", "55FPS", "60FPS"};
-	const char entries_rr[4][5] = {"40Hz", "45Hz", "50Hz", "55Hz"};
+	const char entries_rr[4][9] = {"40.02Hz", "44.999Hz", "49.96Hz", "54.995Hz"};
 	ryml::Tree tree;
 	char configBuffer[32770] = "";
 	uint8_t gen = 1;
@@ -404,11 +404,15 @@ namespace LOCK {
 					double evaluated_value = 0;
 					if (evaluate_write) {
 						double FPS_TARGET = fps_target;
+						double FPS_LOCK_TARGET = fps_target;
+						if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
+							FPS_LOCK_TARGET = 120;
 						double FRAMETIME_TARGET = 1000.0 / fps_target;
 						double VSYNC_TARGET = 60 / fps_target;
 						te_variable vars[] = {
 							{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
 							{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
+							{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
 							{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
 							{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
 						};
@@ -577,7 +581,7 @@ namespace LOCK {
 							double FRAMETIME_TARGET = 1000.0 / fps_target;
 							double VSYNC_TARGET = 60 / fps_target;
 							te_variable vars[] = {
-								{"TruncDec", (const void*)TruncDec, TE_FUNCTION2}, /* TE_FUNCTION2 used because my_sum takes two arguments. */
+								{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
 								{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
 								{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
 								{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
@@ -661,11 +665,15 @@ namespace LOCK {
 					double evaluated_value = 0;
 					if (evaluate_write) {
 						double FPS_TARGET = fps_target;
+						double FPS_LOCK_TARGET = fps_target;
+						if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
+							FPS_LOCK_TARGET = 120;
 						double FRAMETIME_TARGET = 1000.0 / fps_target;
 						double VSYNC_TARGET = 60 / fps_target;
 						te_variable vars[] = {
 							{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
 							{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
+							{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
 							{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
 							{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
 						};
