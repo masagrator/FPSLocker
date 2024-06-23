@@ -24,7 +24,7 @@ Explanation of each line:
 - `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
 - `Increase/Decrease FPS target` - Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS. If FPS is set above 30 FPS, it sets `interval mode` to 1. Otherwise it sets interval to 2.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
-- Advanced settings - submenu which consists of:
+- `Advanced settings` - submenu which consists of:
   - If game is using NVN
     - `Window Sync Wait` - this is dangerous setting that disabled can crash game, but in some can bring benefit of disabling double buffer vsync at the cost of small graphical glitches (check list of games compatible with this solution at the bottom of README). Use it with caution. It won't show if game is not using double buffer. 
     - `Set Buffering` - if game is using any other buffering than double, this option will show that will allow you to force game to run at any other buffering that is not higher than original one (so f.e. you cannot change double buffer to triple buffer). Lowering buffer is recommended only for games that have near perfect performance at 30 or 60 FPS, but suffer from bad framepacing or big input lag. If you will force double buffer in games with uneven performance, FPS drops will be very severe. It can be applied only at boot of game, so after changing buffering you must save settings in FPSLocker and restart game. <br> Explanation of `Set/Active/Available Buffers`: 
@@ -35,13 +35,23 @@ Explanation of each line:
   - `Delete patch file` - if proper config file exists for this game and version, you will get an option to delete patch file so it won't be loaded when you will run this game next time.
   - `Check/download config file` - Checks in Warehouse repository if config for this game and version exists. If exists, it is downloaded and also checked if it's the same as the one on sdcard. If it's not, overlay will remove existing patch and config file, and user must manually convert new config to patch file. If config doesn't exist in repository for this game and version, you should get `Err 404`. 0x312 error means we got unexpected file from github. Any other error means that something is happening with your connection or github server.
 - `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
+- `Display settings` - submenu available only for non OLED model users. Consists of:
+  - `Increase refresh rate` - change display refresh rate up to 60 Hz.
+  - `Decrease refresh rate` change display refresh rate down to 40 Hz.
+  - `Display Sync` - When turned on, both options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target. In case if FPS Target is below 40 FPS, refresh rate is restored to 60 Hz. 
 
 > When game is not running
 
-It will list installed games (max 32) and as first option it's available "All" submenu.<br>
-Inside each one you will find two options:
-- `Delete settings` - it will delete file created by "Save settings" option
-- `Delete patches` - it will delete file created by "Convert config to patch file" option
+You will have two submenus to choose from (if you are using OLED model, you will be redirected automatically to Games list):
+- Games list<br>
+  It will list installed games (max 32) and as first option it's available "All" submenu.<br>
+  Inside each one you will find two options:
+  - `Delete settings` - it will delete file created by "Save settings" option
+  - `Delete patches` - it will delete file created by "Convert config to patch file" option
+- `Display settings` - submenu available only for non OLED model users. Consists of:
+  - `Increase refresh rate` - change display refresh rate up to 60 Hz.
+  - `Decrease refresh rate` change display refresh rate down to 40 Hz.
+  - `Display Sync` - change display refresh rate only when game is running, match refresh rate with FPS Target. In case if FPS Target is below 40 FPS, refresh rate is restored to 60 Hz.
 
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
