@@ -14,6 +14,7 @@ namespace LOCK {
 	char configBuffer[32770] = "";
 	uint8_t gen = 1;
 	bool ALL_FPS = false;
+	bool ALL_REFRESH_RATES = false;
 
 	struct buffer_data {
 		size_t size;
@@ -68,6 +69,8 @@ namespace LOCK {
 			return 0x24;
 		else if (!value_type.compare("double"))
 			return 0x28;
+		else if (!value_type.compare("refresh_rate"))
+			return 0x38;
 		else return 0;
 	}
 
@@ -78,7 +81,7 @@ namespace LOCK {
 			return sizeof(uint16_t);	
 		else if (!value_type.compare("int32") || !value_type.compare("uint32") || !value_type.compare("float"))
 			return sizeof(uint32_t);
-		else if (!value_type.compare("int64") || !value_type.compare("uint64") || !value_type.compare("double"))
+		else if (!value_type.compare("int64") || !value_type.compare("uint64") || !value_type.compare("double") || !value_type.compare("refresh_rate"))
 			return sizeof(uint64_t);
 		else return 0;
 	}
@@ -219,6 +222,7 @@ namespace LOCK {
 									temp_size += 4;
 									break;
 								case 0x28:
+								case 0x38:
 									entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
 									temp_size += 8;
 									break;
@@ -268,6 +272,7 @@ namespace LOCK {
 								temp_size += 4;
 								break;
 							case 0x28:
+							case 0x38:
 								entry[i]["value"] >> *(double*)(&buffer[temp_size]);
 								temp_size += 8;
 								break;
@@ -388,6 +393,7 @@ namespace LOCK {
 								temp_size += 4;
 								break;
 							case 0x28:
+							case 0x38:
 								if (evaluate_write)
 									*(double*)(&buffer[temp_size]) = (uint8_t)evaluated_value;
 								else entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
@@ -478,6 +484,7 @@ namespace LOCK {
 							temp_size += 4;
 							break;
 						case 0x28:
+						case 0x38:
 							if (evaluate_write)
 								*(double*)(&buffer[temp_size]) = evaluated_value;
 							else entry[i]["value"] >> *(double*)(&buffer[temp_size]);
@@ -649,6 +656,7 @@ namespace LOCK {
 								temp_size += 4;
 								break;
 							case 0x28:
+							case 0x38:
 								if (evaluate_write)
 									*(double*)(&buffer[temp_size]) = (uint8_t)evaluated_value;
 								else entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
@@ -739,6 +747,7 @@ namespace LOCK {
 							temp_size += 4;
 							break;
 						case 0x28:
+						case 0x38:
 							if (evaluate_write)
 								*(double*)(&buffer[temp_size]) = evaluated_value;
 							else entry[i]["value"] >> *(double*)(&buffer[temp_size]);
@@ -803,6 +812,7 @@ namespace LOCK {
 
 		if (ALL_FPS) flags[1] = 1;
 		
+		
 		for (size_t i = 0; i < std::size(entries); i++) {
 			Result ret = -1;
 			char* end = 0;
@@ -811,10 +821,19 @@ namespace LOCK {
 				if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
 					ret = processEntry(tree["ALL_FPS"], false, strtod(entries[i], &end));
 				else {
-					for (size_t x = 0; i < tree["ALL_FPS"].num_children(); x++) {
-						size_t temp = tree[entries[i]].num_children();
-						tree[entries[i]].append_child();
-						tree[entries[i]][temp] = tree["ALL_FPS"][x];
+					for (size_t x = 0; x < tree["ALL_FPS"].num_children(); x++) {
+						tree[entries[i]].append_child() |= ryml::MAP;
+						for (auto child_id = tree["ALL_FPS"][x].first_child(); child_id.id() != ryml::NONE; child_id = child_id.next_sibling()) {
+							auto key = child_id.key();
+							if (child_id.is_seq() == false)
+								tree[entries[i]].last_child()[key] << child_id.val();
+							else {
+								tree[entries[i]].last_child()[key] |= ryml::SEQ;
+								for (size_t y = 0; y < child_id.num_children(); y++) {
+									tree[entries[i]].last_child()[key].append_child() << child_id[y].val();
+								}
+							}
+						}			
 					}
 					ret = processEntry(tree[entries[i]], false, strtod(entries[i], &end));
 				}
@@ -826,17 +845,44 @@ namespace LOCK {
 			}
 		}
 
+		if (ALL_FPS && ALL_REFRESH_RATES) {
+			for (size_t x = 0; x < tree["ALL_REFRESH_RATES"].num_children(); x++) {
+				tree["ALL_FPS"].append_child() |= ryml::MAP;
+				for (auto child_id = tree["ALL_REFRESH_RATES"][x].first_child(); child_id.id() != ryml::NONE; child_id = child_id.next_sibling()) {
+					auto key = child_id.key();
+					if (child_id.is_seq() == false)
+						tree["ALL_FPS"].last_child()[key] << child_id.val();
+					else {
+						tree["ALL_FPS"].last_child()[key] |= ryml::SEQ;
+						for (size_t y = 0; y < child_id.num_children(); y++) {
+							tree["ALL_FPS"].last_child()[key].append_child() << child_id[y].val();
+						}
+					}
+				}
+			}
+		}
+		
 		if (ALL_FPS) for (size_t i = 0; i < std::size(entries_rr); i++) {
 			Result ret = -1;
 			char* end = 0;
 			size_t root_id = tree.root_id();
-			if (tree.find_child(root_id, entries_rr[i]) == c4::yml::NONE)
+			if (tree.find_child(root_id, entries_rr[i]) == c4::yml::NONE) {
 				ret = processEntry(tree["ALL_FPS"], false, strtod(entries_rr[i], &end));
+			}
 			else {
-				for (size_t x = 0; i < tree["ALL_FPS"].num_children(); x++) {
-					size_t temp = tree[entries_rr[i]].num_children();
-					tree[entries_rr[i]].append_child();
-					tree[entries_rr[i]][temp] = tree["ALL_FPS"][x];
+				for (size_t x = 0; x < tree["ALL_FPS"].num_children(); x++) {
+					tree[entries_rr[i]].append_child() |= ryml::MAP;
+					for (auto child_id = tree["ALL_FPS"][x].first_child(); child_id.id() != ryml::NONE; child_id = child_id.next_sibling()) {
+						auto key = child_id.key();
+						if (child_id.is_seq() == false)
+							tree[entries_rr[i]].last_child()[key] << child_id.val();
+						else {
+							tree[entries_rr[i]].last_child()[key] |= ryml::SEQ;
+							for (size_t y = 0; y < child_id.num_children(); y++) {
+								tree[entries_rr[i]].last_child()[key].append_child() << child_id[y].val();
+							}
+						}
+					}			
 				}
 				ret = processEntry(tree[entries_rr[i]], false, strtod(entries_rr[i], &end));
 			}
@@ -845,7 +891,7 @@ namespace LOCK {
 				return ret;
 			}
 		}
-
+		
 		if (gen == 2) {
 			Result ret = processEntry(tree["MASTER_WRITE"], true, 0);
 			if (R_FAILED(ret)) {
@@ -938,6 +984,8 @@ namespace LOCK {
 			gen = 2;
 		if (tree.find_child(root_id, "ALL_FPS") != c4::yml::NONE)
 			ALL_FPS = true;
+		if (tree.find_child(root_id, "ALL_REFRESH_RATES") != c4::yml::NONE)
+			ALL_REFRESH_RATES = true;
 
 		if (!ALL_FPS) {
 			Result base_err = 0x15;
