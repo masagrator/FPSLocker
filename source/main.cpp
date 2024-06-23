@@ -153,6 +153,7 @@ Result downloadPatch() {
 				remove(configPath);
 				rename(file_path, configPath);
 				FILE* config = fopen(configPath, "r");
+				memset(&LOCK::configBuffer, 0, sizeof(LOCK::configBuffer));
 				fread(&LOCK::configBuffer, 1, 32768, config);
 				fclose(config);
 				strcat(&LOCK::configBuffer[0], "\n");
@@ -162,7 +163,7 @@ Result downloadPatch() {
 					for (size_t i = 0; i < LOCK::tree["Addons"].num_children(); i++) {
 						std::string temp = "";
 						LOCK::tree["Addons"][i] >> temp;
-						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/main/" + temp;
+						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/" + temp;
 						std::string path = "sdmc:/" + temp;
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
