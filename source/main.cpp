@@ -812,6 +812,7 @@ public:
 		}
 
 		if (!oldSalty) {
+			list->addItem(new tsl::elm::CategoryHeader("Match refresh rate with FPS Target.", true));
 			auto *clickableListItem3 = new tsl::elm::ToggleListItem("Display Sync", displaySync);
 			clickableListItem3->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
