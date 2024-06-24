@@ -5,7 +5,6 @@
 #include "c4/std/string.hpp"
 #include "tinyexpr/tinyexpr.h"
 #include <cmath>
-#include <type_traits>
 
 namespace LOCK {
 
