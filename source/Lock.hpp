@@ -5,6 +5,7 @@
 #include "c4/std/string.hpp"
 #include "tinyexpr/tinyexpr.h"
 #include <cmath>
+#include <type_traits>
 
 namespace LOCK {
 
@@ -89,6 +90,128 @@ namespace LOCK {
 	double TruncDec(double value, double truncator) {
 		uint64_t factor = pow(10, truncator);
 		return trunc(value*factor) / factor;
+	}
+
+	template <typename T>
+	double evaluateExpression(T string, double fps_target) {
+		std::string equation;
+		string >> equation;
+		double FPS_TARGET = fps_target;
+		double FPS_LOCK_TARGET = fps_target;
+		if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
+			FPS_LOCK_TARGET = 120;
+		double FRAMETIME_TARGET = 1000.0 / fps_target;
+		double VSYNC_TARGET = trunc(60.0 / fps_target);
+		te_variable vars[] = {
+			{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
+			{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
+			{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
+			{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
+			{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
+		};
+		te_expr *n = te_compile(equation.c_str(), vars, std::size(vars), 0);
+		double evaluated_value = te_eval(n);
+		te_free(n);
+		return evaluated_value;
+	}
+
+	template <typename T>
+	Result writeEntryTo(T value, uint8_t* buffer, size_t* offset, uint8_t value_type) {
+		switch(value_type) {
+			case 1:
+				value >> buffer[*offset];
+				*offset += sizeof(uint8_t);
+				break;
+			case 2:
+				value >> *(uint16_t*)(&buffer[*offset]);
+				*offset += sizeof(uint16_t);
+				break;
+			case 4:
+				value >> *(uint32_t*)(&buffer[*offset]);
+				*offset += sizeof(uint32_t);
+				break;
+			case 8:
+				value >> *(uint64_t*)(&buffer[*offset]);
+				*offset += sizeof(uint64_t);
+				break;
+			case 0x11:
+				value >> *(int8_t*)(&buffer[*offset]);
+				*offset += sizeof(int8_t);
+				break;
+			case 0x12:
+				value >> *(int16_t*)(&buffer[*offset]);
+				*offset += sizeof(int16_t);
+				break;
+			case 0x14:
+				value >> *(int32_t*)(&buffer[*offset]);
+				*offset += sizeof(int32_t);
+				break;
+			case 0x18:
+				value >> *(int64_t*)(&buffer[*offset]);
+				*offset += sizeof(int64_t);
+				break;
+			case 0x24:
+				value >> *(float*)(&buffer[*offset]);
+				*offset += sizeof(float);
+				break;
+			case 0x28:
+			case 0x38:
+				value >> *(double*)(&buffer[*offset]);
+				*offset += sizeof(double);
+				break;
+			default:
+				return 4;
+		}
+		return 0;
+	}
+
+	Result writeExprTo(double value, uint8_t* buffer, size_t* offset, uint8_t value_type) {
+		switch(value_type) {
+			case 1:
+				buffer[*offset] = (uint8_t)value;
+				*offset += sizeof(uint8_t);
+				break;
+			case 2:
+				*(uint16_t*)(&buffer[*offset]) = (uint16_t)value;
+				*offset += sizeof(uint16_t);
+				break;
+			case 4:
+				*(uint32_t*)(&buffer[*offset]) = (uint32_t)value;
+				*offset += sizeof(uint32_t);
+				break;
+			case 8:
+				*(uint64_t*)(&buffer[*offset]) = (uint64_t)value;
+				*offset += sizeof(uint64_t);
+				break;
+			case 0x11:
+				*(int8_t*)(&buffer[*offset]) = (int8_t)value;
+				*offset += sizeof(int8_t);
+				break;
+			case 0x12:
+				*(int16_t*)(&buffer[*offset]) = (int16_t)value;
+				*offset += sizeof(int16_t);
+				break;
+			case 0x14:
+				*(int32_t*)(&buffer[*offset]) = (int32_t)value;
+				*offset += sizeof(int32_t);
+				break;
+			case 0x18:
+				*(int64_t*)(&buffer[*offset]) = (int64_t)value;
+				*offset += sizeof(int64_t);
+				break;
+			case 0x24:
+				*(float*)(&buffer[*offset]) = (float)value;
+				*offset += sizeof(float);
+				break;
+			case 0x28:
+			case 0x38:
+				*(double*)(&buffer[*offset]) = (double)value;
+				*offset += sizeof(double);
+				break;
+			default:
+				return 4;
+		}
+		return 0;
 	}
 
 
@@ -184,101 +307,15 @@ namespace LOCK {
 						buffer[temp_size] = entry[i]["value"].num_children(); //value_count
 						temp_size++;
 						for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
-							switch(value_type) {
-								case 1:
-									entry[i]["value"][x] >> buffer[temp_size];
-									temp_size++;
-									break;
-								case 2:
-									entry[i]["value"][x] >> *(uint16_t*)(&buffer[temp_size]);
-									temp_size += 2;
-									break;
-								case 4:
-									entry[i]["value"][x] >> *(uint32_t*)(&buffer[temp_size]);
-									temp_size += 4;
-									break;
-								case 8:
-									entry[i]["value"][x] >> *(uint64_t*)(&buffer[temp_size]);
-									temp_size += 8;
-									break;
-								case 0x11:
-									entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
-									temp_size++;
-									break;
-								case 0x12:
-									entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
-									temp_size += 2;
-									break;
-								case 0x14:
-									entry[i]["value"][x] >> *(int32_t*)(&buffer[temp_size]);
-									temp_size += 4;
-									break;
-								case 0x18:
-									entry[i]["value"][x] >> *(int64_t*)(&buffer[temp_size]);
-									temp_size += 8;
-									break;
-								case 0x24:
-									entry[i]["value"][x] >> *(float*)(&buffer[temp_size]);
-									temp_size += 4;
-									break;
-								case 0x28:
-								case 0x38:
-									entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
-									temp_size += 8;
-									break;
-								default:
-									return 4;
-							}
+							Result rc = writeEntryTo(entry[i]["value"][x], buffer, &temp_size, value_type);
+							if (R_FAILED(rc)) return rc;
 						}
 					}
 					else {
 						buffer[temp_size] = 1;
 						temp_size++;
-						switch(value_type) {
-							case 1:
-								entry[i]["value"] >> buffer[temp_size];
-								temp_size++;
-								break;
-							case 2:
-								entry[i]["value"] >> *(uint16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 4:
-								entry[i]["value"] >> *(uint32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 8:
-								entry[i]["value"] >> *(uint64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x11:
-								entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
-								temp_size++;
-								break;
-							case 0x12:
-								entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 0x14:
-								entry[i]["value"] >> *(int32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x18:
-								entry[i]["value"] >> *(int64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x24:
-								entry[i]["value"] >> *(float*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x28:
-							case 0x38:
-								entry[i]["value"] >> *(double*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							default:
-								return 4;
-						}
+						Result rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
+						if (R_FAILED(rc)) return rc;
 					}					
 				}
 				else return 2;
@@ -316,183 +353,23 @@ namespace LOCK {
 					buffer[temp_size] = entry[i]["value"].num_children(); //value_count
 					temp_size++;
 					for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
-						double evaluated_value = 0;
-						if (evaluate_write) {
-							double FPS_TARGET = fps_target;
-							double FPS_LOCK_TARGET = fps_target;
-							if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
-								FPS_LOCK_TARGET = 120;
-							double FRAMETIME_TARGET = 1000.0 / fps_target;
-							double VSYNC_TARGET = trunc(60.0 / fps_target);
-							te_variable vars[] = {
-								{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
-								{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
-								{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
-								{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
-								{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
-							};
-							std::string equation = "";
-							entry[i]["value"][x] >> equation;
-							te_expr *n = te_compile(equation.c_str(), vars, 5, 0);
-							evaluated_value = te_eval(n);
-							te_free(n);
-						}
-						switch(value_type) {
-							case 1:
-								if (evaluate_write)
-									buffer[temp_size] = (uint8_t)evaluated_value;
-								else entry[i]["value"][x] >> buffer[temp_size];
-								temp_size++;
-								break;
-							case 2:
-								if (evaluate_write)
-									*(uint16_t*)(&buffer[temp_size]) = (uint16_t)evaluated_value;
-								else entry[i]["value"][x] >> *(uint16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 4:
-								if (evaluate_write)
-									*(uint32_t*)(&buffer[temp_size]) = (uint32_t)evaluated_value;
-								else entry[i]["value"][x] >> *(uint32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 8:
-								if (evaluate_write)
-									*(uint64_t*)(&buffer[temp_size]) = (uint64_t)evaluated_value;
-								else entry[i]["value"][x] >> *(uint64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x11:
-								if (evaluate_write)
-									*(int8_t*)(&buffer[temp_size]) = (int8_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
-								temp_size++;
-								break;
-							case 0x12:
-								if (evaluate_write)
-									*(int16_t*)(&buffer[temp_size]) = (int16_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 0x14:
-								if (evaluate_write)
-									*(int32_t*)(&buffer[temp_size]) = (int32_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x18:
-								if (evaluate_write)
-									*(int64_t*)(&buffer[temp_size]) = (int64_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x24:
-								if (evaluate_write)
-									*(float*)(&buffer[temp_size]) = (float)evaluated_value;
-								else entry[i]["value"][x] >> *(float*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x28:
-							case 0x38:
-								if (evaluate_write)
-									*(double*)(&buffer[temp_size]) = (uint8_t)evaluated_value;
-								else entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							default:
-								return 4;
-						}
+						double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"][x], fps_target) : 0);
+						Result rc = 0;
+						if (evaluate_write)
+							rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+						else rc = writeEntryTo(entry[i]["value"][x], buffer, &temp_size, value_type);
+						if (R_FAILED(rc)) return rc;
 					}
 				}
 				else {
 					buffer[temp_size] = 1;
 					temp_size++;
-					double evaluated_value = 0;
-					if (evaluate_write) {
-						double FPS_TARGET = fps_target;
-						double FPS_LOCK_TARGET = fps_target;
-						if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
-							FPS_LOCK_TARGET = 120;
-						double FRAMETIME_TARGET = 1000.0 / fps_target;
-						double VSYNC_TARGET = trunc(60.0 / fps_target);
-						te_variable vars[] = {
-							{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
-							{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
-							{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
-							{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
-							{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
-						};
-						std::string equation = "";
-						entry[i]["value"] >> equation;
-						te_expr *n = te_compile(equation.c_str(), vars, 5, 0);
-						evaluated_value = te_eval(n);
-						te_free(n);
-					}	
-					switch(value_type) {
-						case 1:
-							if (evaluate_write)
-								buffer[temp_size] = (uint8_t)evaluated_value;
-							else entry[i]["value"] >> buffer[temp_size];
-							temp_size++;
-							break;
-						case 2:
-							if (evaluate_write)
-								*(uint16_t*)(&buffer[temp_size]) = (uint16_t)evaluated_value;
-							else entry[i]["value"] >> *(uint16_t*)(&buffer[temp_size]);
-							temp_size += 2;
-							break;
-						case 4:
-							if (evaluate_write)
-								*(uint32_t*)(&buffer[temp_size]) = (uint32_t)evaluated_value;
-							else entry[i]["value"] >> *(uint32_t*)(&buffer[temp_size]);
-							temp_size += 4;
-							break;
-						case 8:
-							if (evaluate_write)
-								*(uint64_t*)(&buffer[temp_size]) = (uint64_t)evaluated_value;
-							else entry[i]["value"] >> *(uint64_t*)(&buffer[temp_size]);
-							temp_size += 8;
-							break;
-						case 0x11:
-							if (evaluate_write)
-								*(int8_t*)(&buffer[temp_size]) = (int8_t)evaluated_value;
-							else entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
-							temp_size++;
-							break;
-						case 0x12:
-							if (evaluate_write)
-								*(int16_t*)(&buffer[temp_size]) = (int16_t)evaluated_value;
-							else entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
-							temp_size += 2;
-							break;
-						case 0x14:
-							if (evaluate_write)
-								*(int32_t*)(&buffer[temp_size]) = (int32_t)evaluated_value;
-							else entry[i]["value"] >> *(int32_t*)(&buffer[temp_size]);
-							temp_size += 4;
-							break;
-						case 0x18:
-							if (evaluate_write)
-								*(int64_t*)(&buffer[temp_size]) = (int64_t)evaluated_value;
-							else entry[i]["value"] >> *(int64_t*)(&buffer[temp_size]);
-							temp_size += 8;
-							break;
-						case 0x24:
-							if (evaluate_write)
-								*(float*)(&buffer[temp_size]) = (float)evaluated_value;
-							else entry[i]["value"] >> *(float*)(&buffer[temp_size]);
-							temp_size += 4;
-							break;
-						case 0x28:
-						case 0x38:
-							if (evaluate_write)
-								*(double*)(&buffer[temp_size]) = evaluated_value;
-							else entry[i]["value"] >> *(double*)(&buffer[temp_size]);
-							temp_size += 8;
-							break;
-						default:
-							return 4;
-					}
+					double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"], fps_target) : 0);
+					Result rc = 0;
+					if (evaluate_write)
+						rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+					else rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
+					if (R_FAILED(rc)) return rc;
 				}
 			}
 			else if (!string_check.compare("compare") || !string_check.compare("evaluate_compare")) {
@@ -518,50 +395,10 @@ namespace LOCK {
 				entry[i]["compare_value_type"] >> string_check;
 				buffer[temp_size] = getValueType(string_check);
 				temp_size++;
-				switch(getValueType(string_check)) {
-					case 1:
-						entry[i]["compare_value"] >> buffer[temp_size];
-						temp_size++;
-						break;
-					case 2:
-						entry[i]["compare_value"] >> *(uint16_t*)(&buffer[temp_size]);
-						temp_size += 2;
-						break;
-					case 4:
-						entry[i]["compare_value"] >> *(uint32_t*)(&buffer[temp_size]);
-						temp_size += 4;
-						break;
-					case 8:
-						entry[i]["compare_value"] >> *(uint64_t*)(&buffer[temp_size]);
-						temp_size += 8;
-						break;
-					case 0x11:
-						entry[i]["compare_value"] >> *(int8_t*)(&buffer[temp_size]);
-						temp_size++;
-						break;
-					case 0x12:
-						entry[i]["compare_value"] >> *(int16_t*)(&buffer[temp_size]);
-						temp_size += 2;
-						break;
-					case 0x14:
-						entry[i]["compare_value"] >> *(int32_t*)(&buffer[temp_size]);
-						temp_size += 4;
-						break;
-					case 0x18:
-						entry[i]["compare_value"] >> *(int64_t*)(&buffer[temp_size]);
-						temp_size += 8;
-						break;
-					case 0x24:
-						entry[i]["compare_value"] >> *(float*)(&buffer[temp_size]);
-						temp_size += 4;
-						break;
-					case 0x28:
-						entry[i]["compare_value"] >> *(double*)(&buffer[temp_size]);
-						temp_size += 8;
-						break;
-					default:
-						return 4;
-				}
+
+				Result rc = writeEntryTo(entry[i]["compare_value"], buffer, &temp_size, getValueType(string_check));
+				if (R_FAILED(rc)) return rc;
+
 				buffer[temp_size] = entry[i]["address"].num_children(); // address count
 				temp_size++;
 				entry[i]["address"][0] >> string_check;
@@ -579,183 +416,21 @@ namespace LOCK {
 					buffer[temp_size] = entry[i]["value"].num_children(); //value_count
 					temp_size++;
 					for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
-						double evaluated_value = 0;
-						if (evaluate_write) {
-							double FPS_TARGET = fps_target;
-							double FPS_LOCK_TARGET = fps_target;
-							if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
-								FPS_LOCK_TARGET = 120;
-							double FRAMETIME_TARGET = 1000.0 / fps_target;
-							double VSYNC_TARGET = trunc(60.0 / fps_target);
-							te_variable vars[] = {
-								{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
-								{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
-								{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
-								{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
-								{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
-							};
-							std::string equation = "";
-							entry[i]["value"][x] >> equation;
-							te_expr *n = te_compile(equation.c_str(), vars, 5, 0);
-							evaluated_value = te_eval(n);
-							te_free(n);
-						}
-						switch(value_type) {
-							case 1:
-								if (evaluate_write)
-									buffer[temp_size] = (uint8_t)evaluated_value;
-								else entry[i]["value"][x] >> buffer[temp_size];
-								temp_size++;
-								break;
-							case 2:
-								if (evaluate_write)
-									*(uint16_t*)(&buffer[temp_size]) = (uint16_t)evaluated_value;
-								else entry[i]["value"][x] >> *(uint16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 4:
-								if (evaluate_write)
-									*(uint32_t*)(&buffer[temp_size]) = (uint32_t)evaluated_value;
-								else entry[i]["value"][x] >> *(uint32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 8:
-								if (evaluate_write)
-									*(uint64_t*)(&buffer[temp_size]) = (uint64_t)evaluated_value;
-								else entry[i]["value"][x] >> *(uint64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x11:
-								if (evaluate_write)
-									*(int8_t*)(&buffer[temp_size]) = (int8_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int8_t*)(&buffer[temp_size]);
-								temp_size++;
-								break;
-							case 0x12:
-								if (evaluate_write)
-									*(int16_t*)(&buffer[temp_size]) = (int16_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int16_t*)(&buffer[temp_size]);
-								temp_size += 2;
-								break;
-							case 0x14:
-								if (evaluate_write)
-									*(int32_t*)(&buffer[temp_size]) = (int32_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int32_t*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x18:
-								if (evaluate_write)
-									*(int64_t*)(&buffer[temp_size]) = (int64_t)evaluated_value;
-								else entry[i]["value"][x] >> *(int64_t*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							case 0x24:
-								if (evaluate_write)
-									*(float*)(&buffer[temp_size]) = (float)evaluated_value;
-								else entry[i]["value"][x] >> *(float*)(&buffer[temp_size]);
-								temp_size += 4;
-								break;
-							case 0x28:
-							case 0x38:
-								if (evaluate_write)
-									*(double*)(&buffer[temp_size]) = (uint8_t)evaluated_value;
-								else entry[i]["value"][x] >> *(double*)(&buffer[temp_size]);
-								temp_size += 8;
-								break;
-							default:
-								return 4;
-						}
+						double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"][x], fps_target) : 0);
+						if (evaluate_write)
+							rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+						else rc = writeEntryTo(entry[i]["value"][x], buffer, &temp_size, value_type);
+						if (R_FAILED(rc)) return rc;
 					}
 				}
 				else {
 					buffer[temp_size] = 1;
 					temp_size++;
-					double evaluated_value = 0;
-					if (evaluate_write) {
-						double FPS_TARGET = fps_target;
-						double FPS_LOCK_TARGET = fps_target;
-						if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
-							FPS_LOCK_TARGET = 120;
-						double FRAMETIME_TARGET = 1000.0 / fps_target;
-						double VSYNC_TARGET = trunc(60.0 / fps_target);
-						te_variable vars[] = {
-							{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
-							{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
-							{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
-							{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
-							{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
-						};
-						std::string equation = "";
-						entry[i]["value"] >> equation;
-						te_expr *n = te_compile(equation.c_str(), vars, 5, 0);
-						evaluated_value = te_eval(n);
-						te_free(n);
-					}	
-					switch(value_type) {
-						case 1:
-							if (evaluate_write)
-								buffer[temp_size] = (uint8_t)evaluated_value;
-							else entry[i]["value"] >> buffer[temp_size];
-							temp_size++;
-							break;
-						case 2:
-							if (evaluate_write)
-								*(uint16_t*)(&buffer[temp_size]) = (uint16_t)evaluated_value;
-							else entry[i]["value"] >> *(uint16_t*)(&buffer[temp_size]);
-							temp_size += 2;
-							break;
-						case 4:
-							if (evaluate_write)
-								*(uint32_t*)(&buffer[temp_size]) = (uint32_t)evaluated_value;
-							else entry[i]["value"] >> *(uint32_t*)(&buffer[temp_size]);
-							temp_size += 4;
-							break;
-						case 8:
-							if (evaluate_write)
-								*(uint64_t*)(&buffer[temp_size]) = (uint64_t)evaluated_value;
-							else entry[i]["value"] >> *(uint64_t*)(&buffer[temp_size]);
-							temp_size += 8;
-							break;
-						case 0x11:
-							if (evaluate_write)
-								*(int8_t*)(&buffer[temp_size]) = (int8_t)evaluated_value;
-							else entry[i]["value"] >> *(int8_t*)(&buffer[temp_size]);
-							temp_size++;
-							break;
-						case 0x12:
-							if (evaluate_write)
-								*(int16_t*)(&buffer[temp_size]) = (int16_t)evaluated_value;
-							else entry[i]["value"] >> *(int16_t*)(&buffer[temp_size]);
-							temp_size += 2;
-							break;
-						case 0x14:
-							if (evaluate_write)
-								*(int32_t*)(&buffer[temp_size]) = (int32_t)evaluated_value;
-							else entry[i]["value"] >> *(int32_t*)(&buffer[temp_size]);
-							temp_size += 4;
-							break;
-						case 0x18:
-							if (evaluate_write)
-								*(int64_t*)(&buffer[temp_size]) = (int64_t)evaluated_value;
-							else entry[i]["value"] >> *(int64_t*)(&buffer[temp_size]);
-							temp_size += 8;
-							break;
-						case 0x24:
-							if (evaluate_write)
-								*(float*)(&buffer[temp_size]) = (float)evaluated_value;
-							else entry[i]["value"] >> *(float*)(&buffer[temp_size]);
-							temp_size += 4;
-							break;
-						case 0x28:
-						case 0x38:
-							if (evaluate_write)
-								*(double*)(&buffer[temp_size]) = evaluated_value;
-							else entry[i]["value"] >> *(double*)(&buffer[temp_size]);
-							temp_size += 8;
-							break;
-						default:
-							return 4;
-					}
+					double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"], fps_target) : 0);
+					if (evaluate_write)
+						rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+					else rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
+					if (R_FAILED(rc)) return rc;
 				}
 			}
 			else if (!string_check.compare("block")) {
