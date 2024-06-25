@@ -822,16 +822,20 @@ public:
 						svcSleepThread(100'000);
 						u64 PID = 0;
 						Result rc = pmdmntGetApplicationProcessId(&PID);
-						if (!isDocked && !displaySync == true && R_SUCCEEDED(rc) && FPSlocked_shared && *FPSlocked_shared) {
-							if (*FPSlocked_shared < 40) {
+						if (!isDocked && R_SUCCEEDED(rc) && *FPSlocked_shared) {
+							if (!displaySync == true && *FPSlocked_shared < 40) {
 								SaltySD_SetDisplayRefreshRate(60);
 								*displaySync_shared = 0;
 								refreshRate_g = 0;
 							}
-							else {
+							else if (!displaySync == true) {
 								SaltySD_SetDisplayRefreshRate(*FPSlocked_shared);
 								*displaySync_shared = *FPSlocked_shared;
 								refreshRate_g = *FPSlocked_shared;
+							}
+							else {
+								*displaySync_shared = 0;
+								refreshRate_g = 0;
 							}
 						}
 						else if (!isDocked && !displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
