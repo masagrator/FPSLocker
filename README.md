@@ -78,6 +78,8 @@ I am not taking any responsibility for damages occuring from changing refresh ra
 
 For now Xenoblade Chronicles 3 is the only game where crash occurs randomly when you put Switch to dock with changed display refresh rate. This is still under investigation.
 
+Erista units for some reason cannot go back from high pixel clock divider to standard value 1 so we can set back properly 60 Hz without turning off display. SaltyNX has workaround that uses higher divider to reapply 60 Hz.
+
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
 
