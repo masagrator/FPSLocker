@@ -72,7 +72,7 @@ Changing refresh rate affects animations speed of OS and Tesla overlays, making 
 
 Adding support for custom display refresh rate required changing how game configs are written, so you are advised to redownload all FPSLocker Warehouse configs if you want them to properly support custom refresh rates.
 
-Refresh rates set up by FPSLocker are not perfect, they are usually off by max 0.01‰. Only 45 Hz seems to be so close that offset is below 0.0002‰. It's not possible with current method to set them more precisely.
+Refresh rates set up with SaltyNX help are not perfect, they are usually off by max 0.01‰. Only 45 Hz seems to be so close that offset is below 0.0002‰. It's not possible with current method to set them more precisely.
 
 I am not taking any responsibility for damages occuring from changing refresh rate. Each time you will go to `Display settings`, you will be welcomed by prompt with warning that you - user - are taking full responsibility. You must choose `Accept` to go further.
 
