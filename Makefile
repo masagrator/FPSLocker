@@ -38,11 +38,11 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 APP_TITLE	:=	FPSLocker
-APP_VERSION	:=	1.2.8a
+APP_VERSION	:=	2.0.0
 
 TARGET		:=	FPSLocker
 BUILD		:=	build
-SOURCES		:=	source source/c4 source/c4/yml
+SOURCES		:=	source source/c4 source/c4/yml source/tinyexpr
 DATA		:=	data
 INCLUDES	:=	include libs/libtesla/include source
 
@@ -58,7 +58,7 @@ CFLAGS		:= -g -Wall -Os -ffunction-sections \
 
 CFLAGS		+= $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\""
 
-CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=c++20
+CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=c++23
 
 ASFLAGS		:= -g $(ARCH)
 LDFLAGS		= -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)

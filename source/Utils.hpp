@@ -8,6 +8,7 @@ uint8_t* Buffers_shared = 0;
 uint8_t* SetBuffers_shared = 0;
 uint8_t* ActiveBuffers_shared = 0;
 uint8_t* SetActiveBuffers_shared = 0;
+uint8_t* displaySync_shared = 0;
 bool* pluginActive = 0;
 uint8_t* ZeroSync_shared = 0;
 bool _isDocked = false;
