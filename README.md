@@ -76,6 +76,8 @@ Refresh rates set up by FPSLocker are not perfect, they are usually off by max 0
 
 I am not taking any responsibility for damages occuring from changing refresh rate. Each time you will go to `Display settings`, you will be welcomed by prompt with warning that you - user - are taking full responsibility. You must choose `Accept` to go further.
 
+For now Xenoblade Chronicles 3 is the only game where crash occurs randomly when you put Switch to dock with changed display refresh rate. This is still under investigation.
+
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
 
