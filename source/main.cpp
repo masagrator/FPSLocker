@@ -822,7 +822,7 @@ public:
 						svcSleepThread(100'000);
 						u64 PID = 0;
 						Result rc = pmdmntGetApplicationProcessId(&PID);
-						if (!isDocked && R_SUCCEEDED(rc) && *FPSlocked_shared) {
+						if (!isDocked && R_SUCCEEDED(rc) && FPSlocked_shared) {
 							if (!displaySync == true && *FPSlocked_shared < 40) {
 								SaltySD_SetDisplayRefreshRate(60);
 								*displaySync_shared = 0;
