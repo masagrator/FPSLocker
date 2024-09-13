@@ -119,48 +119,39 @@ namespace LOCK {
 		switch(value_type) {
 			case 1:
 				value >> buffer[*offset];
-				*offset += sizeof(uint8_t);
 				break;
 			case 2:
 				value >> *(uint16_t*)(&buffer[*offset]);
-				*offset += sizeof(uint16_t);
 				break;
 			case 4:
 				value >> *(uint32_t*)(&buffer[*offset]);
-				*offset += sizeof(uint32_t);
 				break;
 			case 8:
 				value >> *(uint64_t*)(&buffer[*offset]);
-				*offset += sizeof(uint64_t);
 				break;
 			case 0x11:
 				value >> *(int8_t*)(&buffer[*offset]);
-				*offset += sizeof(int8_t);
 				break;
 			case 0x12:
 				value >> *(int16_t*)(&buffer[*offset]);
-				*offset += sizeof(int16_t);
 				break;
 			case 0x14:
 				value >> *(int32_t*)(&buffer[*offset]);
-				*offset += sizeof(int32_t);
 				break;
 			case 0x18:
 				value >> *(int64_t*)(&buffer[*offset]);
-				*offset += sizeof(int64_t);
 				break;
 			case 0x24:
 				value >> *(float*)(&buffer[*offset]);
-				*offset += sizeof(float);
 				break;
 			case 0x28:
 			case 0x38:
 				value >> *(double*)(&buffer[*offset]);
-				*offset += sizeof(double);
 				break;
 			default:
 				return 4;
 		}
+		*offset += value_type % 0x10;
 		return 0;
 	}
 
@@ -168,48 +159,39 @@ namespace LOCK {
 		switch(value_type) {
 			case 1:
 				buffer[*offset] = (uint8_t)value;
-				*offset += sizeof(uint8_t);
 				break;
 			case 2:
 				*(uint16_t*)(&buffer[*offset]) = (uint16_t)value;
-				*offset += sizeof(uint16_t);
 				break;
 			case 4:
 				*(uint32_t*)(&buffer[*offset]) = (uint32_t)value;
-				*offset += sizeof(uint32_t);
 				break;
 			case 8:
 				*(uint64_t*)(&buffer[*offset]) = (uint64_t)value;
-				*offset += sizeof(uint64_t);
 				break;
 			case 0x11:
 				*(int8_t*)(&buffer[*offset]) = (int8_t)value;
-				*offset += sizeof(int8_t);
 				break;
 			case 0x12:
 				*(int16_t*)(&buffer[*offset]) = (int16_t)value;
-				*offset += sizeof(int16_t);
 				break;
 			case 0x14:
 				*(int32_t*)(&buffer[*offset]) = (int32_t)value;
-				*offset += sizeof(int32_t);
 				break;
 			case 0x18:
 				*(int64_t*)(&buffer[*offset]) = (int64_t)value;
-				*offset += sizeof(int64_t);
 				break;
 			case 0x24:
 				*(float*)(&buffer[*offset]) = (float)value;
-				*offset += sizeof(float);
 				break;
 			case 0x28:
 			case 0x38:
 				*(double*)(&buffer[*offset]) = (double)value;
-				*offset += sizeof(double);
 				break;
 			default:
 				return 4;
 		}
+		*offset += value_type % 0x10;
 		return 0;
 	}
 
