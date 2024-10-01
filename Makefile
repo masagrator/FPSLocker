@@ -44,7 +44,7 @@ TARGET		:=	FPSLocker
 BUILD		:=	build
 SOURCES		:=	source source/c4 source/c4/yml source/tinyexpr
 DATA		:=	data
-INCLUDES	:=	include libs/libultra/include libs/libtesla/include source
+INCLUDES	:=	include libs/libultrahand/libultra/include libs/libultrahand/libtesla/include source
 
 NO_ICON		:=  1
 
