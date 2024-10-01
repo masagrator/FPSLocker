@@ -1,12 +1,13 @@
 #define TESLA_INIT_IMPL // If you have more than one file using the tesla header, only define this in the main one
 #include <tesla.hpp>    // The Tesla Header
-#include "MiniList.hpp"
+//#include "MiniList.hpp"
 #include <sys/stat.h>
 #include <dirent.h>
 #include "SaltyNX.h"
 #include "Lock.hpp"
 #include "Utils.hpp"
 #include <curl/curl.h>
+#include <filesystem>
 
 bool FileDownloaded = false;
 bool displaySync = false;
@@ -15,6 +16,7 @@ uint8_t refreshRate_g = 60;
 bool oldSalty = false;
 ApmPerformanceMode performanceMode = ApmPerformanceMode_Invalid;
 bool isDocked = false;
+u32 miniListItemHeight = 40;
 
 Result downloadPatch() {
 
@@ -410,7 +412,7 @@ public:
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
 					if (*Buffers_shared == 2 || *SetBuffers_shared == 2 || *ActiveBuffers_shared == 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
+						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode, miniListItemHeight);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
@@ -421,7 +423,7 @@ public:
 						list->addItem(clickableListItem3);
 					}
 					if (*Buffers_shared > 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
+						auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering", "", miniListItemHeight);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -443,7 +445,7 @@ public:
 
 		if (R_SUCCEEDED(configValid)) {
 			list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot", true));
-			auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
+			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file", "", miniListItemHeight);
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
@@ -457,7 +459,7 @@ public:
 			});
 			list->addItem(clickableListItem);
 
-			auto *clickableListItem2 = new tsl::elm::MiniListItem("Delete patch file");
+			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file", "", miniListItemHeight);
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
@@ -472,7 +474,7 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		list->addItem(new tsl::elm::CategoryHeader("If exists, it will also remove existing patch file.", false));
-		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
+		auto *clickableListItem4 = new tsl::elm::ListItem("Check/download config file", "", miniListItemHeight);
 		clickableListItem4->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 
@@ -1319,6 +1321,14 @@ public:
 			}
 		
 		});
+		
+        if (isFileOrDirectory("sdmc:/config/fpslocker/theme.ini"))
+            THEME_CONFIG_INI_PATH = "sdmc:/config/fpslocker/theme.ini"; // Override theme path (optional)
+        if (isFileOrDirectory("sdmc:/config/fpslocker/wallpaper.rgba"))
+            WALLPAPER_PATH = "sdmc:/config/fpslocker/wallpaper.rgba"; // Overrride wallpaper path (optional)
+        
+		tsl::initializeThemeVars(); // for ultrahand themes
+        tsl::initializeUltrahandSettings(); // for opaque screenshots and swipe to open
 	
 	}  // Called at the start to initialize all services necessary for this Overlay
 	
