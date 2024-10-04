@@ -42,7 +42,7 @@ APP_VERSION	:=	2.0.1+
 
 TARGET		:=	FPSLocker
 BUILD		:=	build
-SOURCES		:=	source source/c4 source/c4/yml source/tinyexpr
+SOURCES		:=	source source/c4 source/c4/yml source/tinyexpr libs/libultrahand/libultra/source
 DATA		:=	data
 INCLUDES	:=	include libs/libultrahand/libultra/include libs/libultrahand/libtesla/include source
 
