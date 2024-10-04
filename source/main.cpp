@@ -1326,9 +1326,6 @@ public:
             THEME_CONFIG_INI_PATH = "sdmc:/config/fpslocker/theme.ini"; // Override theme path (optional)
         if (isFileOrDirectory("sdmc:/config/fpslocker/wallpaper.rgba"))
             WALLPAPER_PATH = "sdmc:/config/fpslocker/wallpaper.rgba"; // Overrride wallpaper path (optional)
-        
-		tsl::initializeThemeVars(); // for ultrahand themes
-        tsl::initializeUltrahandSettings(); // for opaque screenshots and swipe to open
 	
 	}  // Called at the start to initialize all services necessary for this Overlay
 	
