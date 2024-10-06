@@ -16,7 +16,6 @@ uint8_t refreshRate_g = 60;
 bool oldSalty = false;
 ApmPerformanceMode performanceMode = ApmPerformanceMode_Invalid;
 bool isDocked = false;
-u32 miniListItemHeight = 40;
 
 Result downloadPatch() {
 
@@ -412,7 +411,7 @@ public:
 				case 1: {
 					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
 					if (*Buffers_shared == 2 || *SetBuffers_shared == 2 || *ActiveBuffers_shared == 2) {
-						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode, miniListItemHeight);
+						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode, tsl::style::MiniListItemDefaultHeight);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
@@ -423,7 +422,7 @@ public:
 						list->addItem(clickableListItem3);
 					}
 					if (*Buffers_shared > 2) {
-						auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering", "", miniListItemHeight);
+						auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering", "", tsl::style::MiniListItemDefaultHeight);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -445,7 +444,7 @@ public:
 
 		if (R_SUCCEEDED(configValid)) {
 			list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot", true));
-			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file", "", miniListItemHeight);
+			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file", "", tsl::style::MiniListItemDefaultHeight);
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
@@ -459,7 +458,7 @@ public:
 			});
 			list->addItem(clickableListItem);
 
-			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file", "", miniListItemHeight);
+			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file", "", tsl::style::MiniListItemDefaultHeight);
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
@@ -474,7 +473,7 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		list->addItem(new tsl::elm::CategoryHeader("If exists, it will also remove existing patch file.", false));
-		auto *clickableListItem4 = new tsl::elm::ListItem("Check/download config file", "", miniListItemHeight);
+		auto *clickableListItem4 = new tsl::elm::ListItem("Check/download config file", "", tsl::style::MiniListItemDefaultHeight);
 		clickableListItem4->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 
@@ -1321,11 +1320,6 @@ public:
 			}
 		
 		});
-		
-        if (isFileOrDirectory("sdmc:/config/fpslocker/theme.ini"))
-            THEME_CONFIG_INI_PATH = "sdmc:/config/fpslocker/theme.ini"; // Override theme path (optional)
-        if (isFileOrDirectory("sdmc:/config/fpslocker/wallpaper.rgba"))
-            WALLPAPER_PATH = "sdmc:/config/fpslocker/wallpaper.rgba"; // Overrride wallpaper path (optional)
 	
 	}  // Called at the start to initialize all services necessary for this Overlay
 	
