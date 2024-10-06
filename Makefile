@@ -60,8 +60,8 @@ CFLAGS += $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -D_FORTIFY_
 CFLAGS	+= -D__OVERLAY__ -I$(PORTLIBS)/include/freetype2 $(pkg-config --cflags --libs python3) -Wno-deprecated-declarations
 
 # Enable appearance overriding
-APPEARANCE_OVERRIDE_PATH := /config/fpslocker/
-CFLAGS += -DAPPEARANCE_OVERRIDE_PATH=$(APPEARANCE_OVERRIDE_PATH)
+UI_OVERRIDE_PATH := /config/fpslocker/
+CFLAGS += -DUI_OVERRIDE_PATH=$(UI_OVERRIDE_PATH)
 
 
 CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math
