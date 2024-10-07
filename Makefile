@@ -61,7 +61,7 @@ CFLAGS	+= -D__OVERLAY__ -I$(PORTLIBS)/include/freetype2 $(pkg-config --cflags --
 
 # Enable appearance overriding
 UI_OVERRIDE_PATH := /config/fpslocker/
-CFLAGS += -DUI_OVERRIDE_PATH=$(UI_OVERRIDE_PATH)
+CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 
 
 CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math
