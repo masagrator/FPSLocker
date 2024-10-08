@@ -63,6 +63,9 @@ CFLAGS	+= -D__OVERLAY__ -I$(PORTLIBS)/include/freetype2 $(pkg-config --cflags --
 UI_OVERRIDE_PATH := /config/fpslocker/
 CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 
+# Disable fstream
+NO_FSTREAM_DIRECTIVE := 1
+CFLAGS += -DNO_FSTREAM_DIRECTIVE=$(NO_FSTREAM_DIRECTIVE)
 
 CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math
 
