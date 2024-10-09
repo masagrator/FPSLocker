@@ -326,7 +326,7 @@ public:
 					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version has config available!");
 				}
 				else if (rc == 0x1006) {
-					sprintf(&patchChar[0], "This game is listed in Warehouse\nwith patch recommended for this version,\nbut is not available to download!");
+					sprintf(&patchChar[0], "This game is listed in Warehouse\nwith patch recommended for this\nversion, but config is not available!");
 				}
 				else if (R_SUCCEEDED(rc)) {
 					FILE* fp = fopen(patchPath, "rb");
