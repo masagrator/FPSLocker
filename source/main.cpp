@@ -1,14 +1,13 @@
 #define TESLA_INIT_IMPL // If you have more than one file using the tesla header, only define this in the main one
 #include <tesla.hpp>    // The Tesla Header
 #include "MiniList.hpp"
+#include "NoteHeader.hpp"
 #include <sys/stat.h>
 #include <dirent.h>
 #include "SaltyNX.h"
 #include "Lock.hpp"
 #include "Utils.hpp"
-#include <curl/curl.h>
 
-bool FileDownloaded = false;
 bool displaySync = false;
 bool isOLED = false;
 uint8_t refreshRate_g = 60;
@@ -16,202 +15,16 @@ bool oldSalty = false;
 ApmPerformanceMode performanceMode = ApmPerformanceMode_Invalid;
 bool isDocked = false;
 
-Result downloadPatch() {
-
-    static const SocketInitConfig socketInitConfig = {
-
-        .tcp_tx_buf_size = 0x800,
-        .tcp_rx_buf_size = 0x800,
-        .tcp_tx_buf_max_size = 0x8000,
-        .tcp_rx_buf_max_size = 0x8000,
-
-        .udp_tx_buf_size = 0,
-        .udp_rx_buf_size = 0,
-
-        .sb_efficiency = 1,
-		.bsd_service_type = BsdServiceType_Auto
-    };
-
-	smInitialize();
-
-
-	nifmInitialize(NifmServiceType_System);
-	u32 dummy = 0;
-	NifmInternetConnectionType NifmConnectionType = (NifmInternetConnectionType)-1;
-	NifmInternetConnectionStatus NifmConnectionStatus = (NifmInternetConnectionStatus)-1;
-	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
-		nifmExit();
-		smExit();
-		return 0x412;
-	}
-	nifmExit();
-
-	socketInitialize(&socketInitConfig);
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-	CURL *curl = curl_easy_init();
-
-	Result error_code = 0;
-
-    if (curl) {
-
-		char download_path[256] = "";
-		char file_path[192] = "";
-		snprintf(download_path, sizeof(download_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/", TID);
-		
-		std::filesystem::create_directories(download_path);
-
-		snprintf(file_path, sizeof(file_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/temp.yaml", TID);
-
-		FILE* fp = fopen(file_path, "wb+");
-		if (!fp) {
-			curl_easy_cleanup(curl);
-			curl_global_cleanup();
-			socketExit();
-			smExit();
-			return 0x101;
-		}
-
-		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
-        curl_easy_setopt(curl, CURLOPT_URL, download_path);
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
-        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-
-        CURLcode res = curl_easy_perform(curl);
-
-		if (res != CURLE_OK) {
-			fclose(fp);
-			remove(file_path);
-			error_code = 0x200 + res;
-		}
-		else {
-			size_t filesize = ftell(fp);
-			if (filesize > 512) {
-				filesize = 512;
-			}
-			fseek(fp, 0, SEEK_SET);
-			char* buffer = (char*)calloc(1, filesize + 1);
-			fread(buffer, 1, filesize, fp);
-			fclose(fp);
-			char BID_char[18] = "";
-			snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
-			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
-				remove(file_path);
-				char Not_found[] = "404: Not Found";
-				if (std::search(&buffer[0], &buffer[filesize], &Not_found[0], &Not_found[strlen(Not_found)]) != &buffer[filesize]) {
-					error_code = 0x404;
-				}
-				else error_code = 0x312;
-			}
-			free(buffer);
-		}
-
-		if (!error_code) {
-			fp = fopen(file_path, "rb");
-			fseek(fp, 0, SEEK_END);
-			size_t filesize1 = ftell(fp);
-			fseek(fp, 0, SEEK_SET);
-			char* buffer1 = (char*)calloc(1, filesize1 + 1);
-			fread(buffer1, 1, filesize1, fp);
-			fclose(fp);
-			fp = fopen(configPath, "rb");
-			if (fp) {
-				fseek(fp, 0, SEEK_END);
-				size_t filesize2 = ftell(fp);
-				fseek(fp, 0, SEEK_SET);
-				if (filesize2 != filesize1) {
-					fclose(fp);
-					free(buffer1);
-					FileDownloaded = true;
-				}
-				else {
-					char* buffer2 = (char*)calloc(1, filesize2 + 1);
-					fread(buffer2, 1, filesize2, fp);
-					fclose(fp);
-					if (memcmp(buffer1, buffer2, filesize1)) {
-						FileDownloaded = true;
-					}
-					else {
-						error_code = 0x104;
-						remove(file_path);
-					}
-					free(buffer1);
-					free(buffer2);
-				}
-			}
-			else {
-				free(buffer1);
-				FileDownloaded = true;
-			}
-			if (!error_code) {
-				remove(configPath);
-				rename(file_path, configPath);
-				FILE* config = fopen(configPath, "r");
-				memset(&LOCK::configBuffer, 0, sizeof(LOCK::configBuffer));
-				fread(&LOCK::configBuffer, 1, 32768, config);
-				fclose(config);
-				strcat(&LOCK::configBuffer[0], "\n");
-				LOCK::tree = ryml::parse_in_place(LOCK::configBuffer);
-				size_t root_id = LOCK::tree.root_id();
-				if (LOCK::tree.is_map(root_id) && LOCK::tree.find_child(root_id, "Addons") != c4::yml::NONE && !LOCK::tree["Addons"].is_keyval() && LOCK::tree["Addons"].num_children() > 0) {
-					for (size_t i = 0; i < LOCK::tree["Addons"].num_children(); i++) {
-						std::string temp = "";
-						LOCK::tree["Addons"][i] >> temp;
-						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/" + temp;
-						std::string path = "sdmc:/" + temp;
-						strncpy(&download_path[0], dpath.c_str(), 255);
-						strncpy(&file_path[0], path.c_str(), 191);
-						curl_easy_setopt(curl, CURLOPT_URL, download_path);
-						FILE* fp = fopen(file_path, "wb");
-						if (!fp) {
-							std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
-							fp = fopen(file_path, "wb");
-						}
-						if (fp) {
-							curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-							res = curl_easy_perform(curl);
-							fclose(fp);
-						}
-					}
-				}
-			}
-		}
-
-        curl_easy_cleanup(curl);
-    }
-
-    curl_global_cleanup();
-	socketExit();
-	smExit();
-	return error_code;
-}
-
-void loopThread(void*) {
-	while(threadActive) {
-		if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) break;
-		svcSleepThread(1'000'000'000);
-	}
-	PluginRunning = false;
-	check = false;
-	closed = true;
-}
-
 class SetBuffers : public tsl::Gui {
 public:
     SetBuffers() {}
 
     virtual tsl::elm::Element* createUI() override {
-		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", "");
+		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", " ");
 
 		auto list = new tsl::elm::List();
 		list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot.", false));
-		list->addItem(new tsl::elm::CategoryHeader("Remember to save settings after change.", true));
+		list->addItem(new tsl::elm::NoteHeader("Remember to save settings after change.", true, {0xF, 0x3, 0x3, 0xF}));
 		auto *clickableListItem = new tsl::elm::ListItem("Double");
 		clickableListItem->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -350,10 +163,13 @@ public:
 			patchValid = checkFile(&patchPath[0]);
 			if (R_FAILED(patchValid)) {
 				if (!FileDownloaded) {
-					sprintf(&patchChar[0], "Patch file doesn't exist.");
+					if (R_SUCCEEDED(configValid)) {
+						sprintf(&patchChar[0], "Patch file doesn't exist.\nUse \"Convert config to patch file\"\nto make it!");
+					}
+					else sprintf(&patchChar[0], "Patch file doesn't exist.");
 				}
 				else {
-					sprintf(&patchChar[0], "New config downloaded successfully.");
+					sprintf(&patchChar[0], "New config downloaded successfully.\nUse \"Convert config to patch file\"\nto make it applicable!");
 				}
 			}
 			else sprintf(&patchChar[0], "Patch file exists.");
@@ -370,45 +186,24 @@ public:
 		}
 	}
 
-	size_t base_height = 68;
+	size_t base_height = 134;
 
     virtual tsl::elm::Element* createUI() override {
         auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Advanced settings");
 
 		auto list = new tsl::elm::List();
 
-		if (configValid == 0x202) {
-			base_height = 128;
-		}
-		else if (R_SUCCEEDED(configValid)) {
-			base_height = 108;
-		}
-		else base_height = 68;
-
-		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-
-			if (R_SUCCEEDED(configValid)) {
-				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString(&patchChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
-				renderer->drawString(&patchAppliedChar[0], false, x, y+60, 20, renderer->a(0xFFFF));
-				renderer->drawString(&nvnBuffers[0], false, x, y+82, 20, renderer->a(0xFFFF));
-			}
-			else {
-				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
-				if (configValid == 0x202) {
-					renderer->drawString(&nvnBuffers[0], false, x, y+85, 20, renderer->a(0xFFFF));
-					renderer->drawString(&patchChar[0], false, x, y+105, 20, renderer->a(0xFFFF));
-				}
-				else renderer->drawString(&nvnBuffers[0], false, x, y+40, 20, renderer->a(0xFFFF));
-			}
-				
-
-		}), base_height);
-
 		if (*API_shared) {
 			switch(*API_shared) {
 				case 1: {
-					list->addItem(new tsl::elm::CategoryHeader("NVN", true));
+					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: NVN", false));
+					
+					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+						
+						renderer->drawString(&nvnBuffers[0], false, x, y+20, 20, renderer->a(0xFFFF));
+							
+					}), 40);
+
 					if (*Buffers_shared == 2 || *SetBuffers_shared == 2 || *ActiveBuffers_shared == 2) {
 						auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
@@ -434,21 +229,46 @@ public:
 					break;
 				}
 				case 2:
-					list->addItem(new tsl::elm::CategoryHeader("EGL", true));
+					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: EGL", false));
 					break;
 				case 3:
-					list->addItem(new tsl::elm::CategoryHeader("Vulkan", true));
+					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: Vulkan", false));
 			}
 		}
 
+		list->addItem(new tsl::elm::CategoryHeader("FPSLocker Patches", false));
+
+		if (R_FAILED(configValid)) {
+			base_height = 154;
+		}
+
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+			
+			if (R_SUCCEEDED(configValid)) {
+				
+				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(&patchAppliedChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
+				if (R_FAILED(patchValid)) {
+					renderer->drawString(&patchChar[0], false, x, y+64, 20, renderer->a(0xF99F));
+				}
+				else renderer->drawString(&patchChar[0], false, x, y+64, 20, renderer->a(0xFFFF));
+			}
+			else {
+				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(&patchChar[0], false, x, y+84, 20, renderer->a(0xF99F));
+			}
+				
+
+		}), base_height);
+
 		if (R_SUCCEEDED(configValid)) {
-			list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot", true));
+			list->addItem(new tsl::elm::NoteHeader("Remember to reboot the game after conversion!", true, {0xF, 0x3, 0x3, 0xF}));
 			auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
 					if (R_SUCCEEDED(patchValid)) {
-						sprintf(&patchChar[0], "Patch file created successfully.");
+						sprintf(&patchChar[0], "Patch file created successfully.\nRestart the game and change\nFPS Target to apply the patch!");
 					}
 					else sprintf(&patchChar[0], "Error while creating patch: 0x%x", patchValid);
 					return true;
@@ -471,11 +291,12 @@ public:
 			});
 			list->addItem(clickableListItem2);
 		}
-		list->addItem(new tsl::elm::CategoryHeader("If exists, it will also remove existing patch file.", false));
+		if (R_FAILED(configValid)) {
+			list->addItem(new tsl::elm::NoteHeader("This can take up to 30 seconds.", true, {0xF, 0x3, 0x3, 0xF}));
+		}
 		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
 		clickableListItem4->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-
 				Result rc = downloadPatch();
 				if (rc == 0x212 || rc == 0x312) {
 					sprintf(&patchChar[0], "Patch is not available! RC: 0x%x", rc);
@@ -488,6 +309,24 @@ public:
 				}
 				else if (rc == 0x412) {
 					sprintf(&patchChar[0], "Internet connection not available!");
+				}
+				else if (rc == 0x1001) {
+					sprintf(&patchChar[0], "Patch is not needed for this game!");
+				}
+				else if (rc == 0x1002) {
+					sprintf(&patchChar[0], "This game is not listed in Warehouse!");
+				}
+				else if (rc == 0x1003) {
+					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version doesn't need a patch,\nyour version maybe doesn't need it too!");
+				}
+				else if (rc == 0x1004) {
+					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version recommends patch,\nbut config is not available even for it!");
+				}
+				else if (rc == 0x1005) {
+					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version has config available!");
+				}
+				else if (rc == 0x1006) {
+					sprintf(&patchChar[0], "This game is listed in Warehouse\nwith patch recommended for this\nversion, but config is not available!");
 				}
 				else if (R_SUCCEEDED(rc)) {
 					FILE* fp = fopen(patchPath, "rb");
@@ -518,12 +357,12 @@ public:
 		if (PluginRunning) {
 			if (i > 9) {
 				if (*patchApplied_shared == 1) {
-					sprintf(patchAppliedChar, "Patch was loaded to game");
+					sprintf(patchAppliedChar, "Patch was loaded to game.");
 				}
 				else if (*patchApplied_shared == 2) {
-					sprintf(patchAppliedChar, "Master Write was loaded to game");
+					sprintf(patchAppliedChar, "Master Write was loaded to game.");
 				}
-				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game");
+				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game.");
 				if (*API_shared == 1) {
 					if ((*Buffers_shared >= 2 && *Buffers_shared <= 4)) {
 						sprintf(&nvnBuffers[0], "Set/Active/Available buffers: %d/%d/%d", *SetActiveBuffers_shared, *ActiveBuffers_shared, *Buffers_shared);
@@ -763,6 +602,7 @@ public:
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 
 			renderer->drawString(this -> refreshRate_c, false, x, y+20, 20, renderer->a(0xFFFF));
+			
 		}), 50);
 
 		if (!displaySync) {
