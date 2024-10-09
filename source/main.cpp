@@ -313,20 +313,20 @@ public:
 				else if (rc == 0x1001) {
 					sprintf(&patchChar[0], "Patch is not needed for this game!");
 				}
-				else if (rc == 0x1001) {
-					sprintf(&patchChar[0], "Patch is not needed for this game!");
-				}
 				else if (rc == 0x1002) {
-					sprintf(&patchChar[0], "This game doesn't exist in database!");
+					sprintf(&patchChar[0], "This game is not listed in Warehouse!");
 				}
 				else if (rc == 0x1003) {
-					sprintf(&patchChar[0], "This game exists in database,\nbut with different version listed.\nOther version doesn't need a patch,\nso your version maybe also doesn't need!");
+					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version doesn't need a patch,\nyour version maybe doesn't need it too!");
 				}
 				else if (rc == 0x1004) {
-					sprintf(&patchChar[0], "This game exists in database,\nbut with different version listed.\nOther version recommends patch,\nbut config is not available even for it!");
+					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version recommends patch,\nbut config is not available even for it!");
 				}
 				else if (rc == 0x1005) {
-					sprintf(&patchChar[0], "This game exists in database,\nbut with different version listed.\nOther version has config available!");
+					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version has config available!");
+				}
+				else if (rc == 0x1006) {
+					sprintf(&patchChar[0], "This game is listed in Warehouse\nwith patch recommended, but is not\navailable to download!");
 				}
 				else if (R_SUCCEEDED(rc)) {
 					FILE* fp = fopen(patchPath, "rb");

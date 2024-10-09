@@ -246,24 +246,26 @@ Result downloadPatch() {
 				fclose(fp);
 				remove("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md");
 				char findText_char[] = "# FPSLocker Warehouse";
-				if (std::search(&buffer[0], &buffer[filesize], &findText_char[0], &findText_char[strlen(findText_char)-1]) != &buffer[filesize]) {
-					char BID_search[] = "`1234567890ABCDEF` (◯";
-					snprintf(BID_search, sizeof(BID_search), "`%016lX` (◯", BID);
-					if (std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)-1]) != &buffer[filesize]) {
-						error_code = 0x1001;
+				char BID_search[] = "`1234567890ABCDEF` (◯";
+				if (std::search(&buffer[0], &buffer[filesize], &findText_char[0], &findText_char[strlen(findText_char)]) != &buffer[filesize]) {
+					snprintf(BID_search, sizeof(BID_search), "`%016lX`", TID);
+					auto start = std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)]);
+					if (start == &buffer[filesize]) {
+						error_code = 0x1002;
 					}
 					else {
-						snprintf(BID_search, sizeof(BID_search), "`%016lX` (", BID);
-						if (std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)-1]) == &buffer[filesize]) {
-							snprintf(BID_search, sizeof(BID_search), "`%016lX`", TID);
-							if (std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)-1]) == &buffer[filesize]) {
-								error_code = 0x1002;
-							}
-							else {
-								auto start = std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)-1]);
-								strcpy(BID_search, "(");
-								auto found = std::search(start, &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)-1]);
-								found++;
+						strcpy(BID_search, ") |");
+						auto end = std::search(start, &buffer[filesize], &BID_search[0], &BID_search[3]);
+						snprintf(BID_search, sizeof(BID_search), "`%016lX` (◯", BID);
+						if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) != end) {
+							error_code = 0x1001;
+						}
+						else {
+							snprintf(BID_search, sizeof(BID_search), "`%016lX` (", BID);
+							if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) == end) {
+								strcpy(BID_search, " (");
+								auto found = std::find_end(start, end, &BID_search[0], &BID_search[2]);
+								found += 2;
 								if (strncmp("◯", found, strlen("◯")) == 0) {
 									error_code = 0x1003;
 								}
@@ -274,8 +276,14 @@ Result downloadPatch() {
 									error_code = 0x1005;
 								}
 							}
+							else {
+								snprintf(BID_search, sizeof(BID_search), "`%016lX` (❌", BID);
+								if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) != end) {
+									error_code = 0x1006;
+								}						
+							}	
 						}
-					}			
+					}
 				}
 				free(buffer);
 			}
