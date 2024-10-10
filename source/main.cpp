@@ -353,11 +353,17 @@ public:
 				exitPossible = true;
 				error_code = UINT32_MAX;
 			}
+			if (rc == 0x316) {
+				sprintf(&patchChar[0], "Connection timeout!");
+			}
 			if (rc == 0x212 || rc == 0x312) {
-				sprintf(&patchChar[0], "Patch is not available! RC: 0x%x", rc);
+				sprintf(&patchChar[0], "Config is not available! RC: 0x%x", rc);
 			}
 			else if (rc == 0x404) {
-				sprintf(&patchChar[0], "Patch is not available!\nChecking Warehouse for more info...\nExit not possible until finished!");
+				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nExit not possible until finished!");
+			}
+			else if (rc == 0x405) {
+				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nTimeout! It took too long to check.");
 			}
 			else if (rc == 0x104) {
 				sprintf(&patchChar[0], "No new config available.");

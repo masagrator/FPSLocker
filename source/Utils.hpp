@@ -53,6 +53,7 @@ bool FileDownloaded = false;
 Thread t1;
 bool downloadingRunning = false;
 Result error_code = UINT32_MAX;
+bool curl_timeout = false;
 
 struct Title
 {
@@ -63,6 +64,8 @@ struct Title
 std::vector<Title> titles;
 
 void downloadPatch(void*) {
+
+	curl_timeout = false;
 
     static const SocketInitConfig socketInitConfig = {
 
@@ -77,6 +80,10 @@ void downloadPatch(void*) {
         .sb_efficiency = 1,
 		.bsd_service_type = BsdServiceType_Auto
     };
+
+	uint64_t startTick = svcGetSystemTick();
+	uint64_t timeoutTick = startTick + (30 * 19'200'000); //30 seconds
+	long msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
 
 	smInitialize();
 
@@ -128,13 +135,16 @@ void downloadPatch(void*) {
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+		msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 
         CURLcode res = curl_easy_perform(curl);
 
 		if (res != CURLE_OK) {
 			fclose(fp);
 			remove(file_path);
-			error_code = 0x200 + res;
+			if (res == CURLE_OPERATION_TIMEDOUT) error_code = 0x316;
+			else error_code = 0x200 + res;
 		}
 		else {
 			size_t filesize = ftell(fp);
@@ -229,8 +239,7 @@ void downloadPatch(void*) {
 			}
 		}
 		else if (error_code == 0x404) {
-			snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/README.md");
-			curl_easy_setopt(curl, CURLOPT_URL, download_path);
+			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/README.md");
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
 				curl_easy_cleanup(curl);
@@ -241,6 +250,8 @@ void downloadPatch(void*) {
 				return;
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+			msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 			CURLcode res = curl_easy_perform(curl);
 			if (res == CURLE_OK) {
 				size_t filesize = ftell(fp);
@@ -290,6 +301,9 @@ void downloadPatch(void*) {
 					}
 				}
 				free(buffer);
+			}
+			else if (error_code == CURLE_OPERATION_TIMEDOUT) {
+				error_code = 0x405;
 			}
 		}
 
