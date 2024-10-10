@@ -356,7 +356,7 @@ public:
 			if (rc == 0x316) {
 				sprintf(&patchChar[0], "Connection timeout!");
 			}
-			if (rc == 0x212 || rc == 0x312) {
+			else if (rc == 0x212 || rc == 0x312) {
 				sprintf(&patchChar[0], "Config is not available! RC: 0x%x", rc);
 			}
 			else if (rc == 0x404) {
@@ -364,6 +364,9 @@ public:
 			}
 			else if (rc == 0x405) {
 				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nTimeout! It took too long to check.");
+			}
+			else if (rc == 0x406) {
+				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nConnection error!");
 			}
 			else if (rc == 0x104) {
 				sprintf(&patchChar[0], "No new config available.");
@@ -400,7 +403,7 @@ public:
 				return true;
 			}
 			else if (rc != UINT32_MAX) {
-				sprintf(&patchChar[0], "Patch downloading failed! RC: 0x%x", rc);
+				sprintf(&patchChar[0], "Connection error! RC: 0x%x", rc);
 			}
 		}
         return false;   // Return true here to signal the inputs have been consumed

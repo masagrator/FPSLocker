@@ -251,6 +251,7 @@ void downloadPatch(void*) {
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 			msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+			if (msPeriod < 1000) msPeriod = 1000;
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 			CURLcode res = curl_easy_perform(curl);
 			if (res == CURLE_OK) {
@@ -302,9 +303,10 @@ void downloadPatch(void*) {
 				}
 				free(buffer);
 			}
-			else if (error_code == CURLE_OPERATION_TIMEDOUT) {
+			else if (res == CURLE_OPERATION_TIMEDOUT) {
 				error_code = 0x405;
 			}
+			else error_code = 0x406;
 		}
 
         curl_easy_cleanup(curl);
