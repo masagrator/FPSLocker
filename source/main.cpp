@@ -317,7 +317,7 @@ public:
 					sprintf(&patchChar[0], "This game is not listed in Warehouse!");
 				}
 				else if (rc == 0x1003) {
-					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version doesn't need a patch,\nyour version maybe doesn't need it too!");
+					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version. Other\nversion doesn't need a patch, your\nversion maybe doesn't need it too!");
 				}
 				else if (rc == 0x1004) {
 					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version recommends patch,\nbut config is not available even for it!");
