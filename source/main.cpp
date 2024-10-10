@@ -151,6 +151,7 @@ public:
 
 class AdvancedGui : public tsl::Gui {
 public:
+	bool exitPossible = true;
     AdvancedGui() {
 		configValid = LOCK::readConfig(&configPath[0]);
 		if (R_FAILED(configValid)) {
@@ -295,51 +296,12 @@ public:
 			list->addItem(new tsl::elm::NoteHeader("This can take up to 30 seconds.", true, {0xF, 0x3, 0x3, 0xF}));
 		}
 		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
-		clickableListItem4->setClickListener([](u64 keys) { 
-			if ((keys & HidNpadButton_A) && PluginRunning) {
-				Result rc = downloadPatch();
-				if (rc == 0x212 || rc == 0x312) {
-					sprintf(&patchChar[0], "Patch is not available! RC: 0x%x", rc);
-				}
-				else if (rc == 0x404) {
-					sprintf(&patchChar[0], "Patch is not available! Err 404");
-				}
-				else if (rc == 0x104) {
-					sprintf(&patchChar[0], "No new config available.");
-				}
-				else if (rc == 0x412) {
-					sprintf(&patchChar[0], "Internet connection not available!");
-				}
-				else if (rc == 0x1001) {
-					sprintf(&patchChar[0], "Patch is not needed for this game!");
-				}
-				else if (rc == 0x1002) {
-					sprintf(&patchChar[0], "This game is not listed in Warehouse!");
-				}
-				else if (rc == 0x1003) {
-					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version. Other\nversion doesn't need a patch, your\nversion maybe doesn't need it too!");
-				}
-				else if (rc == 0x1004) {
-					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version recommends patch,\nbut config is not available even for it!");
-				}
-				else if (rc == 0x1005) {
-					sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version has config available!");
-				}
-				else if (rc == 0x1006) {
-					sprintf(&patchChar[0], "This game is listed in Warehouse\nwith patch recommended for this\nversion, but config is not available!");
-				}
-				else if (R_SUCCEEDED(rc)) {
-					FILE* fp = fopen(patchPath, "rb");
-					if (fp) {
-						fclose(fp);
-						remove(patchPath);
-					}
-					tsl::goBack();
-					tsl::changeTo<AdvancedGui>();
-				}
-				else {
-					sprintf(&patchChar[0], "Patch downloading failed! RC: 0x%x", rc);
-				}
+		clickableListItem4->setClickListener([this](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning && exitPossible) {
+				exitPossible = false;
+				sprintf(&patchChar[0], "Checking Warehouse for config...\nExit not possible until finished!");
+				threadCreate(&t1, downloadPatch, NULL, NULL, 0x20000, 0x3F, 3);
+				threadStart(&t1);
 				return true;
 			}
 			return false;
@@ -373,6 +335,79 @@ public:
 			else i++;
 		}
 	}
+
+    virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		if (exitPossible) {
+			if (keysHeld & HidNpadButton_B) {
+				tsl::goBack();
+				return true;
+			}
+		}
+		else if (!exitPossible) {
+			if (keysHeld & HidNpadButton_B)
+				return true;
+			Result rc = error_code;
+			if (rc != UINT32_MAX && rc != 0x404) {
+				threadWaitForExit(&t1);
+				threadClose(&t1);
+				exitPossible = true;
+				error_code = UINT32_MAX;
+			}
+			if (rc == 0x316) {
+				sprintf(&patchChar[0], "Connection timeout!");
+			}
+			else if (rc == 0x212 || rc == 0x312) {
+				sprintf(&patchChar[0], "Config is not available! RC: 0x%x", rc);
+			}
+			else if (rc == 0x404) {
+				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nExit not possible until finished!");
+			}
+			else if (rc == 0x405) {
+				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nTimeout! It took too long to check.");
+			}
+			else if (rc == 0x406) {
+				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nConnection error!");
+			}
+			else if (rc == 0x104) {
+				sprintf(&patchChar[0], "No new config available.");
+			}
+			else if (rc == 0x412) {
+				sprintf(&patchChar[0], "Internet connection not available!");
+			}
+			else if (rc == 0x1001) {
+				sprintf(&patchChar[0], "Patch is not needed for this game!");
+			}
+			else if (rc == 0x1002) {
+				sprintf(&patchChar[0], "This game is not listed in Warehouse!");
+			}
+			else if (rc == 0x1003) {
+				sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version. Other\nversion doesn't need a patch, your\nversion maybe doesn't need it too!");
+			}
+			else if (rc == 0x1004) {
+				sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version recommends patch,\nbut config is not available even for it!");
+			}
+			else if (rc == 0x1005) {
+				sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version has config available!");
+			}
+			else if (rc == 0x1006) {
+				sprintf(&patchChar[0], "This game is listed in Warehouse\nwith patch recommended for this\nversion, but config is not available!");
+			}
+			else if (R_SUCCEEDED(rc)) {
+				FILE* fp = fopen(patchPath, "rb");
+				if (fp) {
+					fclose(fp);
+					remove(patchPath);
+				}
+				tsl::goBack();
+				tsl::changeTo<AdvancedGui>();
+				return true;
+			}
+			else if (rc != UINT32_MAX) {
+				sprintf(&patchChar[0], "Connection error! RC: 0x%x", rc);
+			}
+		}
+        return false;   // Return true here to signal the inputs have been consumed
+    }
 };
 
 class NoGameSub : public tsl::Gui {

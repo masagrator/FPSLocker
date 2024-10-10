@@ -50,6 +50,10 @@ bool threadActive = true;
 std::string ZeroSyncMode = "";
 
 bool FileDownloaded = false;
+Thread t1;
+bool downloadingRunning = false;
+Result error_code = UINT32_MAX;
+bool curl_timeout = false;
 
 struct Title
 {
@@ -59,7 +63,11 @@ struct Title
 
 std::vector<Title> titles;
 
-Result downloadPatch() {
+void downloadPatch(void*) {
+
+	Result temp_error_code = -1;
+
+	curl_timeout = false;
 
     static const SocketInitConfig socketInitConfig = {
 
@@ -75,6 +83,10 @@ Result downloadPatch() {
 		.bsd_service_type = BsdServiceType_Auto
     };
 
+	uint64_t startTick = svcGetSystemTick();
+	uint64_t timeoutTick = startTick + (30 * 19'200'000); //30 seconds
+	long msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+
 	smInitialize();
 
 
@@ -85,7 +97,8 @@ Result downloadPatch() {
 	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
 		nifmExit();
 		smExit();
-		return 0x412;
+		error_code = 0x412;
+		return;
 	}
 	nifmExit();
 
@@ -93,8 +106,6 @@ Result downloadPatch() {
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 	CURL *curl = curl_easy_init();
-
-	Result error_code = 0;
 
     if (curl) {
 
@@ -112,7 +123,8 @@ Result downloadPatch() {
 			curl_global_cleanup();
 			socketExit();
 			smExit();
-			return 0x101;
+			error_code = 0x101;
+			return;
 		}
 
 		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
@@ -125,13 +137,16 @@ Result downloadPatch() {
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+		msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 
         CURLcode res = curl_easy_perform(curl);
 
 		if (res != CURLE_OK) {
 			fclose(fp);
 			remove(file_path);
-			error_code = 0x200 + res;
+			if (res == CURLE_OPERATION_TIMEDOUT) temp_error_code = 0x316;
+			else temp_error_code = 0x200 + res;
 		}
 		else {
 			size_t filesize = ftell(fp);
@@ -148,14 +163,15 @@ Result downloadPatch() {
 				remove(file_path);
 				char Not_found[] = "404: Not Found";
 				if (!strncmp(buffer, Not_found, strlen(Not_found))) {
-					error_code = 0x404;
+					temp_error_code = 0x404;
 				}
-				else error_code = 0x312;
+				else temp_error_code = 0x312;
 			}
+			else temp_error_code = 0;
 			free(buffer);
 		}
 
-		if (!error_code) {
+		if (!temp_error_code) {
 			fp = fopen(file_path, "rb");
 			fseek(fp, 0, SEEK_END);
 			size_t filesize1 = ftell(fp);
@@ -181,7 +197,7 @@ Result downloadPatch() {
 						FileDownloaded = true;
 					}
 					else {
-						error_code = 0x104;
+						temp_error_code = 0x104;
 						remove(file_path);
 					}
 					free(buffer1);
@@ -192,7 +208,7 @@ Result downloadPatch() {
 				free(buffer1);
 				FileDownloaded = true;
 			}
-			if (!error_code) {
+			if (!temp_error_code) {
 				remove(configPath);
 				rename(file_path, configPath);
 				FILE* config = fopen(configPath, "r");
@@ -211,6 +227,8 @@ Result downloadPatch() {
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
 						curl_easy_setopt(curl, CURLOPT_URL, download_path);
+						msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+						curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 						FILE* fp = fopen(file_path, "wb");
 						if (!fp) {
 							std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
@@ -225,18 +243,22 @@ Result downloadPatch() {
 				}
 			}
 		}
-		else if (error_code == 0x404) {
-			snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/README.md");
-			curl_easy_setopt(curl, CURLOPT_URL, download_path);
+		else if (temp_error_code == 0x404) {
+			error_code = 0x404;
+			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/README.md");
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
 				curl_easy_cleanup(curl);
 				curl_global_cleanup();
 				socketExit();
 				smExit();
-				return 0x101;
+				error_code = 0x101;
+				return;
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+			msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+			if (msPeriod < 1000) msPeriod = 1000;
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 			CURLcode res = curl_easy_perform(curl);
 			if (res == CURLE_OK) {
 				size_t filesize = ftell(fp);
@@ -251,14 +273,14 @@ Result downloadPatch() {
 					snprintf(BID_search, sizeof(BID_search), "`%016lX`", TID);
 					auto start = std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)]);
 					if (start == &buffer[filesize]) {
-						error_code = 0x1002;
+						temp_error_code = 0x1002;
 					}
 					else {
 						strcpy(BID_search, ") |");
 						auto end = std::search(start, &buffer[filesize], &BID_search[0], &BID_search[3]);
 						snprintf(BID_search, sizeof(BID_search), "`%016lX` (◯", BID);
 						if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) != end) {
-							error_code = 0x1001;
+							temp_error_code = 0x1001;
 						}
 						else {
 							snprintf(BID_search, sizeof(BID_search), "`%016lX` (", BID);
@@ -267,19 +289,19 @@ Result downloadPatch() {
 								auto found = std::find_end(start, end, &BID_search[0], &BID_search[2]);
 								found += 2;
 								if (strncmp("◯", found, strlen("◯")) == 0) {
-									error_code = 0x1003;
+									temp_error_code = 0x1003;
 								}
 								else if (strncmp("❌", found, strlen("❌")) == 0) {
-									error_code = 0x1004;
+									temp_error_code = 0x1004;
 								}
 								else if (strncmp("[", found, strlen("[")) == 0) {
-									error_code = 0x1005;
+									temp_error_code = 0x1005;
 								}
 							}
 							else {
 								snprintf(BID_search, sizeof(BID_search), "`%016lX` (❌", BID);
 								if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) != end) {
-									error_code = 0x1006;
+									temp_error_code = 0x1006;
 								}						
 							}	
 						}
@@ -287,6 +309,10 @@ Result downloadPatch() {
 				}
 				free(buffer);
 			}
+			else if (res == CURLE_OPERATION_TIMEDOUT) {
+				temp_error_code = 0x405;
+			}
+			else temp_error_code = 0x406;
 		}
 
         curl_easy_cleanup(curl);
@@ -295,7 +321,8 @@ Result downloadPatch() {
     curl_global_cleanup();
 	socketExit();
 	smExit();
-	return error_code;
+	error_code = temp_error_code;
+	return;
 }
 
 void loopThread(void*) {
