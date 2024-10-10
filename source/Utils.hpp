@@ -244,6 +244,7 @@ void downloadPatch(void*) {
 			}
 		}
 		else if (temp_error_code == 0x404) {
+			error_code = 0x404;
 			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/README.md");
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
