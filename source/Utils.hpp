@@ -315,6 +315,7 @@ void downloadPatch(void*) {
     curl_global_cleanup();
 	socketExit();
 	smExit();
+	error_code = 0;
 	return;
 }
 
