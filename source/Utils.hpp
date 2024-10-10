@@ -147,7 +147,7 @@ Result downloadPatch() {
 			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
 				remove(file_path);
 				char Not_found[] = "404: Not Found";
-				if (std::search(&buffer[0], &buffer[filesize], &Not_found[0], &Not_found[strlen(Not_found)]) != &buffer[filesize]) {
+				if (!strncmp(buffer, Not_found, strlen(Not_found))) {
 					error_code = 0x404;
 				}
 				else error_code = 0x312;
@@ -247,7 +247,7 @@ Result downloadPatch() {
 				remove("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md");
 				char findText_char[] = "# FPSLocker Warehouse";
 				char BID_search[] = "`1234567890ABCDEF` (◯";
-				if (std::search(&buffer[0], &buffer[filesize], &findText_char[0], &findText_char[strlen(findText_char)]) != &buffer[filesize]) {
+				if (!strncmp(buffer, findText_char, strlen(findText_char))) {
 					snprintf(BID_search, sizeof(BID_search), "`%016lX`", TID);
 					auto start = std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)]);
 					if (start == &buffer[filesize]) {
