@@ -65,6 +65,8 @@ std::vector<Title> titles;
 
 void downloadPatch(void*) {
 
+	Result temp_error_code = -1;
+
 	curl_timeout = false;
 
     static const SocketInitConfig socketInitConfig = {
@@ -143,8 +145,8 @@ void downloadPatch(void*) {
 		if (res != CURLE_OK) {
 			fclose(fp);
 			remove(file_path);
-			if (res == CURLE_OPERATION_TIMEDOUT) error_code = 0x316;
-			else error_code = 0x200 + res;
+			if (res == CURLE_OPERATION_TIMEDOUT) temp_error_code = 0x316;
+			else temp_error_code = 0x200 + res;
 		}
 		else {
 			size_t filesize = ftell(fp);
@@ -161,14 +163,15 @@ void downloadPatch(void*) {
 				remove(file_path);
 				char Not_found[] = "404: Not Found";
 				if (!strncmp(buffer, Not_found, strlen(Not_found))) {
-					error_code = 0x404;
+					temp_error_code = 0x404;
 				}
-				else error_code = 0x312;
+				else temp_error_code = 0x312;
 			}
+			else temp_error_code = 0;
 			free(buffer);
 		}
 
-		if (!error_code) {
+		if (!temp_error_code) {
 			fp = fopen(file_path, "rb");
 			fseek(fp, 0, SEEK_END);
 			size_t filesize1 = ftell(fp);
@@ -194,7 +197,7 @@ void downloadPatch(void*) {
 						FileDownloaded = true;
 					}
 					else {
-						error_code = 0x104;
+						temp_error_code = 0x104;
 						remove(file_path);
 					}
 					free(buffer1);
@@ -205,7 +208,7 @@ void downloadPatch(void*) {
 				free(buffer1);
 				FileDownloaded = true;
 			}
-			if (!error_code) {
+			if (!temp_error_code) {
 				remove(configPath);
 				rename(file_path, configPath);
 				FILE* config = fopen(configPath, "r");
@@ -224,6 +227,8 @@ void downloadPatch(void*) {
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
 						curl_easy_setopt(curl, CURLOPT_URL, download_path);
+						msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+						curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 						FILE* fp = fopen(file_path, "wb");
 						if (!fp) {
 							std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
@@ -238,7 +243,7 @@ void downloadPatch(void*) {
 				}
 			}
 		}
-		else if (error_code == 0x404) {
+		else if (temp_error_code == 0x404) {
 			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/README.md");
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
@@ -267,14 +272,14 @@ void downloadPatch(void*) {
 					snprintf(BID_search, sizeof(BID_search), "`%016lX`", TID);
 					auto start = std::search(&buffer[0], &buffer[filesize], &BID_search[0], &BID_search[strlen(BID_search)]);
 					if (start == &buffer[filesize]) {
-						error_code = 0x1002;
+						temp_error_code = 0x1002;
 					}
 					else {
 						strcpy(BID_search, ") |");
 						auto end = std::search(start, &buffer[filesize], &BID_search[0], &BID_search[3]);
 						snprintf(BID_search, sizeof(BID_search), "`%016lX` (◯", BID);
 						if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) != end) {
-							error_code = 0x1001;
+							temp_error_code = 0x1001;
 						}
 						else {
 							snprintf(BID_search, sizeof(BID_search), "`%016lX` (", BID);
@@ -283,19 +288,19 @@ void downloadPatch(void*) {
 								auto found = std::find_end(start, end, &BID_search[0], &BID_search[2]);
 								found += 2;
 								if (strncmp("◯", found, strlen("◯")) == 0) {
-									error_code = 0x1003;
+									temp_error_code = 0x1003;
 								}
 								else if (strncmp("❌", found, strlen("❌")) == 0) {
-									error_code = 0x1004;
+									temp_error_code = 0x1004;
 								}
 								else if (strncmp("[", found, strlen("[")) == 0) {
-									error_code = 0x1005;
+									temp_error_code = 0x1005;
 								}
 							}
 							else {
 								snprintf(BID_search, sizeof(BID_search), "`%016lX` (❌", BID);
 								if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) != end) {
-									error_code = 0x1006;
+									temp_error_code = 0x1006;
 								}						
 							}	
 						}
@@ -304,9 +309,9 @@ void downloadPatch(void*) {
 				free(buffer);
 			}
 			else if (res == CURLE_OPERATION_TIMEDOUT) {
-				error_code = 0x405;
+				temp_error_code = 0x405;
 			}
-			else error_code = 0x406;
+			else temp_error_code = 0x406;
 		}
 
         curl_easy_cleanup(curl);
@@ -315,7 +320,7 @@ void downloadPatch(void*) {
     curl_global_cleanup();
 	socketExit();
 	smExit();
-	error_code = 0;
+	error_code = temp_error_code;
 	return;
 }
 
