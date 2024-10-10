@@ -50,6 +50,9 @@ bool threadActive = true;
 std::string ZeroSyncMode = "";
 
 bool FileDownloaded = false;
+Thread t1;
+bool downloadingRunning = false;
+Result error_code = UINT32_MAX;
 
 struct Title
 {
@@ -59,7 +62,7 @@ struct Title
 
 std::vector<Title> titles;
 
-Result downloadPatch() {
+void downloadPatch(void*) {
 
     static const SocketInitConfig socketInitConfig = {
 
@@ -85,7 +88,8 @@ Result downloadPatch() {
 	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
 		nifmExit();
 		smExit();
-		return 0x412;
+		error_code = 0x412;
+		return;
 	}
 	nifmExit();
 
@@ -93,8 +97,6 @@ Result downloadPatch() {
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 	CURL *curl = curl_easy_init();
-
-	Result error_code = 0;
 
     if (curl) {
 
@@ -112,7 +114,8 @@ Result downloadPatch() {
 			curl_global_cleanup();
 			socketExit();
 			smExit();
-			return 0x101;
+			error_code = 0x101;
+			return;
 		}
 
 		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
@@ -234,7 +237,8 @@ Result downloadPatch() {
 				curl_global_cleanup();
 				socketExit();
 				smExit();
-				return 0x101;
+				error_code = 0x101;
+				return;
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 			CURLcode res = curl_easy_perform(curl);
@@ -295,7 +299,7 @@ Result downloadPatch() {
     curl_global_cleanup();
 	socketExit();
 	smExit();
-	return error_code;
+	return;
 }
 
 void loopThread(void*) {
