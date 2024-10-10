@@ -1,6 +1,6 @@
 #define TESLA_INIT_IMPL // If you have more than one file using the tesla header, only define this in the main one
 #include <tesla.hpp>    // The Tesla Header
-#include "MiniList.hpp"
+//#include "MiniList.hpp"
 #include "NoteHeader.hpp"
 #include <sys/stat.h>
 #include <dirent.h>
@@ -205,7 +205,8 @@ public:
 					}), 40);
 
 					if (*Buffers_shared == 2 || *SetBuffers_shared == 2 || *ActiveBuffers_shared == 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
+						//auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
+						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode, true);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
@@ -216,7 +217,8 @@ public:
 						list->addItem(clickableListItem3);
 					}
 					if (*Buffers_shared > 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
+						//auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
+						auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering", "", true);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -263,7 +265,8 @@ public:
 
 		if (R_SUCCEEDED(configValid)) {
 			list->addItem(new tsl::elm::NoteHeader("Remember to reboot the game after conversion!", true, {0xF, 0x3, 0x3, 0xF}));
-			auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
+			//auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
+			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file", "", true);
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
@@ -277,7 +280,8 @@ public:
 			});
 			list->addItem(clickableListItem);
 
-			auto *clickableListItem2 = new tsl::elm::MiniListItem("Delete patch file");
+			//auto *clickableListItem2 = new tsl::elm::MiniListItem("Delete patch file");
+			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file", "", true);
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
@@ -294,7 +298,8 @@ public:
 		if (R_FAILED(configValid)) {
 			list->addItem(new tsl::elm::NoteHeader("This can take up to 30 seconds.", true, {0xF, 0x3, 0x3, 0xF}));
 		}
-		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
+		//auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
+		auto *clickableListItem4 = new tsl::elm::ListItem("Check/download config file", "", true);
 		clickableListItem4->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				Result rc = downloadPatch();
@@ -880,8 +885,9 @@ public:
 				renderer->drawString("NX-FPS is not running!", false, x, y+40, 20, renderer->a(0xF33F));
 			}
 			else if (!*pluginActive) {
-				renderer->drawString("NX-FPS is running, but no frame was processed.", false, x, y+20, 20, renderer->a(0xF33F));
-				renderer->drawString("Restart overlay to check again.", false, x, y+50, 20, renderer->a(0xFFFF));
+				s32 strWidth, strHeight;
+				std::tie(strWidth, strHeight) = renderer->drawString("NX-FPS is running,\nbut no frame was processed.", false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString("Restart overlay to check again.", false, x, y+strHeight+60, 20, renderer->a(0xFFFF));
 			}
 			else {
 				renderer->drawString("NX-FPS is running.", false, x, y+20, 20, renderer->a(0xFFFF));

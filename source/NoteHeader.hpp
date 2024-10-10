@@ -20,7 +20,7 @@ namespace tsl {
 
             virtual void layout(u16 parentX, u16 parentY, u16 parentWidth, u16 parentHeight) override {
                 // Check if the NoteHeader is part of a list and if it's the first entry in it, half it's height
-                if (List *list = dynamic_cast<List*>(this->getParent()); list != nullptr) {
+                if (List *list = static_cast<List*>(this->getParent()); list != nullptr) {
                     if (list->getIndexInList(this) == 0) {
                         this->setBoundaries(this->getX(), this->getY(), this->getWidth(), NoteHeaderDefaultHeight / 2);
                         return;

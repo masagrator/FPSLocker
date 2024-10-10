@@ -38,32 +38,49 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 APP_TITLE	:=	FPSLocker
-APP_VERSION	:=	2.0.2
+APP_VERSION	:=	2.0.2+
 
 TARGET		:=	FPSLocker
 BUILD		:=	build
-SOURCES		:=	source source/c4 source/c4/yml source/tinyexpr
+SOURCES		:=	source source/c4 source/c4/yml source/tinyexpr libs/libultrahand/libultra/source
 DATA		:=	data
-INCLUDES	:=	include libs/libtesla/include source
+INCLUDES	:=	include libs/libultrahand/libultra/include libs/libultrahand/libtesla/include source
 
 NO_ICON		:=  1
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH		:= -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+ARCH := -march=armv8-a+simd+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
-CFLAGS		:= -g -Wall -Os -ffunction-sections \
+CFLAGS := -Wall -Os -ffunction-sections -fdata-sections -flto\
 			$(ARCH) $(DEFINES)
 
-CFLAGS		+= $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\""
+CFLAGS += $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -D_FORTIFY_SOURCE=2
+CFLAGS	+= -D__OVERLAY__ -I$(PORTLIBS)/include/freetype2 $(pkg-config --cflags --libs python3) -Wno-deprecated-declarations
 
-CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=c++23
+# Enable appearance overriding
+UI_OVERRIDE_PATH := /config/fpslocker/
+CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 
-ASFLAGS		:= -g $(ARCH)
-LDFLAGS		= -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+# Disable fstream
+NO_FSTREAM_DIRECTIVE := 1
+CFLAGS += -DNO_FSTREAM_DIRECTIVE=$(NO_FSTREAM_DIRECTIVE)
 
-LIBS		:= `curl-config --libs`
+CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math
+
+ASFLAGS := $(ARCH)
+LDFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs $(ARCH) -Wl,-Map,$(notdir $*.map)
+
+LIBS := -lcurl -lz -lzzip -lmbedtls -lmbedx509 -lmbedcrypto -ljansson -lnx
+
+CXXFLAGS += -fno-exceptions -ffunction-sections -fdata-sections -fno-rtti
+LDFLAGS += -Wl,--gc-sections -Wl,--as-needed
+
+# For Ensuring Parallel LTRANS Jobs w/ GCC, make -j6
+CXXFLAGS += -flto -fuse-linker-plugin -flto=6
+LDFLAGS += -flto=6
+
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
