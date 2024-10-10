@@ -880,8 +880,9 @@ public:
 				renderer->drawString("NX-FPS is not running!", false, x, y+40, 20, renderer->a(0xF33F));
 			}
 			else if (!*pluginActive) {
-				renderer->drawString("NX-FPS is running, but no frame was processed.", false, x, y+20, 20, renderer->a(0xF33F));
-				renderer->drawString("Restart overlay to check again.", false, x, y+50, 20, renderer->a(0xFFFF));
+				s32 strWidth, strHeight;
+				std::tie(strWidth, strHeight) = renderer->drawString("NX-FPS is running,\nbut no frame was processed.", false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString("Restart overlay to check again.", false, x, y+strHeight+60, 20, renderer->a(0xFFFF));
 			}
 			else {
 				renderer->drawString("NX-FPS is running.", false, x, y+20, 20, renderer->a(0xFFFF));
