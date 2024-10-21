@@ -206,8 +206,8 @@ public:
 					}), 40);
 
 					if (*Buffers_shared == 2 || *SetBuffers_shared == 2 || *ActiveBuffers_shared == 2) {
-						//auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
-						auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode, true);
+						auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
+						//auto *clickableListItem3 = new tsl::elm::ListItem("Window Sync Wait", ZeroSyncMode, true);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
@@ -218,8 +218,8 @@ public:
 						list->addItem(clickableListItem3);
 					}
 					if (*Buffers_shared > 2) {
-						//auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
-						auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering", "", true);
+						auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
+						//auto *clickableListItem3 = new tsl::elm::ListItem("Set Buffering", "", true);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -266,8 +266,8 @@ public:
 
 		if (R_SUCCEEDED(configValid)) {
 			list->addItem(new tsl::elm::NoteHeader("Remember to reboot the game after conversion!", true, {0xF, 0x3, 0x3, 0xF}));
-			//auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
-			auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file", "", true);
+			auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
+			//auto *clickableListItem = new tsl::elm::ListItem("Convert config to patch file", "", true);
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
@@ -281,8 +281,8 @@ public:
 			});
 			list->addItem(clickableListItem);
 
-			//auto *clickableListItem2 = new tsl::elm::MiniListItem("Delete patch file");
-			auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file", "", true);
+			auto *clickableListItem2 = new tsl::elm::MiniListItem("Delete patch file");
+			//auto *clickableListItem2 = new tsl::elm::ListItem("Delete patch file", "", true);
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
@@ -299,8 +299,8 @@ public:
 		if (R_FAILED(configValid)) {
 			list->addItem(new tsl::elm::NoteHeader("This can take up to 30 seconds.", true, {0xF, 0x3, 0x3, 0xF}));
 		}
-		//auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
-		auto *clickableListItem4 = new tsl::elm::ListItem("Check/download config file", "", true);
+		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
+		//auto *clickableListItem4 = new tsl::elm::ListItem("Check/download config file", "", true);
 		clickableListItem4->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning && exitPossible) {
 				exitPossible = false;
