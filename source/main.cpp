@@ -299,7 +299,8 @@ public:
 		if (R_FAILED(configValid)) {
 			list->addItem(new tsl::elm::NoteHeader("This can take up to 30 seconds.", true, {0xF, 0x3, 0x3, 0xF}));
 		}
-		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
+		//auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
+		auto *clickableListItem4 = new tsl::elm::ListItem("Check/download config file", "", true);
 		clickableListItem4->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning && exitPossible) {
 				exitPossible = false;
