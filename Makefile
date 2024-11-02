@@ -53,7 +53,7 @@ NO_ICON		:=  1
 #---------------------------------------------------------------------------------
 ARCH := -march=armv8-a+simd+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
-CFLAGS := -Wall -Os -ffunction-sections -fdata-sections -flto\
+CFLAGS := -g -Wall -Os -ffunction-sections -fdata-sections -flto -fomit-frame-pointer -finline-small-functions \
 			$(ARCH) $(DEFINES)
 
 CFLAGS += $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -D_FORTIFY_SOURCE=2
@@ -67,7 +67,7 @@ CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 NO_FSTREAM_DIRECTIVE := 1
 CFLAGS += -DNO_FSTREAM_DIRECTIVE=$(NO_FSTREAM_DIRECTIVE)
 
-CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math
+CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math -fno-unwind-tables -fno-asynchronous-unwind-tables
 
 ASFLAGS := $(ARCH)
 LDFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs $(ARCH) -Wl,-Map,$(notdir $*.map)
