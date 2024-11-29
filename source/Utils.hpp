@@ -1,17 +1,41 @@
 #pragma once
 #include <curl/curl.h>
 
-uint8_t* FPS_shared = 0;
-uint8_t* FPSmode_shared = 0;
-uint8_t* FPSlocked_shared = 0;
-uint8_t* API_shared = 0;
-uint8_t* Buffers_shared = 0;
-uint8_t* SetBuffers_shared = 0;
-uint8_t* ActiveBuffers_shared = 0;
-uint8_t* SetActiveBuffers_shared = 0;
-uint8_t* displaySync_shared = 0;
-bool* pluginActive = 0;
-uint8_t* ZeroSync_shared = 0;
+struct resolutionCalls {
+	uint16_t width;
+	uint16_t height;
+	uint16_t calls;
+};
+
+struct NxFpsSharedBlock {
+	uint32_t MAGIC;
+	uint8_t FPS;
+	float FPSavg;
+	bool pluginActive;
+	uint8_t FPSlocked;
+	uint8_t FPSmode;
+	uint8_t ZeroSync;
+	uint8_t patchApplied;
+	uint8_t API;
+	uint32_t FPSticks[10];
+	uint8_t Buffers;
+	uint8_t SetBuffers;
+	uint8_t ActiveBuffers;
+	uint8_t SetActiveBuffers;
+	uint8_t displaySync;
+	resolutionCalls renderCalls[8];
+	resolutionCalls viewportCalls[8];
+	bool forceOriginalRefreshRate;
+} NX_PACKED;
+
+struct DockedAdditionalSettings {
+	bool dontForce60InDocked;
+	bool fpsTargetWithoutRRMatchLowest;
+};
+
+
+NxFpsSharedBlock* Shared = 0;
+uint8_t* refreshRate_shared = 0;
 bool _isDocked = false;
 bool _def = true;
 bool PluginRunning = false;
@@ -54,6 +78,7 @@ Thread t1;
 bool downloadingRunning = false;
 Result error_code = UINT32_MAX;
 bool curl_timeout = false;
+uint8_t supportedHandheldRefreshRates[] = {40, 45, 50, 55, 60};
 
 struct Title
 {
@@ -62,6 +87,92 @@ struct Title
 };
 
 std::vector<Title> titles;
+
+/// Edid2
+typedef struct {
+	SetSysEdid edid;
+	char reserved[0x100];
+} SetSysEdid2;
+
+Result setsysGetEdid2(Service* g_setsysSrv, SetSysEdid2 *out) {
+    return serviceDispatch(g_setsysSrv, 41,
+        .buffer_attrs = { SfBufferAttr_FixedSize | SfBufferAttr_HipcPointer | SfBufferAttr_Out },
+        .buffers = { { out, sizeof(*out) } },
+    );
+}
+
+void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditionalSettings &as) {
+	tsl::hlp::doWithSmSession([]{
+		setsysInitialize();
+	});
+    SetSysEdid2 edid2 = {0};
+    if (R_FAILED(setsysGetEdid2(setsysGetServiceSession(), &edid2))) {
+		return;
+    }
+    char path[128] = "";
+    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.dat", crc32Calculate(&edid2.edid, sizeof(edid2.edid)));
+    FILE* file = fopen(path, "wb");
+    if (file) {
+		fwrite(&edid2, sizeof(edid2), 1, file);
+        fseek(file, 0x100, 0);
+        for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+            fwrite(&rr[i], 1, 1, file);
+        }
+		fseek(file, 0x180, 0);
+		fwrite(&as.dontForce60InDocked, 1, 1, file);
+		fwrite(&as.fpsTargetWithoutRRMatchLowest, 1, 1, file);
+        fclose(file);
+
+    }
+    return;
+}
+
+void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as) {
+	for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+		if (DockedModeRefreshRateAllowedValues[i] == 60 || DockedModeRefreshRateAllowedValues[i] == 50) rr[i] = true;
+		else rr[i] = false;
+	}
+	tsl::hlp::doWithSmSession([]{
+		setsysInitialize();
+	});
+    SetSysEdid2 edid2 = {0};
+    if (R_FAILED(setsysGetEdid2(setsysGetServiceSession(), &edid2))) {
+		return;
+    }
+    char path[128] = "";
+    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.dat", crc32Calculate(&edid2.edid, sizeof(edid2.edid)));
+    FILE* file = fopen(path, "rb");
+    if (file) {
+        u64 MAGIC = 0x00FFFFFFFFFFFF00;
+        u64 checkMAGIC = 0;
+        fread(&checkMAGIC, 8, 1, file);
+        if (checkMAGIC != MAGIC) {
+			fclose(file);
+			return;
+        }
+
+        fseek(file, 0x100, 0);
+        for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+            bool temp = false;
+            if (!fread(&temp, 1, 1, file))
+                break;
+            if (DockedModeRefreshRateAllowedValues[i] == 60) {
+				rr[i] = true;
+                continue;
+			}
+            rr[i] = temp;
+        }
+		fseek(file, 0x180, 0);
+		uint8_t temp = 2;
+		fread(&temp, 1, 1, file);
+		if (temp < 2) as.dontForce60InDocked = temp;
+		temp = 2;
+		fread(&temp, 1, 1, file);
+		if (temp < 2) as.fpsTargetWithoutRRMatchLowest = temp;
+		fclose(file);
+    }
+    return;
+}
 
 void downloadPatch(void*) {
 

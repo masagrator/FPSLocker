@@ -3,23 +3,23 @@
 namespace tsl {
     namespace elm {
 
-        u32 ListItemDefaultHeight = 40;
+        u32 ListItem2DefaultHeight = 70;
 
         /**
          * @brief A item that goes into a list
          *
          */
-        class MiniListItem : public Element {
+        class ListItem2 : public Element {
         public:
             /**
              * @brief Constructor
              *
              * @param text Initial description text
              */
-            MiniListItem(const std::string& text, const std::string& value = "")
+            ListItem2(const std::string& text, const std::string& value = "")
                 : Element(), m_text(text), m_value(value) {
             }
-            virtual ~MiniListItem() {}
+            virtual ~ListItem2() {}
 
             virtual void draw(gfx::Renderer *renderer) override {
                 if (this->m_touched && Element::getInputMode() == InputMode::Touch) {
@@ -53,9 +53,9 @@ namespace tsl {
 
                 if (this->m_trunctuated) {
                     if (this->m_focused) {
-                        renderer->enableScissoring(this->getX(), this->getY(), this->m_maxWidth + 40, this->getHeight());
-                        renderer->drawString(this->m_scrollText.c_str(), false, this->getX() + 20 - this->m_scrollOffset, this->getY() + 27, 23, tsl::style::color::ColorText);
-                        renderer->disableScissoring();
+                        //renderer->enableScissoring(this->getX(), this->getY(), this->m_maxWidth + 40, this->getHeight());
+                        renderer->drawString(this->m_scrollText.c_str(), false, this->getX() + 20 - this->m_scrollOffset, this->getY() + 45, 23, tsl::style::color::ColorText);
+                        //renderer->disableScissoring();
                         if (this->m_scrollAnimationCounter == 90) {
                             if (this->m_scrollOffset == this->m_textWidth) {
                                 this->m_scrollOffset = 0;
@@ -67,17 +67,17 @@ namespace tsl {
                             this->m_scrollAnimationCounter++;
                         }
                     } else {
-                        renderer->drawString(this->m_ellipsisText.c_str(), false, this->getX() + 20, this->getY() + 27, 23, a(tsl::style::color::ColorText));
+                        renderer->drawString(this->m_ellipsisText.c_str(), false, this->getX() + 20, this->getY() + 45, 23, a(tsl::style::color::ColorText));
                     }
                 } else {
-                    renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 27, 23, a(tsl::style::color::ColorText));
+                    renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 45, 23, a(tsl::style::color::ColorText));
                 }
 
-                renderer->drawString(this->m_value.c_str(), false, this->getX() + this->m_maxWidth + 45, this->getY() + 27, 20, this->m_faint ? a(tsl::style::color::ColorDescription) : a(tsl::style::color::ColorHighlight));
+                renderer->drawString(this->m_value.c_str(), false, this->getX() + this->m_maxWidth + 45, this->getY() + 45, 20, this->m_faint ? a(tsl::style::color::ColorDescription) : a(tsl::style::color::ColorHighlight));
             }
 
             virtual void layout(u16 parentX, u16 parentY, u16 parentWidth, u16 parentHeight) override {
-                this->setBoundaries(this->getX(), this->getY(), this->getWidth(), ListItemDefaultHeight);
+                this->setBoundaries(this->getX(), this->getY(), this->getWidth(), ListItem2DefaultHeight);
             }
 
             virtual bool onClick(u64 keys) override {
@@ -158,10 +158,9 @@ namespace tsl {
                     }
                 }
 
-                renderer->drawString("▶", false, this->getX() + x, this->getY() + y + 27, 20, a(highlightColor));
+                renderer->drawString("▶", false, this->getX() + x, this->getY() + y + 45, 20, a(highlightColor));
 
             }
-
 
             virtual void setFocused(bool state) override {
                 this->m_scroll = false;
