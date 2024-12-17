@@ -321,13 +321,13 @@ public:
 
     virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		if (exitPossible) {
-			if (keysHeld & HidNpadButton_B) {
+			if (keysDown & HidNpadButton_B) {
 				tsl::goBack();
 				return true;
 			}
 		}
 		else if (!exitPossible) {
-			if (keysHeld & HidNpadButton_B)
+			if (keysDown & HidNpadButton_B)
 				return true;
 			Result rc = error_code;
 			if (rc != UINT32_MAX && rc != 0x404) {

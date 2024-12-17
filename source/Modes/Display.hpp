@@ -373,6 +373,34 @@ public:
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/", 777);
 		LoadDockedModeAllowedSave(rr, as);
+		smInitialize();
+		setsysInitialize();
+		SetSysEdid2 edid2 = {0};
+		if (R_SUCCEEDED(setsysGetEdid2(setsysGetServiceSession(), &edid2))) {
+			uint8_t highestRefreshRate = 0;
+			for (int i = 0; i < 2; i++) {
+				auto td = edid2.edid.timing_descriptor[i];
+				uint32_t pixel_clock = td.pixel_clock * 10000;
+				if (!pixel_clock) continue;
+				uint32_t h_total = ((uint32_t)td.horizontal_active_pixels_msb << 8 | td.horizontal_active_pixels_lsb) + ((uint32_t)td.horizontal_blanking_pixels_msb << 8 | td.horizontal_blanking_pixels_lsb);
+				uint32_t v_total = ((uint32_t)td.vertical_active_lines_msb << 8 | td.vertical_active_lines_lsb) + ((uint32_t)td.vertical_blanking_lines_msb << 8 | td.vertical_blanking_lines_lsb);
+				uint8_t refreshRate = (uint8_t)round((float)pixel_clock / (float)(h_total * v_total));
+				if (refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
+			}
+			SetSysModeLine* modes = (SetSysModeLine*)((uintptr_t)(&edid2.edid) + 0x80 + edid2.edid.dtd_start);
+			for (int i = 0; i < 5; i++) {
+				auto td = modes[i];
+				uint32_t pixel_clock = td.pixel_clock * 10000;
+				if (!pixel_clock) continue;
+				uint32_t h_total = ((uint32_t)td.horizontal_active_pixels_msb << 8 | td.horizontal_active_pixels_lsb) + ((uint32_t)td.horizontal_blanking_pixels_msb << 8 | td.horizontal_blanking_pixels_lsb);
+				uint32_t v_total = ((uint32_t)td.vertical_active_lines_msb << 8 | td.vertical_active_lines_lsb) + ((uint32_t)td.vertical_blanking_lines_msb << 8 | td.vertical_blanking_lines_lsb);
+				uint8_t refreshRate = (uint8_t)round((float)pixel_clock / (float)(h_total * v_total));
+				if (refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
+			}
+			snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %d Hz", highestRefreshRate);
+		}
+		setsysExit();
+		smExit();
 	}
 
 	size_t base_height = 128;
@@ -529,12 +557,16 @@ private:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 public:
     DisplayGui() {
-		smInitialize();
-		if (R_SUCCEEDED(apmInitialize())) {
-			apmGetPerformanceMode(&entry_mode);
-			apmExit();
+		if (isLite) entry_mode = ApmPerformanceMode_Normal;
+		else {
+			smInitialize();
+			if (R_SUCCEEDED(apmInitialize())) {
+				apmGetPerformanceMode(&entry_mode);
+				apmExit();
+			}
+			else entry_mode = ApmPerformanceMode_Normal;
+			smExit();
 		}
-		smExit();
 	}
 	size_t base_height = 128;
 
@@ -641,16 +673,18 @@ public:
 
 			list->addItem(clickableListItem3);
 
-			auto *clickableListItem4 = new tsl::elm::ListItem2("Docked Settings");
-			clickableListItem4->setClickListener([this](u64 keys) { 
-				if ((keys & HidNpadButton_A)) {
-					tsl::changeTo<DockedGui>();
-					return true;
-				}
-				return false;
-			});
+			if (!isLite) {
+				auto *clickableListItem4 = new tsl::elm::ListItem2("Docked Settings");
+				clickableListItem4->setClickListener([this](u64 keys) { 
+					if ((keys & HidNpadButton_A)) {
+						tsl::changeTo<DockedGui>();
+						return true;
+					}
+					return false;
+				});
 
-			list->addItem(clickableListItem4);
+				list->addItem(clickableListItem4);
+			}
 		}
 		
 		frame->setContent(list);
@@ -665,19 +699,21 @@ public:
 
 	// Called once every frame to handle inputs not handled by other UI elements
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
-		smInitialize();
-		if (R_SUCCEEDED(apmInitialize())) {
-			ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
-			apmGetPerformanceMode(&mode);
-			apmExit();
-			if (mode != entry_mode) {
-				smExit();
-				tsl::goBack();
-				tsl::changeTo<DisplayGui>();
-				return true;
+		if (!isLite) {
+			smInitialize();
+			if (R_SUCCEEDED(apmInitialize())) {
+				ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
+				apmGetPerformanceMode(&mode);
+				apmExit();
+				if (mode != entry_mode) {
+					smExit();
+					tsl::goBack();
+					tsl::changeTo<DisplayGui>();
+					return true;
+				}
 			}
+			smExit();
 		}
-		smExit();
 		return false;   // Return true here to singal the inputs have been consumed
 	}
 };

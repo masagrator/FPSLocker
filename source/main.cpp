@@ -12,6 +12,7 @@
 
 bool displaySync = false;
 bool isOLED = false;
+bool isLite = false;
 uint8_t refreshRate_g = 60;
 bool oldSalty = false;
 
@@ -281,12 +282,24 @@ public:
 	uint8_t maxFPS = 0;
 	DockedModeRefreshRateAllowed rr = {0};
 	DockedAdditionalSettings as = {0};
+	uint8_t selected = 0;
+	float counter = 0;
 	DockedFPSTargetGui() {
 		LoadDockedModeAllowedSave(rr, as);
 		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
 			if (rr[i] == true)
 				maxFPS = DockedModeRefreshRateAllowedValues[i];
 		}
+		if (Shared -> FPSlocked) {
+			for (size_t i = 0; i < sizeof(AllowedFPSTargets); i++) {
+				if (Shared->FPSlocked == AllowedFPSTargets[i]) {
+					selected = i;
+					break;
+				}
+			}			
+		}
+		else if (Shared -> FPSmode == 2) selected = 3;
+		else selected = 9;
 	}
 
 	// Called when this Gui gets loaded to create the UI
@@ -299,57 +312,26 @@ public:
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
 
-		for (int8_t i = sizeof(AllowedFPSTargets) - 1; i >= 0; i -= 1) {
-			char FPS[] = "254 FPS";
-			snprintf(FPS, sizeof(FPS), "%d FPS", AllowedFPSTargets[i]);
-			auto *clickableListItem = new tsl::elm::MiniListItem(FPS);
-			clickableListItem->setClickListener([this, i](u64 keys) { 
-				if (keys & HidNpadButton_A) {
-					(Shared -> FPSlocked) = AllowedFPSTargets[i];
-					if (!oldSalty && displaySync) {
-						if (R_SUCCEEDED(SaltySD_Connect())) {
-							bool skip = false;
-							SaltySD_SetDisplayRefreshRate(AllowedFPSTargets[i]);
-							for (uint8_t x = 0; x < sizeof(DockedModeRefreshRateAllowed); x++) {
-								if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == AllowedFPSTargets[i]) {
-									refreshRate_g = AllowedFPSTargets[i];
-									skip = true;
-								}
-								else if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == (AllowedFPSTargets[i] * 2)) {
-									refreshRate_g = AllowedFPSTargets[i] * 2;
-									skip = true;
-								}
-								else if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == (AllowedFPSTargets[i] * 3)) {
-									refreshRate_g = AllowedFPSTargets[i] * 3;
-									skip = true;
-								}
-								else if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == (AllowedFPSTargets[i] * 4)) {
-									refreshRate_g = AllowedFPSTargets[i] * 4;
-									skip = true;
-								}
-								if (skip) break;
-							}
-							if (!skip) {
-								uint8_t target = 60;
-								for (uint8_t x = 0; x < sizeof(DockedModeRefreshRateAllowed); x++) {
-									if (rr[x] == true && AllowedFPSTargets[i] <= DockedModeRefreshRateAllowedValues[x]) {
-										if (DockedModeRefreshRateAllowedValues[x] < target) target = DockedModeRefreshRateAllowedValues[x];
-									}
-								}
-								refreshRate_g = target;
-							}
-							SaltySD_Term();
-							(Shared -> displaySync) = refreshRate_g;
-						}
-					}
-					tsl::goBack();
-					return true;
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+			for (uint8_t i = 0; i < sizeof(AllowedFPSTargets); i += 1) {
+				char FPS[] = "254";
+				snprintf(FPS, sizeof(FPS), "%d", AllowedFPSTargets[i]);
+				if (selected == i) {
+					auto new_pos = renderer->drawString(FPS, false, x+((80 * (i % 4)) + 20), y+((80*(i / 4))+50), 40, renderer->a(0x0000));
+					auto offset_x = (60 - new_pos.first) / 2;
+					float progress = (std::sin(counter) + 1) / 2;
+					tsl::Color highlightColor = {   static_cast<u8>((0x2 - 0x8) * progress + 0x8),
+													static_cast<u8>((0x8 - 0xF) * progress + 0xF),
+													static_cast<u8>((0xC - 0xF) * progress + 0xF),
+													0xF };
+					renderer->drawRect(x+((80 * (i % 4)) + 20) - offset_x, y+((80*(i / 4))+5), 4, 56, a(highlightColor));
+					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+4, y+((80*(i / 4))+5), 56, 4, a(highlightColor));
+					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+56, y+((80*(i / 4))+5), 4, 60, a(highlightColor));
+					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x), (y+((80*(i / 4))+5))+56, 56, 4, a(highlightColor));
 				}
-				return false;
-			});
-
-			list->addItem(clickableListItem);
-		}
+				renderer->drawString(FPS, false, x+((80 * (i % 4)) + 20), y+((80*(i / 4))+50), 40, renderer->a(0xFFFF));
+			}
+		}), 480);
 
 		frame->setContent(list);
 
@@ -370,6 +352,85 @@ public:
 			}
 		}
 		smExit();
+		counter += 0.1f;
+		if (keysDown & HidNpadButton_Down) {
+			if ((selected / 4) < (sizeof(AllowedFPSTargets) / 4)) 
+				selected += 4;
+			else selected = selected % 4;
+			if (selected >= sizeof(AllowedFPSTargets))
+				selected = sizeof(AllowedFPSTargets) - 1;
+			return true;
+		}
+		else if (keysDown & HidNpadButton_Up) {
+			if ((selected / 4) > 0) 
+				selected -= 4;
+			else selected = ((sizeof(AllowedFPSTargets) / 4) * 4) + (selected % 4);
+			if (selected >= sizeof(AllowedFPSTargets))
+				selected = sizeof(AllowedFPSTargets) - 1;	
+			return true;
+		}
+		else if (keysDown & HidNpadButton_Right) {
+			if (selected % 4 < 3) 
+				selected += 1;
+			else {
+				selected -= 3;
+			}
+			if (selected >= sizeof(AllowedFPSTargets))
+				selected = (sizeof(AllowedFPSTargets) / 4) * 4;
+			return true;
+		}
+		else if (keysDown & HidNpadButton_Left) {
+			if (selected % 4 > 0) 
+				selected -= 1;
+			else {
+				selected += 3;
+			}
+			if (selected >= sizeof(AllowedFPSTargets))
+				selected = sizeof(AllowedFPSTargets) - 1;
+			return true;
+		}
+
+		if (keysDown & HidNpadButton_A) {
+			(Shared -> FPSlocked) = AllowedFPSTargets[selected];
+			if (!oldSalty && displaySync) {
+				if (R_SUCCEEDED(SaltySD_Connect())) {
+					bool skip = false;
+					SaltySD_SetDisplayRefreshRate(AllowedFPSTargets[selected]);
+					for (uint8_t x = 0; x < sizeof(DockedModeRefreshRateAllowed); x++) {
+						if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == AllowedFPSTargets[selected]) {
+							refreshRate_g = AllowedFPSTargets[selected];
+							skip = true;
+						}
+						else if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == (AllowedFPSTargets[selected] * 2)) {
+							refreshRate_g = AllowedFPSTargets[selected] * 2;
+							skip = true;
+						}
+						else if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == (AllowedFPSTargets[selected] * 3)) {
+							refreshRate_g = AllowedFPSTargets[selected] * 3;
+							skip = true;
+						}
+						else if (rr[x] == true && DockedModeRefreshRateAllowedValues[x] == (AllowedFPSTargets[selected] * 4)) {
+							refreshRate_g = AllowedFPSTargets[selected] * 4;
+							skip = true;
+						}
+						if (skip) break;
+					}
+					if (!skip) {
+						uint8_t target = 60;
+						for (uint8_t x = 0; x < sizeof(DockedModeRefreshRateAllowed); x++) {
+							if (rr[x] == true && AllowedFPSTargets[selected] <= DockedModeRefreshRateAllowedValues[x]) {
+								if (DockedModeRefreshRateAllowedValues[x] < target) target = DockedModeRefreshRateAllowedValues[x];
+							}
+						}
+						refreshRate_g = target;
+					}
+					SaltySD_Term();
+					(Shared -> displaySync) = refreshRate_g;
+				}
+			}
+			tsl::goBack();
+			return true;
+		}			
 		return false;   // Return true here to singal the inputs have been consumed
 	}
 };
@@ -378,12 +439,17 @@ class GuiTest : public tsl::Gui {
 public:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 	GuiTest(u8 arg1, u8 arg2, bool arg3) { 
-		smInitialize();
-		if (R_SUCCEEDED(apmInitialize())) {
-			apmGetPerformanceMode(&entry_mode);
-			apmExit();
+		
+		if (isLite) entry_mode = ApmPerformanceMode_Normal;
+		else {
+			smInitialize();
+			if (R_SUCCEEDED(apmInitialize())) {
+				apmGetPerformanceMode(&entry_mode);
+				apmExit();
+			}
+			else entry_mode = ApmPerformanceMode_Normal;
+			smExit();
 		}
-		smExit();
 	}
 
 	// Called when this Gui gets loaded to create the UI
@@ -443,7 +509,7 @@ public:
 						else if ((Shared -> FPSlocked) < 60) {
 							(Shared -> FPSlocked) += 5;
 						}
-						if (!oldSalty && displaySync) {
+						if (!oldSalty && displaySync && !isOLED) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
@@ -492,7 +558,7 @@ public:
 						else if ((Shared -> FPSlocked) > 15) {
 							(Shared -> FPSlocked) -= 5;
 						}
-						if (!oldSalty && displaySync) {
+						if (!oldSalty && displaySync && !isOLED) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
@@ -659,19 +725,21 @@ public:
 	// Called once every frame to handle inputs not handled by other UI elements
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		refreshRate_g = *refreshRate_shared;
-		smInitialize();
-		if (R_SUCCEEDED(apmInitialize())) {
-			ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
-			apmGetPerformanceMode(&mode);
-			apmExit();
-			if (mode != entry_mode) {
-				smExit();
-				tsl::goBack();
-				tsl::changeTo<GuiTest>(0, 1, true);
-				return true;
+		if (!isLite) {
+			smInitialize();
+			if (R_SUCCEEDED(apmInitialize())) {
+				ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
+				apmGetPerformanceMode(&mode);
+				apmExit();
+				if (mode != entry_mode) {
+					smExit();
+					tsl::goBack();
+					tsl::changeTo<GuiTest>(0, 1, true);
+					return true;
+				}
 			}
+			smExit();
 		}
-		smExit();
 		if (keysDown & HidNpadButton_B) {
 			tsl::goBack();
 			tsl::goBack();
@@ -712,6 +780,9 @@ public:
 				if (model == SetSysProductModel_Aula) {
 					isOLED = true;
 					remove("sdmc:/SaltySD/flags/displaysync.flag");
+				}
+				else if (model == SetSysProductModel_Hoag) {
+					isLite = true;
 				}
 			}
 			setsysExit();
