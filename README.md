@@ -9,7 +9,7 @@ Max supported yaml size is 32kB, though it can be expanded in next updates.
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 0.7.5+](https://github.com/masagrator/SaltyNX/releases)
+- [My fork of SaltyNX, version 1.2.0+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 
 How to setup everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
@@ -24,7 +24,8 @@ Explanation of each line:
 - `Interval Mode` - it's used by NVN API to set limiter to either 30 FPS (2) or 60 FPS (1). 
 - `Custom FPS Target` - it's used to lock game to certain FPS. If game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
-- `Increase/Decrease FPS target` - Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS. If FPS is set above 30 FPS, it sets `interval mode` to 1. Otherwise it sets interval to 2.
+- `Increase/Decrease FPS target` - Shows up only in handheld mode. Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS.
+- `Change FPS target` - Shows up only in docked mode. Shows up table with different FPS values, from 15 to 60.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
 - `Advanced settings` - submenu which consists of:
   - If game is using NVN
@@ -37,10 +38,18 @@ Explanation of each line:
   - `Delete patch file` - if proper config file exists for this game and version, you will get an option to delete patch file so it won't be loaded when you will run this game next time.
   - `Check/download config file` - Checks in Warehouse repository if config for this game and version exists. If exists, it is downloaded and also checked if it's the same as the one on sdcard. If it's not, overlay will remove existing patch and config file, and user must manually convert new config to patch file. 0x312 error means we got unexpected file from github. Any other error code means that something is happening with your connection or github server.
 - `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
-- `Display settings` - submenu available only for non OLED model users. Consists of:
-  - `Increase refresh rate` - change display refresh rate up to 60 Hz.
-  - `Decrease refresh rate` - change display refresh rate down to 40 Hz.
-  - `Display Sync` - When turned on, both options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target. In case if FPS Target is below 40 FPS, refresh rate is restored to 60 Hz. 
+- `Display settings` - submenu related to display refresh rate. Consists of:
+  - `Increase refresh rate` - Shows up only in handheld mode. Change display refresh rate up to 60 Hz. In OLED units it's blocked.
+  - `Decrease refresh rate` - Shows up only in handheld mode. Change display refresh rate down to 40 Hz. In OLED units it's blocked.
+  - `Change refresh rate` - Shows up only in docked mode. Choose display refresh rate from list.
+  - `Display Sync` - When turned on, both options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target. In OLED units it works only in docked mode.
+  - `Docked Settings` - submenu related to display refresh rate of external displays. Not accessible for Lite units. Consists of:
+      - `Allowed refresh rates` - you can check and edit manually which refresh rates are enabled for currently connected external display. It consists of 40, 45, 50 and 55 Hz. By default 50 is turned on, everything else is turned off.
+      - `Refresh rate wizard` - it goes automatically to next refresh rates, user is asked to press required button to confirm it's working, if not pressed for 15 seconds it goes to next refresh rate. After checking all refresh rates you are moved to `Allowed refresh rates` menu to check results.
+      - `Frameskip tester` - It allows to check if your display is showing currently used signal at native refresh rates. Many displays may support for example 50 Hz, but they are still displaying stuff at 60 Hz. Instructions how to use it are provided when this menu is selected. This menu is also available in handheld mode.
+      - `Additional settings` - submenu with options related to how FPSLocker/FPSLocker patches are working in docked mode. Currently you can choose from:
+          - `Allow patches to force 60 Hz` - some FPSLocker patches are forcing 60 Hz to fix framepacing issues with 30 FPS cutscenes. When such change happens, game is paused for 4 seconds before continuing. By default is turned on. Turning it off will apply only FPS lock without changing refresh rate. This won't disable that 4 second delay.
+          - `Use lowest refresh rate for unmatched FPS targets` - For example for 60 Hz display 35 FPS target doesn't have avaialble refresh rate matching it. By enabling this option you will get lowest enabled refresh rate in `Allowed refresh rates` menu. This option is disabled by default, which will result in setting 60 Hz in that case.
 
 > When game is not running
 
@@ -50,10 +59,7 @@ You will have two submenus to choose from (if you are using OLED model, you will
   Inside each one you will find two options:
   - `Delete settings` - it will delete file created by "Save settings" option
   - `Delete patches` - it will delete file created by "Convert config to patch file" option
-- `Display settings` - submenu available only for non OLED model users. Consists of:
-  - `Increase refresh rate` - change display refresh rate up to 60 Hz.
-  - `Decrease refresh rate` - change display refresh rate down to 40 Hz.
-  - `Display Sync` - change display refresh rate only when game is running, match refresh rate with FPS Target. In case if FPS Target is below 40 FPS, refresh rate is restored to 60 Hz.
+- `Display settings` - you can read about in previous section.
 
 # Information about changing refresh rates
 
@@ -65,7 +71,7 @@ From all reports I got, only one LCD screen was getting issue with small flicker
 
 I have decided to limit down to 40 Hz since lower refresh rates not only were not beneficial to user, also this allows avoid certain risks with underclocking display too much.<br>
 
-LCD can be overclocked up to 70 Hz without immediately visible issues but I have leaved max at 60 Hz since I have decided that there are no visible benefits running display at 70 Hz which would justify tinkering with existing patches to patch games breaking above 60 FPS. From 75 Hz all users were reporting issues with glitchy image. OLED above 65 Hz was freezing and only way to got it back working again was lowering refresh rate to 65 Hz and lower.
+LCD can be overclocked up to 70 Hz without immediately visible issues but I have leaved max at 60 Hz since I have decided that there are no visible benefits running display at 70 Hz which would justify tinkering with existing patches to patch games breaking above 60 FPS. From 75 Hz all users using original display panels were reporting issues with glitchy image. OLED above 65 Hz was freezing and only way to got it back working again was lowering refresh rate to 65 Hz and lower.
 
 This works only for builtin display, you cannot change refresh rate in docked mode. 
 If Display Sync is turned off, custom refresh rate is not restored after sleep mode.

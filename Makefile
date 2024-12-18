@@ -38,7 +38,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 APP_TITLE	:=	FPSLocker
-APP_VERSION	:=	2.0.3
+APP_VERSION	:=	2.1.0
 
 TARGET		:=	FPSLocker
 BUILD		:=	build
@@ -56,7 +56,7 @@ ARCH		:= -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 CFLAGS		:= -g -Wall -Os -ffunction-sections \
 			$(ARCH) $(DEFINES)
 
-CFLAGS		+= $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\""
+CFLAGS		+= $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -DNDEBUG
 
 CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=c++23
 
