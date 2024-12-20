@@ -280,6 +280,20 @@ uint8_t DockedModeRefreshRateAllowedValues[] = { 40,
 
 static_assert(sizeof(DockedModeRefreshRateAllowedValues) == sizeof(DockedModeRefreshRateAllowed));
 
+struct HandheldModeRefreshRateAllowedMinMax {
+	uint8_t min;
+	uint8_t max;
+};
+
+HandheldModeRefreshRateAllowedMinMax HandheldModeRefreshRateAllowed = {40, 60};
+
+struct displayData {
+    uint8_t vendorID[3];
+    bool isOLED;
+} NX_PACKED;
+
+displayData DISPLAY_A = {0};
+
 Result SaltySD_SetAllowedDockedRefreshRates(DockedModeRefreshRateAllowed refreshRates)
 {
 	Result ret = 0;
@@ -413,6 +427,89 @@ Result SaltySD_SetMatchLowestRR(bool isTrue)
 
 		ret = resp->result;
 	}
+	
+	return ret;
+}
+
+Result SaltySD_SetMinMaxHandheldRefreshRate(uint8_t min, uint8_t max)
+{
+	Result ret = 0;
+
+	// Send a command
+	IpcCommand c;
+	ipcInitialize(&c);
+	ipcSendPid(&c);
+
+	struct input {
+		u64 magic;
+		u64 cmd_id;
+		u32 min;
+		u32 max;
+		u64 reserved;
+	} *raw;
+
+	raw = (input*)ipcPrepareHeader(&c, sizeof(*raw));
+
+	raw->magic = SFCI_MAGIC;
+	raw->cmd_id = 16;
+	raw->min = min;
+	raw->max = max;
+
+	ret = ipcDispatch(saltysd_orig);
+
+	if (R_SUCCEEDED(ret)) {
+		IpcParsedCommand r;
+		ipcParse(&r);
+
+		struct output {
+			u64 magic;
+			u64 result;
+			u64 reserved[2];
+		} *resp = (output*)r.Raw;
+
+		ret = resp->result;
+	}
+	
+	return ret;
+}
+
+Result SaltySD_GetHandheldDisplayData()
+{
+	Result ret = 0;
+
+	// Send a command
+	IpcCommand c;
+	ipcInitialize(&c);
+	ipcSendPid(&c);
+
+	struct input {
+		u64 magic;
+		u64 cmd_id;
+		u64 reserved[2];
+	} *raw;
+
+	raw = (input*)ipcPrepareHeader(&c, sizeof(*raw));
+
+	raw->magic = SFCI_MAGIC;
+	raw->cmd_id = 17;
+
+	ret = ipcDispatch(saltysd_orig);
+
+	if (R_SUCCEEDED(ret)) {
+		IpcParsedCommand r;
+		ipcParse(&r);
+
+		struct output {
+            u64 magic;
+            u64 result;
+            displayData display;
+            u32 reserved[3];
+		} *resp = (output*)r.Raw;
+
+		ret = resp->result;
+		DISPLAY_A = resp->display;
+	}
+	else memset(&DISPLAY_A, 0, sizeof(DISPLAY_A));
 	
 	return ret;
 }
