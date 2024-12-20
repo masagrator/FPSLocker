@@ -506,37 +506,16 @@ public:
 						else if (!(Shared -> FPSlocked)) {
 							(Shared -> FPSlocked) = 60;
 						}
-						else if ((Shared -> FPSlocked) < 60) {
-							(Shared -> FPSlocked) += 5;
+						else if ((Shared -> FPSlocked) < HandheldModeRefreshRateAllowed.max) {
+							if ((Shared -> FPSlocked) == 70) (Shared -> FPSlocked) = 72;
+							else (Shared -> FPSlocked) = ((Shared -> FPSlocked) - ((Shared -> FPSlocked) % 5)) + 5;
 						}
 						if (!oldSalty && displaySync && !isOLED) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
-								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
-								for (uint8_t x = 0; x < sizeof(supportedHandheldRefreshRates); x++) {
-									if (supportedHandheldRefreshRates[x] == (Shared -> FPSlocked)) {
-										refreshRate_g = (Shared -> FPSlocked);
-										skip = true;
-									}
-									else if (supportedHandheldRefreshRates[x] == ((Shared -> FPSlocked) * 2)) {
-										refreshRate_g = (Shared -> FPSlocked) * 2;
-										skip = true;
-									}
-									else if (supportedHandheldRefreshRates[x] == ((Shared -> FPSlocked) * 3)) {
-										refreshRate_g = (Shared -> FPSlocked) * 3;
-										skip = true;
-									}
-									else if (supportedHandheldRefreshRates[x] == ((Shared -> FPSlocked) * 4)) {
-										refreshRate_g = (Shared -> FPSlocked) * 4;
-										skip = true;
-									}
-									if (skip) break;
-								}
-								if (!skip) {
-									refreshRate_g = 60;
-								}
-								(Shared -> displaySync) = refreshRate_g;
 								SaltySD_Term();
+								svcSleepThread(100000);
+								refreshRate_g = (Shared -> displaySync);
 							}
 						}
 						return true;
@@ -556,36 +535,16 @@ public:
 							(Shared -> FPSlocked) = 25;
 						}
 						else if ((Shared -> FPSlocked) > 15) {
-							(Shared -> FPSlocked) -= 5;
+							if ((Shared -> FPSlocked) == 75) (Shared -> FPSlocked) = 72;
+							else if ((Shared -> FPSlocked) == 72) (Shared -> FPSlocked) = 70; 
+							else (Shared -> FPSlocked) -= 5;
 						}
 						if (!oldSalty && displaySync && !isOLED) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
-								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
-								for (uint8_t x = 0; x < sizeof(supportedHandheldRefreshRates); x++) {
-									if (supportedHandheldRefreshRates[x] == (Shared -> FPSlocked)) {
-										refreshRate_g = (Shared -> FPSlocked);
-										skip = true;
-									}
-									else if (supportedHandheldRefreshRates[x] == ((Shared -> FPSlocked) * 2)) {
-										refreshRate_g = (Shared -> FPSlocked) * 2;
-										skip = true;
-									}
-									else if (supportedHandheldRefreshRates[x] == ((Shared -> FPSlocked) * 3)) {
-										refreshRate_g = (Shared -> FPSlocked) * 3;
-										skip = true;
-									}
-									else if (supportedHandheldRefreshRates[x] == ((Shared -> FPSlocked) * 4)) {
-										refreshRate_g = (Shared -> FPSlocked) * 4;
-										skip = true;
-									}
-									if (skip) break;
-								}
-								if (!skip) {
-									refreshRate_g = 60;
-								}
 								SaltySD_Term();
-								(Shared -> displaySync) = refreshRate_g;
+								svcSleepThread(100000);
+								refreshRate_g = (Shared -> displaySync);
 							}
 						}
 						return true;
@@ -803,7 +762,10 @@ public:
 				}
 				else refreshRate_g = refreshRate_temp;
 				svcSleepThread(100'000);
+				SaltySD_GetHandheldDisplayData();
+				svcSleepThread(100'000);
 				SaltySD_Term();
+				LoadHandheldModeAllowedSave();
 			}
 
 			if(!LoadSharedMemory()) return;

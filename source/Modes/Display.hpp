@@ -549,6 +549,271 @@ public:
 	}
 };
 
+class HandheldMinGui : public tsl::Gui {
+public:
+    HandheldMinGui() {
+	}
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Handheld Minimum Refresh Rate");
+
+		auto list = new tsl::elm::List();
+
+		for (int i = 40; i <= 60; i += 5) {
+			char Hz[] = "60 Hz";
+			snprintf(Hz, sizeof(Hz), "%d Hz", i);
+			auto *clickableListItem = new tsl::elm::ListItem2(Hz);
+			clickableListItem->setClickListener([i](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					HandheldModeRefreshRateAllowed.min = i;
+					tsl::goBack();
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem);				
+		}
+		
+		frame->setContent(list);
+
+        return frame;
+    }
+
+};
+
+class HandheldMaxGui : public tsl::Gui {
+public:
+    HandheldMaxGui() {
+	}
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Handheld Maximum Refresh Rate");
+
+		auto list = new tsl::elm::List();
+
+		for (int i = 60; i <= 75; i += 5) {
+			char Hz[] = "60 Hz";
+			snprintf(Hz, sizeof(Hz), "%d Hz", i);
+			auto *clickableListItem = new tsl::elm::ListItem2(Hz);
+			clickableListItem->setClickListener([i](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					HandheldModeRefreshRateAllowed.max = i;
+					tsl::goBack();
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem);	
+			if (i == 70) {
+				auto *clickableListItem2 = new tsl::elm::ListItem2("72 Hz");
+				clickableListItem2->setClickListener([](u64 keys) { 
+					if (keys & HidNpadButton_A) {
+						HandheldModeRefreshRateAllowed.max = 72;
+						tsl::goBack();
+						return true;
+					}
+					return false;
+				});
+				list->addItem(clickableListItem2);
+			}			
+		}
+		
+		frame->setContent(list);
+
+        return frame;
+    }
+
+};
+
+class HandheldGui : public tsl::Gui {
+private:
+	char Handheld_c[256] = "";
+	uint8_t model = 0;
+public:
+    HandheldGui() {
+		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
+		mkdir("sdmc:/SaltySD/plugins/FPSLocker/IntDisplays/", 777);
+		switch(DISPLAY_A.vendorID[0]) {
+			case 0:
+				if (!DISPLAY_A.vendorID[2]) {
+					model = 0;
+				}
+				break;
+			case 0xB3:
+				if (!DISPLAY_A.vendorID[2]) {
+					model = 1;
+				}
+				break;
+			case 0x83:
+				if (DISPLAY_A.vendorID[2] == 0xF) {
+					model = 2;
+				}
+				break;
+			case 0x10:
+				switch(DISPLAY_A.vendorID[1]) {
+					case 0x81:
+						model = 3;
+						break;
+					case 0x96:
+						model = 4;
+						break;
+					default:
+						model = 5;
+				}
+				break;
+			case 0x20:
+				switch(DISPLAY_A.vendorID[1]) {
+					case 0x93:
+						model = 6;
+						break;
+					case 0x94:
+						model = 7;
+						break;
+					case 0x95:
+						switch(DISPLAY_A.vendorID[2]) {
+							case 0xF:
+								model = 8;
+								break;
+							case 0x10:
+								model = 9;								
+						}
+						break;
+					case 0x96:
+						switch(DISPLAY_A.vendorID[2]) {
+							case 0xF:
+								model = 10;
+								break;
+							case 0x10:
+								model = 11;								
+						}
+						break;
+					case 0x97:
+						model = 12;
+						break;
+					case 0x98:
+						model = 13;
+						break;
+					case 0x99:
+						model = 14;
+						break;
+					default:
+						model = 15;
+				}
+				break;
+			case 0x30:
+				switch(DISPLAY_A.vendorID[1]) {
+					case 0x93:
+						switch(DISPLAY_A.vendorID[2]) {
+							case 0xF:
+								model = 16;
+								break;
+							case 0x10:
+								model = 17;
+						}
+						break;
+					case 0x94:
+						switch(DISPLAY_A.vendorID[2]) {
+							case 0xF:
+								model = 18;
+								break;
+							case 0x10:
+								model = 19;
+						}
+						break;
+					case 0x95:
+						switch(DISPLAY_A.vendorID[2]) {
+							case 0xF:
+								model = 20;
+								break;
+							case 0x10:
+								model = 21;
+						}
+						break;
+					case 0x97:
+						model = 22;
+						break;
+					case 0x98:
+						model = 23;
+						break;
+					case 0x99:
+						model = 24;
+						break;
+					default:
+						model = 25;
+				}
+				break;
+			case 0x40:
+				if (DISPLAY_A.vendorID[1] == 0x94) {
+					model = 26;
+				}
+				else model = 27;
+				break;
+			case 0x50:
+				if (DISPLAY_A.vendorID[1] == 0x9B) {
+					model = 28;
+				}
+				else model = 29;
+				break;
+		}
+	}
+
+	size_t base_height = 128;
+	bool block = false;
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Handheld display settings");
+
+		auto list = new tsl::elm::List();
+
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+
+			renderer->drawString(Handheld_c, false, x, y+20, 20, renderer->a(0xFFFF));
+			
+		}), 105);
+
+		auto *clickableListItem1 = new tsl::elm::ListItem2("Set lowest refresh rate");
+		clickableListItem1->setClickListener([this](u64 keys) { 
+			if ((keys & HidNpadButton_A) && !isOLED) {
+				tsl::changeTo<HandheldMinGui>();
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem1);
+
+		auto *clickableListItem2 = new tsl::elm::ListItem2("Set highest refresh rate");
+		clickableListItem2->setClickListener([this](u64 keys) { 
+			if ((keys & HidNpadButton_A) && !isOLED) {
+				tsl::changeTo<HandheldMaxGui>();
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem2);
+		
+		frame->setContent(list);
+
+        return frame;
+    }
+
+	// Called once every frame to handle inputs not handled by other UI elements
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		if (keysDown & HidNpadButton_B) {
+			if (R_SUCCEEDED(SaltySD_Connect())) {
+				SaltySD_SetMinMaxHandheldRefreshRate(HandheldModeRefreshRateAllowed.min, HandheldModeRefreshRateAllowed.max);
+				SaltySD_Term();
+				SaveHandheldModeAllowed();
+			}
+			tsl::goBack();
+			return true;
+		}
+		snprintf(Handheld_c, sizeof(Handheld_c), "Panel:\n%s\nVendor ID: [%02X] %02X [%02X]\nMin: %d Hz, Max: %d Hz\nOLED panel according to NV: %s", HandheldDisplayModels[model], DISPLAY_A.vendorID[0], DISPLAY_A.vendorID[1], DISPLAY_A.vendorID[2], HandheldModeRefreshRateAllowed.min, HandheldModeRefreshRateAllowed.max, DISPLAY_A.isOLED ? "yes" : "no");
+		return false;   // Return true here to singal the inputs have been consumed
+	}
+};
+
 class DisplayGui : public tsl::Gui {
 private:
 	char refreshRate_c[32] = "";
@@ -587,9 +852,10 @@ public:
 				auto *clickableListItem = new tsl::elm::ListItem2("Increase Refresh Rate");
 				clickableListItem->setClickListener([this](u64 keys) { 
 					if ((keys & HidNpadButton_A) && (!isOLED || isDocked)) {
-						if ((refreshRate_g >= 40) && (refreshRate_g < 60)) {
+						if (refreshRate_g < HandheldModeRefreshRateAllowed.max) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
-								refreshRate_g += 5;
+								if (refreshRate_g == 70) refreshRate_g = 72;
+								else refreshRate_g = (refreshRate_g - (refreshRate_g % 5)) + 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
 								SaltySD_Term();
 								if (Shared) (Shared -> displaySync) = refreshRate_g;
@@ -605,9 +871,11 @@ public:
 				auto *clickableListItem2 = new tsl::elm::ListItem2("Decrease Refresh Rate");
 				clickableListItem2->setClickListener([this](u64 keys) { 
 					if ((keys & HidNpadButton_A) && (!isOLED || isDocked)) {
-						if (refreshRate_g > 40) {
+						if (refreshRate_g > HandheldModeRefreshRateAllowed.min) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
-								refreshRate_g -= 5;
+								if (refreshRate_g == 75) refreshRate_g = 72;
+								else if (refreshRate_g == 72) refreshRate_g = 70;
+								else refreshRate_g -= 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
 								if (Shared) (Shared -> displaySync) = refreshRate_g;
 								SaltySD_Term();
@@ -685,6 +953,17 @@ public:
 
 				list->addItem(clickableListItem4);
 			}
+
+			auto *clickableListItem5 = new tsl::elm::ListItem2("Handheld Settings");
+			clickableListItem5->setClickListener([this](u64 keys) { 
+				if ((keys & HidNpadButton_A)) {
+					tsl::changeTo<HandheldGui>();
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem5);
 		}
 		
 		frame->setContent(list);

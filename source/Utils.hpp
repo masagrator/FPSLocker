@@ -78,7 +78,6 @@ Thread t1;
 bool downloadingRunning = false;
 Result error_code = UINT32_MAX;
 bool curl_timeout = false;
-uint8_t supportedHandheldRefreshRates[] = {40, 45, 50, 55, 60};
 
 struct Title
 {
@@ -173,6 +172,79 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
     }
     return;
 }
+
+bool LoadHandheldModeAllowedSave() {
+
+	if (DISPLAY_A.vendorID[0] != 0 || DISPLAY_A.vendorID[1] != 0 || DISPLAY_A.vendorID[2] != 0) {
+		char path[128] = "";
+		snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/IntDisplays/%02X%02X%02X.dat", DISPLAY_A.vendorID[0], DISPLAY_A.vendorID[1], DISPLAY_A.vendorID[2]);
+		FILE* file = fopen(path, "rb");
+		if (!file)
+			return false;
+		u8 min = 0;
+		u8 max = 0;
+		fread(&min, 1, 1, file);
+		fread(&max, 1, 1, file);
+		fclose(file);
+		if (min < 40 || max >= 80) {
+			return false;
+		}
+		HandheldModeRefreshRateAllowed.min = min;
+		HandheldModeRefreshRateAllowed.max = max;
+		return true;
+	}
+	return false;
+}
+
+bool SaveHandheldModeAllowed() {
+
+	if (DISPLAY_A.vendorID[0] != 0 || DISPLAY_A.vendorID[1] != 0 || DISPLAY_A.vendorID[2] != 0) {
+		char path[128] = "";
+		snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/IntDisplays/%02X%02X%02X.dat", DISPLAY_A.vendorID[0], DISPLAY_A.vendorID[1], DISPLAY_A.vendorID[2]);
+		FILE* file = fopen(path, "wb");
+		if (!file)
+			return false;
+		fwrite(&HandheldModeRefreshRateAllowed.min, 1, 1, file);
+		fwrite(&HandheldModeRefreshRateAllowed.max, 1, 1, file);
+		fclose(file);
+		return true;
+	}
+	return false;
+}
+
+//Source: https://github.com/CTCaer/hekate/blob/3250b2e32a4203bfdcce8b04f621eeb94f93a878/bdk/display/di.h#L786
+std::array HandheldDisplayModels = {
+	"OEM Clone or Error",
+	"OEM Clone 5.5\"",
+	"OEM Clone 6.2\"",
+	"JDI LPM062M326A",
+	"JDI LAM062M109A",
+	"JDI Unknown",
+	"InnoLux P062CCA-AZ1 (Rev A1)",
+	"InnoLux 2J055IA-27A (Rev B1)",
+	"InnoLux P062CCA-AZ2 (Rev B1)",
+	"InnoLux 2J055IA-27A (Rev XX)",
+	"InnoLux P062CCA-??? (Rev XX)",
+	"InnoLux 2J055IA-27A (Rev XX)",
+	"InnoLux P062CCA-??? (Rev XX)",
+	"InnoLux P062CCA-??? (Rev XX)",
+	"InnoLux P062CCA-??? (Rev XX)",
+	"InnoLux Unknown",
+	"AUO A062TAN00",
+	"AUO A055TAN01",
+	"AUO A062TAN01",
+	"AUO A055TAN02",
+	"AUO A062TAN02",
+	"AUO A055TAN03",
+	"AUO A062TAN02",
+	"AUO A062TAN0?",
+	"AUO A062TAN03 (to confirm)",
+	"AUO Unknown",
+	"Sharp LQ055T1SW10 (Rev P)",
+	"Sharp Unknown",
+	"Samsung AMS699VC01-0 (Rev 2.5)",
+	"Samsung Unknown"
+};
 
 void downloadPatch(void*) {
 

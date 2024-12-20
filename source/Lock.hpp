@@ -3,18 +3,14 @@
 
 #include "rapidyaml/ryml.hpp"
 #include "c4/std/string.hpp"
-#include "tinyexpr/tinyexpr.h"
 #include <cmath>
 
 namespace LOCK {
 
-	const char entries[10][6] = {"15FPS", "20FPS", "25FPS", "30FPS", "35FPS", "40FPS", "45FPS", "50FPS", "55FPS", "60FPS"};
-	const char entries_rr[4][9] = {"40.001Hz", "45.001Hz", "50.001Hz", "55.001Hz"};
 	ryml::Tree tree;
 	char configBuffer[32770] = "";
-	uint8_t gen = 1;
-	bool ALL_FPS = false;
-	bool ALL_REFRESH_RATES = false;
+	uint8_t gen = 3;
+	bool master_write = false;
 
 	struct buffer_data {
 		size_t size;
@@ -86,34 +82,6 @@ namespace LOCK {
 		else return 0;
 	}
 
-	double TruncDec(double value, double truncator) {
-		uint64_t factor = pow(10, truncator);
-		return trunc(value*factor) / factor;
-	}
-
-	template <typename T>
-	double evaluateExpression(T string, double fps_target) {
-		std::string equation;
-		string >> equation;
-		double FPS_TARGET = fps_target;
-		double FPS_LOCK_TARGET = fps_target;
-		if (fps_target >= 60 || std::fmod(fps_target, 1) != 0)
-			FPS_LOCK_TARGET = 120;
-		double FRAMETIME_TARGET = 1000.0 / fps_target;
-		double VSYNC_TARGET = trunc(60.0 / fps_target);
-		te_variable vars[] = {
-			{"TruncDec", (const void*)TruncDec, TE_FUNCTION2},
-			{"FPS_TARGET", &FPS_TARGET, TE_VARIABLE},
-			{"FPS_LOCK_TARGET", &FPS_LOCK_TARGET, TE_VARIABLE},
-			{"FRAMETIME_TARGET", &FRAMETIME_TARGET, TE_VARIABLE},
-			{"VSYNC_TARGET", &VSYNC_TARGET, TE_VARIABLE}
-		};
-		te_expr *n = te_compile(equation.c_str(), vars, std::size(vars), 0);
-		double evaluated_value = te_eval(n);
-		te_free(n);
-		return evaluated_value;
-	}
-
 	template <typename T>
 	Result writeEntryTo(T value, uint8_t* buffer, size_t* offset, uint8_t value_type) {
 		switch(value_type) {
@@ -127,6 +95,7 @@ namespace LOCK {
 				value >> *(uint32_t*)(&buffer[*offset]);
 				break;
 			case 8:
+			case 0x48:
 				value >> *(uint64_t*)(&buffer[*offset]);
 				break;
 			case 0x11:
@@ -155,49 +124,8 @@ namespace LOCK {
 		return 0;
 	}
 
-	Result writeExprTo(double value, uint8_t* buffer, size_t* offset, uint8_t value_type) {
-		switch(value_type) {
-			case 1:
-				buffer[*offset] = (uint8_t)value;
-				break;
-			case 2:
-				*(uint16_t*)(&buffer[*offset]) = (uint16_t)value;
-				break;
-			case 4:
-				*(uint32_t*)(&buffer[*offset]) = (uint32_t)value;
-				break;
-			case 8:
-				*(uint64_t*)(&buffer[*offset]) = (uint64_t)value;
-				break;
-			case 0x11:
-				*(int8_t*)(&buffer[*offset]) = (int8_t)value;
-				break;
-			case 0x12:
-				*(int16_t*)(&buffer[*offset]) = (int16_t)value;
-				break;
-			case 0x14:
-				*(int32_t*)(&buffer[*offset]) = (int32_t)value;
-				break;
-			case 0x18:
-				*(int64_t*)(&buffer[*offset]) = (int64_t)value;
-				break;
-			case 0x24:
-				*(float*)(&buffer[*offset]) = (float)value;
-				break;
-			case 0x28:
-			case 0x38:
-				*(double*)(&buffer[*offset]) = (double)value;
-				break;
-			default:
-				return 4;
-		}
-		*offset += value_type % 0x10;
-		return 0;
-	}
-
-
 	template <typename T>
-	size_t NOINLINE calculateSize(T entry, bool masterWrite = false) {
+	size_t NOINLINE calculateSize(T entry, bool masterWrite = false, bool compiled = false) {
 		std::string string_check = "";
 		size_t temp_size = 0;
 
@@ -234,14 +162,31 @@ namespace LOCK {
 				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // value_type
 				temp_size++; // value count
-				entry[i]["value_type"] >> string_check;
-				if (entry[i]["value"].is_seq()) {
-					temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+				if (!string_check.compare("write") || compiled) {
+					entry[i]["value_type"] >> string_check;
+					if (entry[i]["value"].is_seq()) {
+						temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+					}
+					else temp_size += getTypeSize(string_check);
 				}
-				else temp_size += getTypeSize(string_check);
+				else {
+					if (entry[i]["value"].is_seq()) {
+						for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
+							entry[i]["value"][x] >> string_check;
+							temp_size += string_check.size() + 1;
+						}
+					}
+					else {
+						entry[i]["value"] >> string_check;
+						temp_size += string_check.size() + 1;
+					}
+				}
 				
 			}
 			else if (!string_check.compare("compare") || !string_check.compare("evaluate_compare")) {
+				bool evaluate_compare = false;
+				if (!string_check.compare("evaluate_compare"))
+					evaluate_compare = true;
 				temp_size++; // compare_address count
 				temp_size += ((entry[i]["compare_address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // compare_type
@@ -252,11 +197,25 @@ namespace LOCK {
 				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // value_type
 				temp_size++; // value count
-				entry[i]["value_type"] >> string_check;
-				if (entry[i]["value"].is_seq()) {
-					temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+				if (!evaluate_compare || compiled) {
+					entry[i]["value_type"] >> string_check;
+					if (entry[i]["value"].is_seq()) {
+						temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+					}
+					else temp_size += getTypeSize(string_check);
 				}
-				else temp_size += getTypeSize(string_check);
+				else {
+					if (entry[i]["value"].is_seq()) {
+						for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
+							entry[i]["value"][x] >> string_check;
+							temp_size += string_check.size() + 1;
+						}
+					}
+					else {
+						entry[i]["value"] >> string_check;
+						temp_size += string_check.size() + 1;
+					}
+				}
 			}
 			else if (!string_check.compare("block")) {
 				temp_size++;
@@ -269,40 +228,35 @@ namespace LOCK {
 	}
 
 	template <typename T>
-	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size, bool masterWrite = false, double fps_target = 0) {
+	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size, bool masterWrite = false) {
 		std::string string_check = "";
 		size_t temp_size = 0;
 		if (masterWrite) {
 			for (size_t i = 0; i < entry.num_children(); i++) {
 				entry[i]["type"] >> string_check;
 				if (!string_check.compare("bytes")) {
-					buffer[temp_size] = 1; // type
-					temp_size++;
+					buffer[temp_size++] = 1; // type
 					entry[i]["main_offset"] >> *(uint32_t*)(&buffer[temp_size]);
 					temp_size += 4;
 					entry[i]["value_type"] >> string_check;
 					uint8_t value_type = getValueType(string_check);
-					buffer[temp_size] = value_type;
-					temp_size++;
+					buffer[temp_size++] = value_type;
 					if (entry[i]["value"].is_seq()) {
-						buffer[temp_size] = entry[i]["value"].num_children(); //value_count
-						temp_size++;
+						buffer[temp_size++] = entry[i]["value"].num_children(); //value_count
 						for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
 							Result rc = writeEntryTo(entry[i]["value"][x], buffer, &temp_size, value_type);
 							if (R_FAILED(rc)) return rc;
 						}
 					}
 					else {
-						buffer[temp_size] = 1;
-						temp_size++;
+						buffer[temp_size++] = 1;
 						Result rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
 						if (R_FAILED(rc)) return rc;
 					}					
 				}
 				else return 2;
 			}
-			buffer[temp_size] = 0xFF;
-			temp_size++;
+			buffer[temp_size++] = 0xFF;
 			*out_size = temp_size;
 			return 0;
 		}
@@ -315,40 +269,38 @@ namespace LOCK {
 				if (!string_check.compare("evaluate_write"))
 					evaluate_write = true;
 
-				buffer[temp_size] = 1; // type
-				temp_size++;
-				buffer[temp_size] = entry[i]["address"].num_children(); // address count
-				temp_size++;
+				buffer[temp_size++] = (evaluate_write ? 0x81 : 1); // type
+				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
-				buffer[temp_size] = getAddressRegion(string_check);
-				temp_size++;
+				buffer[temp_size++] = getAddressRegion(string_check);
 				for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
 					entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
 					temp_size += 4;
 				}
 				entry[i]["value_type"] >> string_check;
 				uint8_t value_type = getValueType(string_check);
-				buffer[temp_size] = value_type;
-				temp_size++; // value_type
+				buffer[temp_size++] = value_type;
 				if (entry[i]["value"].is_seq()) {
-					buffer[temp_size] = entry[i]["value"].num_children(); //value_count
-					temp_size++;
+					buffer[temp_size++] = entry[i]["value"].num_children(); //value_count
 					for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
-						double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"][x], fps_target) : 0);
 						Result rc = 0;
-						if (evaluate_write)
-							rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+						if (evaluate_write) {
+							entry[i]["value"][x] >> string_check;
+							strcpy((char*)&buffer[temp_size], string_check.c_str());
+							temp_size += string_check.size() + 1;
+						}
 						else rc = writeEntryTo(entry[i]["value"][x], buffer, &temp_size, value_type);
 						if (R_FAILED(rc)) return rc;
 					}
 				}
 				else {
-					buffer[temp_size] = 1;
-					temp_size++;
-					double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"], fps_target) : 0);
+					buffer[temp_size++] = 1;
 					Result rc = 0;
-					if (evaluate_write)
-						rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+					if (evaluate_write) {
+						entry[i]["value"] >> string_check;
+						strcpy((char*)&buffer[temp_size], string_check.c_str());
+						temp_size += string_check.size() + 1;
+					}
 					else rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
 					if (R_FAILED(rc)) return rc;
 				}
@@ -359,80 +311,71 @@ namespace LOCK {
 				if (!string_check.compare("evaluate_compare"))
 					evaluate_write = true;
 				
-				buffer[temp_size] = 2;
-				temp_size++;
-				buffer[temp_size] = entry[i]["compare_address"].num_children();
-				temp_size++;
+				buffer[temp_size++] = (evaluate_write ? 0x82 : 2);
+				buffer[temp_size++] = entry[i]["compare_address"].num_children();
 				entry[i]["compare_address"][0] >> string_check;
-				buffer[temp_size] = getAddressRegion(string_check);
-				temp_size++;
+				buffer[temp_size++] = getAddressRegion(string_check);
 				for (size_t x = 1; x < entry[i]["compare_address"].num_children(); x++) {
 					entry[i]["compare_address"][x] >> *(int32_t*)(&buffer[temp_size]);
 					temp_size += 4;
 				}
 				entry[i]["compare_type"][0] >> string_check;
-				buffer[temp_size] = getCompareType(string_check);
-				temp_size++;
+				buffer[temp_size++] = getCompareType(string_check);
 				entry[i]["compare_value_type"] >> string_check;
-				buffer[temp_size] = getValueType(string_check);
-				temp_size++;
+				buffer[temp_size++] = getValueType(string_check);
 
 				Result rc = writeEntryTo(entry[i]["compare_value"], buffer, &temp_size, getValueType(string_check));
 				if (R_FAILED(rc)) return rc;
 
-				buffer[temp_size] = entry[i]["address"].num_children(); // address count
-				temp_size++;
+				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
-				buffer[temp_size] = getAddressRegion(string_check);
-				temp_size++;
+				buffer[temp_size++] = getAddressRegion(string_check);
 				for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
 					entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
 					temp_size += 4;
 				}
 				entry[i]["value_type"] >> string_check;
 				uint8_t value_type = getValueType(string_check);
-				buffer[temp_size] = value_type;
-				temp_size++; // value_type
+				buffer[temp_size++] = value_type;
 				if (entry[i]["value"].is_seq()) {
-					buffer[temp_size] = entry[i]["value"].num_children(); //value_count
-					temp_size++;
+					buffer[temp_size++] = entry[i]["value"].num_children(); //value_count
 					for (size_t x = 0; x < entry[i]["value"].num_children(); x++) {
-						double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"][x], fps_target) : 0);
-						if (evaluate_write)
-							rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+						if (evaluate_write) {
+							entry[i]["value"][x] >> string_check;
+							strcpy((char*)&buffer[temp_size], string_check.c_str());
+							temp_size += string_check.size() + 1;
+						}
 						else rc = writeEntryTo(entry[i]["value"][x], buffer, &temp_size, value_type);
 						if (R_FAILED(rc)) return rc;
 					}
 				}
 				else {
-					buffer[temp_size] = 1;
-					temp_size++;
-					double evaluated_value = (evaluate_write ? evaluateExpression(entry[i]["value"], fps_target) : 0);
-					if (evaluate_write)
-						rc = writeExprTo(evaluated_value, buffer, &temp_size, value_type);
+					buffer[temp_size++] = 1;
+					if (evaluate_write) {
+						entry[i]["value"] >> string_check;
+						strcpy((char*)&buffer[temp_size], string_check.c_str());
+						temp_size += string_check.size() + 1;
+					}
 					else rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
 					if (R_FAILED(rc)) return rc;
 				}
 			}
 			else if (!string_check.compare("block")) {
-				buffer[temp_size] = 3;
-				temp_size++;
+				buffer[temp_size++] = 3;
 				entry[i]["what"] >> string_check;
 				if (!string_check.compare("timing")) {
-					buffer[temp_size] = 1;
-					temp_size++;
+					buffer[temp_size++] = 1;
 				}
 			}
 			else return 2;
 		}
-		buffer[temp_size] = 0xFF;
-		temp_size++;
+		buffer[temp_size++] = 0xFF;
 		*out_size = temp_size;
 		return 0;
 	}
 
 	template <typename T>
-	Result NOINLINE processEntry(T entry, bool masterWrite = false, double fps_target = 0) {
+	Result NOINLINE processEntry(T entry, bool masterWrite = false) {
 		
 		size_t temp_size = 0;
 		size_t old_temp_size = 0;
@@ -443,7 +386,7 @@ namespace LOCK {
 		old_temp_size = temp_size;
 		temp_size = 0;
 
-		Result rc = processEntryImpl(entry, buffer, &temp_size, masterWrite, fps_target);
+		Result rc = processEntryImpl(entry, buffer, &temp_size, masterWrite);
 		if (R_FAILED(rc)) {
 			free(buffer);
 			return rc;
@@ -464,103 +407,28 @@ namespace LOCK {
 
 		char lockMagic[] = "LOCK";
 		tree["unsafeCheck"] >> unsafeCheck;
-		uint8_t flags[4] = {1, 0, 0, unsafeCheck};
+		uint8_t compiledSize = (uint8_t)sqrt(calculateSize(tree["ALL_FPS"], false, true) + 0x10) + 1;
+		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
 
-		if (ALL_FPS) flags[1] = 1;
+		Result ret = -1;
 		
+		ret = processEntry(tree["ALL_FPS"], false);
+
+		if (R_FAILED(ret)) {
+			freeBuffers();
+			return ret;
+		}
 		
-		for (size_t i = 0; i < std::size(entries); i++) {
-			Result ret = -1;
-			char* end = 0;
-			if (ALL_FPS) {
-				size_t root_id = tree.root_id();
-				if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
-					ret = processEntry(tree["ALL_FPS"], false, strtod(entries[i], &end));
-				else {
-					for (size_t x = 0; x < tree["ALL_FPS"].num_children(); x++) {
-						tree[entries[i]].append_child() |= ryml::MAP;
-						for (auto child_id = tree["ALL_FPS"][x].first_child(); child_id.id() != ryml::NONE; child_id = child_id.next_sibling()) {
-							auto key = child_id.key();
-							if (child_id.is_seq() == false)
-								tree[entries[i]].last_child()[key] << child_id.val();
-							else {
-								tree[entries[i]].last_child()[key] |= ryml::SEQ;
-								for (size_t y = 0; y < child_id.num_children(); y++) {
-									tree[entries[i]].last_child()[key].append_child() << child_id[y].val();
-								}
-							}
-						}			
-					}
-					ret = processEntry(tree[entries[i]], false, strtod(entries[i], &end));
-				}
-			}
-			else ret = processEntry(tree[entries[i]], false, strtod(entries[i], &end));
+		if (master_write) {
+			Result ret = processEntry(tree["MASTER_WRITE"], true);
 			if (R_FAILED(ret)) {
 				freeBuffers();
 				return ret;
 			}
 		}
 
-		if (ALL_FPS && ALL_REFRESH_RATES) {
-			for (size_t x = 0; x < tree["ALL_REFRESH_RATES"].num_children(); x++) {
-				tree["ALL_FPS"].append_child() |= ryml::MAP;
-				for (auto child_id = tree["ALL_REFRESH_RATES"][x].first_child(); child_id.id() != ryml::NONE; child_id = child_id.next_sibling()) {
-					auto key = child_id.key();
-					if (child_id.is_seq() == false)
-						tree["ALL_FPS"].last_child()[key] << child_id.val();
-					else {
-						tree["ALL_FPS"].last_child()[key] |= ryml::SEQ;
-						for (size_t y = 0; y < child_id.num_children(); y++) {
-							tree["ALL_FPS"].last_child()[key].append_child() << child_id[y].val();
-						}
-					}
-				}
-			}
-		}
-		
-		if (ALL_FPS) for (size_t i = 0; i < std::size(entries_rr); i++) {
-			Result ret = -1;
-			char* end = 0;
-			size_t root_id = tree.root_id();
-			if (tree.find_child(root_id, entries_rr[i]) == c4::yml::NONE) {
-				ret = processEntry(tree["ALL_FPS"], false, strtod(entries_rr[i], &end));
-			}
-			else {
-				for (size_t x = 0; x < tree["ALL_FPS"].num_children(); x++) {
-					tree[entries_rr[i]].append_child() |= ryml::MAP;
-					for (auto child_id = tree["ALL_FPS"][x].first_child(); child_id.id() != ryml::NONE; child_id = child_id.next_sibling()) {
-						auto key = child_id.key();
-						if (child_id.is_seq() == false)
-							tree[entries_rr[i]].last_child()[key] << child_id.val();
-						else {
-							tree[entries_rr[i]].last_child()[key] |= ryml::SEQ;
-							for (size_t y = 0; y < child_id.num_children(); y++) {
-								tree[entries_rr[i]].last_child()[key].append_child() << child_id[y].val();
-							}
-						}
-					}			
-				}
-				ret = processEntry(tree[entries_rr[i]], false, strtod(entries_rr[i], &end));
-			}
-			if (R_FAILED(ret)) {
-				freeBuffers();
-				return ret;
-			}
-		}
-		
-		if (gen == 2) {
-			Result ret = processEntry(tree["MASTER_WRITE"], true, 0);
-			if (R_FAILED(ret)) {
-				freeBuffers();
-				return ret;
-			}
-			flags[0] = 2;
-		}
+		uint8_t entries_count = (master_write ? 2 : 1);
 
-		uint8_t entries_count = (sizeof(entries) / sizeof(entries[0])) + (ALL_FPS ? (sizeof(entries_rr) / sizeof(entries_rr[0])) : 0);
-		if (gen == 2) {
-			entries_count++;
-		}
 		uint32_t base_offset = strlen(lockMagic) + sizeof(flags) + (4 * entries_count);
 		uint32_t* offsets = (uint32_t*)calloc(entries_count, 4);
 		offsets[0] = base_offset;
@@ -631,27 +499,18 @@ namespace LOCK {
 		size_t root_id = tree.root_id();
 
 		if (!tree.is_map(root_id))
-			return 4;
+			return 0x1104;
 		if (tree.find_child(root_id, "unsafeCheck") == c4::yml::NONE)
-			return 1;
+			return 0x1101;
 		if (!tree["unsafeCheck"].is_keyval())
-			return 2;
+			return 0x1102;
 		if (tree.find_child(root_id, "MASTER_WRITE") != c4::yml::NONE)
-			gen = 2;
-		if (tree.find_child(root_id, "ALL_FPS") != c4::yml::NONE)
-			ALL_FPS = true;
+			master_write = true;
+		if (tree.find_child(root_id, "ALL_FPS") == c4::yml::NONE)
+			return 0x1105;
 		if (tree.find_child(root_id, "ALL_REFRESH_RATES") != c4::yml::NONE)
-			ALL_REFRESH_RATES = true;
+			return 0x1106;
 
-		if (!ALL_FPS) {
-			Result base_err = 0x15;
-			for (size_t i = 0; i < std::size(entries); i++) {
-				if (tree.find_child(root_id, entries[i]) == c4::yml::NONE)
-					return base_err + (5 * i);
-				if (!tree[entries[i]].is_seq())
-					return base_err + 0x100 + (5 * i);
-			}
-		}
 		return 0;
 	}
 }
