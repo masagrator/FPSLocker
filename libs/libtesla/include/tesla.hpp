@@ -89,6 +89,7 @@ namespace tsl {
         extern u16 FramebufferWidth;            ///< Width of the framebuffer
         extern u16 FramebufferHeight;           ///< Height of the framebuffer
         extern u64 launchCombo;                 ///< Overlay activation key combo
+        bool FPS60Lock = true;
 
     }
 
@@ -994,20 +995,23 @@ namespace tsl {
              *
              */
             inline void waitForVSync() {
-                //This edit makes sure that overlay is not rendered faster than 60 FPS
-                static uint64_t old_tick = 0;
-                if (!old_tick) {
-                    old_tick = svcGetSystemTick();
-                    return;
-                }
-                uint64_t passedTime = svcGetSystemTick() - old_tick;
-                if (R_SUCCEEDED(eventWait(&this->m_vsyncEvent, 16666667 - armTicksToNs(passedTime)))) {
-                    passedTime = svcGetSystemTick() - old_tick;
-                    if (armTicksToNs(passedTime) < 16666667) {
-                        svcSleepThread(16666667 - armTicksToNs(passedTime));
+                if (tsl::cfg::FPS60Lock == true) {
+                    //This edit makes sure that overlay is not rendered faster than 60 FPS
+                    static uint64_t old_tick = 0;
+                    if (!old_tick) {
+                        old_tick = svcGetSystemTick();
+                        return;
                     }
+                    uint64_t passedTime = svcGetSystemTick() - old_tick;
+                    if (R_SUCCEEDED(eventWait(&this->m_vsyncEvent, 16666667 - armTicksToNs(passedTime)))) {
+                        passedTime = svcGetSystemTick() - old_tick;
+                        if (armTicksToNs(passedTime) < 16666667) {
+                            svcSleepThread(16666667 - armTicksToNs(passedTime));
+                        }
+                    }
+                    old_tick = svcGetSystemTick();
                 }
-                old_tick = svcGetSystemTick();
+                else eventWait(&this->m_vsyncEvent, UINT64_MAX);
             }
 
             /**
