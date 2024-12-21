@@ -100,7 +100,7 @@ Result setsysGetEdid2(Service* g_setsysSrv, SetSysEdid2 *out) {
     );
 }
 
-void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditionalSettings &as) {
+void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditionalSettings &as, uint32_t height) {
 	tsl::hlp::doWithSmSession([]{
 		setsysInitialize();
 	});
@@ -110,10 +110,15 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
     }
     char path[128] = "";
     snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.dat", crc32Calculate(&edid2.edid, sizeof(edid2.edid)));
-    FILE* file = fopen(path, "wb");
+    FILE* file = fopen(path, "rb+");
+	if (!file) {
+		file = fopen(path, "wb");
+		if (file) fwrite(&edid2, sizeof(edid2), 1, file);
+	}
     if (file) {
-		fwrite(&edid2, sizeof(edid2), 1, file);
-        fseek(file, 0x100, 0);
+		if (height == 720)
+        	fseek(file, 0x120, 0);
+		else fseek(file, 0x100, 0);
         for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
             fwrite(&rr[i], 1, 1, file);
         }
@@ -121,12 +126,11 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
 		fwrite(&as.dontForce60InDocked, 1, 1, file);
 		fwrite(&as.fpsTargetWithoutRRMatchLowest, 1, 1, file);
         fclose(file);
-
     }
     return;
 }
 
-void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as) {
+void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as, uint32_t height) {
 	for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
 		if (DockedModeRefreshRateAllowedValues[i] == 60 || DockedModeRefreshRateAllowedValues[i] == 50) rr[i] = true;
 		else rr[i] = false;
@@ -150,14 +154,17 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 			return;
         }
 
-        fseek(file, 0x100, 0);
+		if (height == 720)
+        	fseek(file, 0x120, 0);
+		else fseek(file, 0x100, 0);
         for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
             bool temp = false;
             if (!fread(&temp, 1, 1, file))
                 break;
-            if (DockedModeRefreshRateAllowedValues[i] == 60) {
-				rr[i] = true;
-                continue;
+            if (DockedModeRefreshRateAllowedValues[i] == 60 && temp == false) {
+				rr[2] = true;
+				rr[4] = true;
+				break;
 			}
             rr[i] = temp;
         }

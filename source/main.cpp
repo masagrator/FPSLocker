@@ -275,8 +275,6 @@ public:
 	}
 };
 
-uint8_t AllowedFPSTargets[] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60};
-
 class DockedFPSTargetGui : public tsl::Gui {
 public:
 	uint8_t maxFPS = 0;
@@ -284,14 +282,23 @@ public:
 	DockedAdditionalSettings as = {0};
 	uint8_t selected = 0;
 	float counter = 0;
+	uint8_t AllowedFPSTargets[32] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60};
+	uint8_t sizeofAllowedFPSTargets = 10;
 	DockedFPSTargetGui() {
-		LoadDockedModeAllowedSave(rr, as);
-		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-			if (rr[i] == true)
-				maxFPS = DockedModeRefreshRateAllowedValues[i];
+		u32 width = 0;
+		u32 height = 0;
+		if (R_SUCCEEDED(SaltySD_Connect())) {
+			SaltySD_GetDockedOutputResolution(&width, &height);
+			SaltySD_Term();
+		}
+		LoadDockedModeAllowedSave(rr, as, height);
+		for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+			if (rr[i] == true) {
+				AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
+			}
 		}
 		if (Shared -> FPSlocked) {
-			for (size_t i = 0; i < sizeof(AllowedFPSTargets); i++) {
+			for (size_t i = 0; i < sizeofAllowedFPSTargets; i++) {
 				if (Shared->FPSlocked == AllowedFPSTargets[i]) {
 					selected = i;
 					break;
@@ -313,7 +320,7 @@ public:
 		auto list = new tsl::elm::List();
 
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-			for (uint8_t i = 0; i < sizeof(AllowedFPSTargets); i += 1) {
+			for (uint8_t i = 0; i < sizeofAllowedFPSTargets; i += 1) {
 				char FPS[] = "254";
 				snprintf(FPS, sizeof(FPS), "%d", AllowedFPSTargets[i]);
 				if (selected == i) {
@@ -354,19 +361,19 @@ public:
 		smExit();
 		counter += 0.1f;
 		if (keysDown & HidNpadButton_Down) {
-			if ((selected / 4) < (sizeof(AllowedFPSTargets) / 4)) 
+			if ((selected / 4) < (sizeofAllowedFPSTargets / 4)) 
 				selected += 4;
 			else selected = selected % 4;
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Up) {
 			if ((selected / 4) > 0) 
 				selected -= 4;
-			else selected = ((sizeof(AllowedFPSTargets) / 4) * 4) + (selected % 4);
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;	
+			else selected = ((sizeofAllowedFPSTargets / 4) * 4) + (selected % 4);
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;	
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Right) {
@@ -375,8 +382,8 @@ public:
 			else {
 				selected -= 3;
 			}
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = (sizeof(AllowedFPSTargets) / 4) * 4;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = (sizeofAllowedFPSTargets / 4) * 4;
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Left) {
@@ -385,8 +392,8 @@ public:
 			else {
 				selected += 3;
 			}
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;
 			return true;
 		}
 
