@@ -73,7 +73,6 @@ I have decided to limit down to 40 Hz since lower refresh rates not only were no
 
 LCD can be overclocked up to 70 Hz without immediately visible issues but I have leaved max at 60 Hz since I have decided that there are no visible benefits running display at 70 Hz which would justify tinkering with existing patches to patch games breaking above 60 FPS. From 75 Hz all users using original display panels were reporting issues with glitchy image. OLED above 65 Hz was freezing and only way to got it back working again was lowering refresh rate to 65 Hz and lower.
 
-This works only for builtin display, you cannot change refresh rate in docked mode. 
 If Display Sync is turned off, custom refresh rate is not restored after sleep mode.
 
 Changing refresh rate affects animations speed of OS and Tesla overlays, making them more sluggigsh at lower refresh rates.
