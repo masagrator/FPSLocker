@@ -75,7 +75,7 @@ LCD can be overclocked up to 70 Hz without immediately visible issues but I have
 
 If Display Sync is turned off, custom refresh rate is not restored after sleep mode.
 
-Changing refresh rate affects animations speed of OS and Tesla overlays, making them more sluggigsh at lower refresh rates.
+Changing refresh rate affects animations speed of OS and Tesla overlays, making them more sluggish at lower refresh rates.
 
 Adding support for custom display refresh rate required changing how game configs are written, so you are advised to redownload all FPSLocker Warehouse configs if you want them to properly support custom refresh rates.
 
