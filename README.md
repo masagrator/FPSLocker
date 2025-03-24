@@ -95,3 +95,4 @@ In those games you can disable double buffer vsync by turning off Window Sync Wa
 - Xenoblade Chronicles: Definitive Edition
 - Xenoblade Chronicles 2
 - Xenoblade Chronicles 3
+- Xenoblade Chronicles X
