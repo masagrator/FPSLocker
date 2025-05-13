@@ -182,10 +182,10 @@ void downloadPatch(void*) {
 
     static const SocketInitConfig socketInitConfig = {
 
-        .tcp_tx_buf_size = 0x800,
-        .tcp_rx_buf_size = 0x800,
-        .tcp_tx_buf_max_size = 0x8000,
-        .tcp_rx_buf_max_size = 0x8000,
+        .tcp_tx_buf_size = 0x8000,
+        .tcp_rx_buf_size = 0x8000,
+        .tcp_tx_buf_max_size = 0x20000,
+        .tcp_rx_buf_max_size = 0x20000,
 
         .udp_tx_buf_size = 0,
         .udp_rx_buf_size = 0,
