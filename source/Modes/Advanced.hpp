@@ -3,7 +3,7 @@ public:
     SetBuffers() {}
 
     virtual tsl::elm::Element* createUI() override {
-		auto frame = new tsl::elm::OverlayFrame("NVN Set Buffering", " ");
+		auto frame = new tsl::elm::OverlayFrame("Set Buffering", " ");
 
 		auto list = new tsl::elm::List();
 		list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot.", false));
@@ -19,9 +19,9 @@ public:
 		});
 		list->addItem(clickableListItem);
 
-		if ((Shared -> SetActiveBuffers) == 2 && (Shared -> Buffers) == 3 && !SetBuffers_save) {
-			auto *clickableListItem2 = new tsl::elm::ListItem2("Triple (force)");
-			clickableListItem2->setClickListener([](u64 keys) { 
+		if ((Shared -> API) == 3) {
+			auto *clickableListItemv1 = new tsl::elm::ListItem2("Triple");
+			clickableListItemv1->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					SetBuffers_save = 3;
 					tsl::goBack();
@@ -29,46 +29,61 @@ public:
 				}
 				return false;
 			});
-			list->addItem(clickableListItem2);
+			list->addItem(clickableListItemv1);
+
 		}
 		else {
-			auto *clickableListItem2 = new tsl::elm::ListItem2("Triple");
-			clickableListItem2->setClickListener([](u64 keys) { 
-				if ((keys & HidNpadButton_A) && PluginRunning) {
-					if ((Shared -> Buffers) == 4) SetBuffers_save = 3;
-					else SetBuffers_save = 0;
-					tsl::goBack();
-					return true;
-				}
-				return false;
-			});
-			list->addItem(clickableListItem2);
-		}
-		
-		if ((Shared -> Buffers) == 4) {
-			if ((Shared -> SetActiveBuffers) < 4 && (Shared -> SetActiveBuffers) > 0 && (Shared -> Buffers) == 4) {
-				auto *clickableListItem3 = new tsl::elm::ListItem2("Quadruple (force)");
-				clickableListItem3->setClickListener([](u64 keys) { 
+			if ((Shared -> SetActiveBuffers) == 2 && (Shared -> Buffers) == 3 && !SetBuffers_save) {
+				auto *clickableListItem2 = new tsl::elm::ListItem2("Triple (force)");
+				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
-						SetBuffers_save = 4;
+						SetBuffers_save = 3;
 						tsl::goBack();
 						return true;
 					}
 					return false;
 				});
-				list->addItem(clickableListItem3);	
+				list->addItem(clickableListItem2);
 			}
 			else {
-				auto *clickableListItem3 = new tsl::elm::ListItem2("Quadruple");
-				clickableListItem3->setClickListener([](u64 keys) { 
+				auto *clickableListItem2 = new tsl::elm::ListItem2("Triple");
+				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
-						SetBuffers_save = 0;
+						if ((Shared -> Buffers) == 4) SetBuffers_save = 3;
+						else SetBuffers_save = 0;
 						tsl::goBack();
 						return true;
 					}
 					return false;
 				});
-				list->addItem(clickableListItem3);
+				list->addItem(clickableListItem2);
+			}
+			
+			if ((Shared -> Buffers) == 4) {
+				if ((Shared -> SetActiveBuffers) < 4 && (Shared -> SetActiveBuffers) > 0 && (Shared -> Buffers) == 4) {
+					auto *clickableListItem3 = new tsl::elm::ListItem2("Quadruple (force)");
+					clickableListItem3->setClickListener([](u64 keys) { 
+						if ((keys & HidNpadButton_A) && PluginRunning) {
+							SetBuffers_save = 4;
+							tsl::goBack();
+							return true;
+						}
+						return false;
+					});
+					list->addItem(clickableListItem3);	
+				}
+				else {
+					auto *clickableListItem3 = new tsl::elm::ListItem2("Quadruple");
+					clickableListItem3->setClickListener([](u64 keys) { 
+						if ((keys & HidNpadButton_A) && PluginRunning) {
+							SetBuffers_save = 0;
+							tsl::goBack();
+							return true;
+						}
+						return false;
+					});
+					list->addItem(clickableListItem3);
+				}
 			}
 		}
 
@@ -215,8 +230,27 @@ public:
 				case 2:
 					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: EGL", false));
 					break;
-				case 3:
+				case 3: {
 					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: Vulkan", false));
+
+					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+						
+						renderer->drawString(&nvnBuffers[0], false, x, y+20, 20, renderer->a(0xFFFF));
+							
+					}), 40);
+
+					if ((Shared -> Buffers) >= 2) {
+						auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
+						clickableListItem3->setClickListener([](u64 keys) { 
+							if ((keys & HidNpadButton_A) && PluginRunning) {
+								tsl::changeTo<SetBuffers>();
+								return true;
+							}
+							return false;
+						});
+						list->addItem(clickableListItem3);
+					}
+				}
 			}
 		}
 
@@ -308,9 +342,18 @@ public:
 					sprintf(patchAppliedChar, "Master Write was loaded to game.");
 				}
 				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game.");
-				if ((Shared -> API) == 1) {
-					if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
-						sprintf(&nvnBuffers[0], "Set/Active/Available buffers: %d/%d/%d", (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
+				switch (Shared -> API) {
+					case 1: {
+						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
+							sprintf(&nvnBuffers[0], "Set/Active/Available buffers: %d/%d/%d", (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
+						}
+						break;
+					}
+					case 3: {
+						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
+							sprintf(&nvnBuffers[0], "Active buffers: %d", (Shared -> Buffers));
+						}
+						break;
 					}
 				}
 				i = 0;
