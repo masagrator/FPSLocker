@@ -52,6 +52,8 @@ typedef struct {
 	uint8_t interlaced : 1;
 } SetSysModeLine;
 
+static_assert(sizeof(SetSysModeLine) == 18);
+
 typedef struct {
 	struct {
 		uint8_t size : 5;
@@ -249,20 +251,22 @@ float parseEdid(unsigned char* edid) {
 		SetSysDataBlock* data = (SetSysDataBlock*)calloc(sizeof(SetSysDataBlock), 1);
 		size_t offset = offsetof(SetSysEdid, data_block);
 		memcpy(data, &edid[offset], sizeof(SetSysDataBlock));
-		if (data -> video.block_type != 2) {
+		if (data -> video.block_type != SetSysBlockType_Video) {
 			while (offset < (size_t)offsetof(SetSysEdid, extension_tag)+dtd_start) {
 				offset += 1;
 				offset += data -> video.size;
 				memcpy(data, &edid[offset], sizeof(SetSysDataBlock));
-				if (data -> video.block_type == 2) break;
+				if (data -> video.block_type == SetSysBlockType_Video) break;
 			}
 		}
-		if (data -> video.block_type == 2) {
+		if (data -> video.block_type == SetSysBlockType_Video) {
 			for (size_t i = 0; i < data -> video.size; i++) {
-				const timings* timing = find_vic_id(data -> video.svd[i].svd_index);
+				uint8_t index = data->video.svd[i].svd_index;
+				if (index > 64) memcpy(&index, &data->video.svd[i], 1);
+				const timings* timing = find_vic_id(index);
 				double refreshRate = (double)(timing->pixclk_khz * 1000) / ((timing->hact + timing->hfp + timing->hsync + timing->hbp) * ((timing->vact / (timing->interlaced ? 2 : 1)) + timing->vfp + timing->vsync + timing->vbp));
 				#ifdef DEBUG
-				printf("VIC: %u%s, Res: %ux%u%s, refresh rate: %.4f\n", data -> video.svd[i].svd_index, (data -> video.svd[i].native_flag ? " (native)" : ""), timing->hact, timing->vact, (timing->interlaced ? "i" : ""), refreshRate);
+				printf("VIC: %u%s, Res: %ux%u%s, refresh rate: %.4f\n", index, ((index <= 64 && data -> video.svd[i].native_flag) ? " (native)" : ""), timing->hact, timing->vact, (timing->interlaced ? "i" : ""), refreshRate);
 				#endif
 				if (!timing->interlaced && refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
 				if (!timing->interlaced && ((timing->hact == 1280 && timing->vact == 720) || (timing->hact == 1920 && timing->vact == 1080)) && (refreshRate > 60)) {
@@ -291,6 +295,7 @@ float parseEdid(unsigned char* edid) {
 			SetSysModeLine td = modeline[i];
 			uint32_t width = (uint32_t)td.horizontal_active_pixels_msb << 8 | td.horizontal_active_pixels_lsb;
 			uint32_t height = (uint32_t)td.vertical_active_lines_msb << 8 | td.vertical_active_lines_lsb;
+			if (width == 1 || height == 1) continue;
 			uint32_t h_total = width + ((uint32_t)td.horizontal_blanking_pixels_msb << 8 | td.horizontal_blanking_pixels_lsb);
 			uint32_t v_total = height + ((uint32_t)td.vertical_blanking_lines_msb << 8 | td.vertical_blanking_lines_lsb);
 			float refreshRate = ((float)(td.pixel_clock * 10000) / (float)(h_total * v_total));
