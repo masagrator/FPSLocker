@@ -638,7 +638,7 @@ public:
 			auto *clickableListItem5 = new tsl::elm::ListItem2("Save settings");
 			clickableListItem5->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					if (!(Shared -> FPSlocked) && !(Shared -> ZeroSync) && !SetBuffers_save) {
+					if (!(Shared -> FPSlocked) && !(Shared -> ZeroSync) && !SetBuffers_save && !forceSuspend_save) {
 						remove(savePath);
 					}
 					else {
@@ -659,9 +659,8 @@ public:
 								(Shared -> ZeroSync) = 0;
 							}
 							fwrite(&(Shared->ZeroSync), 1, 1, file);
-							if (SetBuffers_save) {
-								fwrite(&SetBuffers_save, 1, 1, file);
-							}
+							fwrite(&SetBuffers_save, 1, 1, file);
+							fwrite(&forceSuspend_save, 1, 1, file);
 							fclose(file);
 						}
 					}
@@ -829,6 +828,7 @@ public:
 					sprintf(&savePath[0], "sdmc:/SaltySD/plugins/FPSLocker/%016lX.dat", TID);
 
 					SetBuffers_save = (Shared -> SetBuffers);
+					forceSuspend_save = (Shared -> forceSuspend);
 					PluginRunning = true;
 					threadCreate(&t0, loopThread, NULL, NULL, 0x1000, 0x20, 0);
 					threadStart(&t0);

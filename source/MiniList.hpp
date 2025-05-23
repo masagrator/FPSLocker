@@ -234,5 +234,75 @@ namespace tsl {
             u32 m_textWidth = 0;
             u16 m_scrollAnimationCounter = 0;
         };
+
+        /**
+         * @brief A togglable item that goes into a list
+         *
+         */
+        class MiniToggleListItem : public MiniListItem {
+        public:
+            /**
+             * @brief Constructor
+             *
+             * @param text Initial description text
+             */
+            ToggleListItem(const std::string& text, bool initialState, const std::string& onValue = "On", const std::string& offValue = "Off")
+                : MiniListItem(text), m_state(initialState), m_onValue(onValue), m_offValue(offValue) {
+
+                this->setState(this->m_state);
+            }
+            virtual ~ToggleListItem() {}
+
+            virtual bool onClick(u64 keys) override {
+                if (keys & HidNpadButton_A) {
+                    this->m_state = !this->m_state;
+
+                    this->setState(this->m_state);
+                    this->m_stateChangedListener(this->m_state);
+
+                    return MiniListItem::onClick(keys);
+                }
+
+                return false;
+            }
+
+            /**
+             * @brief Gets the current state of the toggle
+             *
+             * @return State
+             */
+            virtual inline bool getState() {
+                return this->m_state;
+            }
+
+            /**
+             * @brief Sets the current state of the toggle. Updates the Value
+             *
+             * @param state State
+             */
+            virtual void setState(bool state) {
+                this->m_state = state;
+
+                if (state)
+                    this->setValue(this->m_onValue, false);
+                else
+                    this->setValue(this->m_offValue, true);
+            }
+
+            /**
+             * @brief Adds a listener that gets called whenever the state of the toggle changes
+             *
+             * @param stateChangedListener Listener with the current state passed in as parameter
+             */
+            void setStateChangedListener(std::function<void(bool)> stateChangedListener) {
+                this->m_stateChangedListener = stateChangedListener;
+            }
+
+        protected:
+            bool m_state = true;
+            std::string m_onValue, m_offValue;
+
+            std::function<void(bool)> m_stateChangedListener = [](bool){};
+        };
     }
 }

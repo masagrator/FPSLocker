@@ -325,6 +325,19 @@ public:
 		});
 		list->addItem(clickableListItem4);
 
+		list->addItem(new tsl::elm::CategoryHeader("Misc", false));
+
+		auto *clickableListItem5 = new tsl::elm::ToggleMiniListItem("Force game suspend when out of focus", forceSuspend_save);
+		clickableListItem5->setClickListener([this](u64 keys) { 
+			if ((keys & HidNpadButton_A) && PluginRunning) {
+				forceSuspend_save = !forceSuspend_save;
+				(Shared -> forceSuspend) = forceSuspend_save;
+				return true;
+			}
+			return false;
+		});
+		list->addItem(clickableListItem5);		
+
 		frame->setContent(list);
 
         return frame;
