@@ -327,7 +327,7 @@ public:
 
 		list->addItem(new tsl::elm::CategoryHeader("Misc", false));
 
-		auto *clickableListItem5 = new tsl::elm::ToggleMiniListItem("Force game suspend when out of focus", forceSuspend_save);
+		auto *clickableListItem5 = new tsl::elm::MiniToggleListItem("Force game suspend when out of focus", forceSuspend_save);
 		clickableListItem5->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				forceSuspend_save = !forceSuspend_save;

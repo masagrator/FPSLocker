@@ -246,12 +246,12 @@ namespace tsl {
              *
              * @param text Initial description text
              */
-            ToggleListItem(const std::string& text, bool initialState, const std::string& onValue = "On", const std::string& offValue = "Off")
+            MiniToggleListItem(const std::string& text, bool initialState, const std::string& onValue = "On", const std::string& offValue = "Off")
                 : MiniListItem(text), m_state(initialState), m_onValue(onValue), m_offValue(offValue) {
 
                 this->setState(this->m_state);
             }
-            virtual ~ToggleListItem() {}
+            virtual ~MiniToggleListItem() {}
 
             virtual bool onClick(u64 keys) override {
                 if (keys & HidNpadButton_A) {
