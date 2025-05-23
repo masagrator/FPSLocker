@@ -9,7 +9,7 @@ Max supported yaml size is 32kB, though it can be expanded in next updates.
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 1.2.0+](https://github.com/masagrator/SaltyNX/releases)
+- [My fork of SaltyNX, version 1.2.5+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 
 How to setup everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
@@ -39,6 +39,7 @@ Explanation of each line:
   - `Convert config to patch file` - if proper config file exists for this game and version, you will get an option to convert it to patch file that will be loaded when you will run this game next time. Patch is saved to `SaltySD/plugins/FPSLocker/patches/*titleid_uppercase*/*buildid_uppercase*.bin`
   - `Delete patch file` - if proper config file exists for this game and version, you will get an option to delete patch file so it won't be loaded when you will run this game next time.
   - `Check/download config file` - Checks in Warehouse repository if config for this game and version exists. If exists, it is downloaded and also checked if it's the same as the one on sdcard. If it's not, overlay will remove existing patch and config file, and user must manually convert new config to patch file. 0x312 error means we got unexpected file from github. Any other error code means that something is happening with your connection or github server.
+  - `Halt unfocused game` - Some games are not suspended when your Switch is in home menu. Enabling this option moves into infinite loop game's thread responsible for pushing frames to display when in home menu. Enabling this option can cause various issues depending on game, so be sure to not use it frivolously.
 - `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
 - `Display settings` - submenu related to display refresh rate. Consists of:
   - `Increase refresh rate` - Shows up only in handheld mode. Change display refresh rate up to 60 Hz. In OLED units it's blocked.

@@ -26,6 +26,8 @@ struct NxFpsSharedBlock {
 	resolutionCalls renderCalls[8];
 	resolutionCalls viewportCalls[8];
 	bool forceOriginalRefreshRate;
+	bool dontForce60InDocked;
+	bool forceSuspend;
 } NX_PACKED;
 
 struct DockedAdditionalSettings {
@@ -46,6 +48,7 @@ bool SaltySD = false;
 bool bak = false;
 bool plugin = true;
 uint8_t SetBuffers_save = 0;
+bool forceSuspend_save = false;
 char FPSMode_c[64];
 char FPSTarget_c[32];
 char PFPS_c[32];
