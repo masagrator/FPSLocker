@@ -375,29 +375,10 @@ public:
 		LoadDockedModeAllowedSave(rr, as);
 		smInitialize();
 		setsysInitialize();
-		SetSysEdid2 edid2 = {0};
-		if (R_SUCCEEDED(setsysGetEdid2(setsysGetServiceSession(), &edid2))) {
-			uint8_t highestRefreshRate = 0;
-			for (int i = 0; i < 2; i++) {
-				auto td = edid2.edid.timing_descriptor[i];
-				uint32_t pixel_clock = td.pixel_clock * 10000;
-				if (!pixel_clock) continue;
-				uint32_t h_total = ((uint32_t)td.horizontal_active_pixels_msb << 8 | td.horizontal_active_pixels_lsb) + ((uint32_t)td.horizontal_blanking_pixels_msb << 8 | td.horizontal_blanking_pixels_lsb);
-				uint32_t v_total = ((uint32_t)td.vertical_active_lines_msb << 8 | td.vertical_active_lines_lsb) + ((uint32_t)td.vertical_blanking_lines_msb << 8 | td.vertical_blanking_lines_lsb);
-				uint8_t refreshRate = (uint8_t)round((float)pixel_clock / (float)(h_total * v_total));
-				if (refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
-			}
-			SetSysModeLine* modes = (SetSysModeLine*)((uintptr_t)(&edid2.edid) + 0x80 + edid2.edid.dtd_start);
-			for (int i = 0; i < 5; i++) {
-				auto td = modes[i];
-				uint32_t pixel_clock = td.pixel_clock * 10000;
-				if (!pixel_clock) continue;
-				uint32_t h_total = ((uint32_t)td.horizontal_active_pixels_msb << 8 | td.horizontal_active_pixels_lsb) + ((uint32_t)td.horizontal_blanking_pixels_msb << 8 | td.horizontal_blanking_pixels_lsb);
-				uint32_t v_total = ((uint32_t)td.vertical_active_lines_msb << 8 | td.vertical_active_lines_lsb) + ((uint32_t)td.vertical_blanking_lines_msb << 8 | td.vertical_blanking_lines_lsb);
-				uint8_t refreshRate = (uint8_t)round((float)pixel_clock / (float)(h_total * v_total));
-				if (refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
-			}
-			snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %d Hz", highestRefreshRate);
+		SetSysEdid edid = {0};
+		if (R_SUCCEEDED(setsysGetEdid(&edid))) {
+			float highestRefreshRate = parseEdid(&edid);
+			snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %.2f Hz", highestRefreshRate);
 		}
 		setsysExit();
 		smExit();
