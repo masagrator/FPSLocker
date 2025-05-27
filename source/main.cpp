@@ -285,7 +285,7 @@ public:
 	uint8_t selected = 0;
 	float counter = 0;
 	DockedFPSTargetGui() {
-		LoadDockedModeAllowedSave(rr, as);
+		LoadDockedModeAllowedSave(rr, as, nullptr);
 		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
 			if (rr[i] == true)
 				maxFPS = DockedModeRefreshRateAllowedValues[i];

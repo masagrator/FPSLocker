@@ -107,7 +107,7 @@ public:
 	DockedModeRefreshRateAllowed rr_default;
 	DockedAdditionalSettings as;
     DockedWizardGui() {
-		LoadDockedModeAllowedSave(rr_default, as);
+		LoadDockedModeAllowedSave(rr_default, as, nullptr);
 		memset(&rr, 1, sizeof(rr));
 		tick = 0;
         i = 0;
@@ -239,7 +239,7 @@ public:
 	DockedModeRefreshRateAllowed rr = {0};
 	DockedAdditionalSettings as;
     DockedManualGui() {
-		LoadDockedModeAllowedSave(rr, as);
+		LoadDockedModeAllowedSave(rr, as, nullptr);
 	}
 
     virtual tsl::elm::Element* createUI() override {
@@ -301,7 +301,7 @@ public:
 	DockedModeRefreshRateAllowed rr = {0};
 	DockedAdditionalSettings as;
     DockedAdditionalGui() {
-		LoadDockedModeAllowedSave(rr, as);
+		LoadDockedModeAllowedSave(rr, as, nullptr);
 	}
 
     virtual tsl::elm::Element* createUI() override {
@@ -372,13 +372,14 @@ public:
     DockedGui() {
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/", 777);
-		LoadDockedModeAllowedSave(rr, as);
+		int crc32 = 0;
+		LoadDockedModeAllowedSave(rr, as, &crc32);
 		smInitialize();
 		setsysInitialize();
 		SetSysEdid edid = {0};
 		if (R_SUCCEEDED(setsysGetEdid(&edid))) {
 			float highestRefreshRate = parseEdid(&edid);
-			snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %.2f Hz", highestRefreshRate);
+			snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %.2f Hz\nConfig ID: %08X", highestRefreshRate, crc32);
 		}
 		setsysExit();
 		smExit();
@@ -470,7 +471,7 @@ public:
 	DockedModeRefreshRateAllowed rr;
 	DockedAdditionalSettings as;
 	DockedRefreshRateChangeGui () {
-		LoadDockedModeAllowedSave(rr, as);
+		LoadDockedModeAllowedSave(rr, as, nullptr);
 	}
 
 	// Called when this Gui gets loaded to create the UI

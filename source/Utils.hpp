@@ -104,6 +104,7 @@ struct DisplayData {
 };
 
 std::vector<Title> titles;
+std::string TV_name = "Unknown";
 
 template <typename T> float parseEdid(T* edid_impl) {
 	unsigned char* edid = (unsigned char*)edid_impl;
@@ -265,28 +266,47 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
 		return;
     }
     char path[128] = "";
-    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.dat", crc32Calculate(&edid, sizeof(edid)));
-    FILE* file = fopen(path, "wb");
+    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.ini", crc32Calculate(&edid, sizeof(edid)));
+    FILE* file = fopen(path, "w");
     if (file) {
-		fwrite(&edid, sizeof(edid), 1, file);
-        fseek(file, 0x100, 0);
+		std::string allowedRR = "{";
         for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-            fwrite(&rr[i], 1, 1, file);
+			if (rr[i]) {
+				allowedRR += std::to_string(DockedModeRefreshRateAllowedValues[i]);
+				allowedRR += ",";
+			}
         }
-		fseek(file, 0x180, 0);
-		fwrite(&as.dontForce60InDocked, 1, 1, file);
-		fwrite(&as.fpsTargetWithoutRRMatchLowest, 1, 1, file);
+		allowedRR.erase(allowedRR.end()-1);
+		allowedRR += "}";
+		fwrite("[Common]\n", 9, 1, file);
+		fwrite("tvName=", 7, 1, file);
+		fwrite(TV_name.c_str(), TV_name.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		fwrite("refreshRateAllowed=", 19, 1, file);
+		fwrite(allowedRR.c_str(), allowedRR.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		std::string df60 = (as.dontForce60InDocked ? "False" : "True");
+		std::string fpst = (as.fpsTargetWithoutRRMatchLowest ? "True" : "False");
+		fwrite("allowPatchesToForce60InDocked=", 30, 1, file);
+		fwrite(df60.c_str(), df60.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		fwrite("matchLowestRefreshRate=", 23, 1, file);
+		fwrite(fpst.c_str(), fpst.length(), 1, file);
+		fwrite("\n", 1, 1, file);
         fclose(file);
 
     }
     return;
 }
 
-void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as) {
+void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as, int* displayCRC) {
 	for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
 		if (DockedModeRefreshRateAllowedValues[i] == 60 || DockedModeRefreshRateAllowedValues[i] == 50) rr[i] = true;
 		else rr[i] = false;
 	}
+	as.dontForce60InDocked = false;
+	as.fpsTargetWithoutRRMatchLowest = false;
+	TV_name = "Unknown";
 	tsl::hlp::doWithSmSession([]{
 		setsysInitialize();
 	});
@@ -295,36 +315,50 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		return;
     }
     char path[128] = "";
-    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.dat", crc32Calculate(&edid, sizeof(edid)));
-    FILE* file = fopen(path, "rb");
+	int crc32 = crc32Calculate(&edid, sizeof(edid));
+	if (displayCRC) *displayCRC = crc32;
+    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.ini", crc32);
+    FILE* file = fopen(path, "r");
     if (file) {
-        u64 MAGIC = 0x00FFFFFFFFFFFF00;
-        u64 checkMAGIC = 0;
-        fread(&checkMAGIC, 8, 1, file);
-        if (checkMAGIC != MAGIC) {
-			fclose(file);
-			return;
-        }
-
-        fseek(file, 0x100, 0);
-        for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-            bool temp = false;
-            if (!fread(&temp, 1, 1, file))
-                break;
-            if (DockedModeRefreshRateAllowedValues[i] == 60) {
-				rr[i] = true;
-                continue;
-			}
-            rr[i] = temp;
-        }
-		fseek(file, 0x180, 0);
-		uint8_t temp = 2;
-		fread(&temp, 1, 1, file);
-		if (temp < 2) as.dontForce60InDocked = temp;
-		temp = 2;
-		fread(&temp, 1, 1, file);
-		if (temp < 2) as.fpsTargetWithoutRRMatchLowest = temp;
+		fseek(file, 0, 2);
+		size_t size = ftell(file);
+		fseek(file, 0, 0);
+		std::string string_data(size, 0);
+		fread(string_data.data(), size, 1, file);
 		fclose(file);
+		tsl::hlp::ini::IniData iniData = tsl::hlp::ini::parseIni(string_data);
+		if (iniData.contains("Common") == false) {
+			return;
+		}
+		if (iniData["Common"].contains("tvName") == true) {
+			TV_name = iniData["Common"]["tvName"];
+		}
+		if (iniData["Common"].contains("refreshRateAllowed") == false) {
+			return;
+		}
+		if (iniData["Common"]["refreshRateAllowed"].begin()[0] != '{')
+			return;
+		if ((iniData["Common"]["refreshRateAllowed"].end()-1)[0] != '}')
+			return;
+		std::string rrAllowed = std::string(iniData["Common"]["refreshRateAllowed"].begin()+1, iniData["Common"]["refreshRateAllowed"].end()-1);
+		for (const auto& word_view : std::views::split(rrAllowed, ',')) {
+			std::string temp_string(word_view.begin(), word_view.end());
+			int value = 0;
+			auto [ptr, ec] = std::from_chars(temp_string.c_str(), &temp_string.c_str()[temp_string.length()], value);
+			if (ec != std::errc{}) return;
+			for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+				if (value == DockedModeRefreshRateAllowedValues[i]) {
+					rr[i] = true;
+					break;
+				}
+			}
+		}
+		if (iniData["Common"].contains("allowPatchesToForce60InDocked") == true) {
+			as.dontForce60InDocked = (bool)!strncasecmp(iniData["Common"]["allowPatchesToForce60InDocked"].c_str(), "False", 5);
+		}
+		if (iniData["Common"].contains("matchLowestRefreshRate") == true) {
+			as.fpsTargetWithoutRRMatchLowest = (bool)!strncasecmp(iniData["Common"]["matchLowestRefreshRate"].c_str(), "True", 4);
+		}
     }
     return;
 }
