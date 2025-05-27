@@ -1,7 +1,6 @@
 #pragma once
 #include <curl/curl.h>
 #include "parse-cta-block.hpp"
-#include <map>
 
 struct resolutionCalls {
 	uint16_t width;
