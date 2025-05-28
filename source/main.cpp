@@ -275,8 +275,6 @@ public:
 	}
 };
 
-uint8_t AllowedFPSTargets[] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60};
-
 class DockedFPSTargetGui : public tsl::Gui {
 public:
 	uint8_t maxFPS = 0;
@@ -284,14 +282,17 @@ public:
 	DockedAdditionalSettings as = {0};
 	uint8_t selected = 0;
 	float counter = 0;
+	uint8_t AllowedFPSTargets[32] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60};
+	uint8_t sizeofAllowedFPSTargets = 10;
 	DockedFPSTargetGui() {
 		LoadDockedModeAllowedSave(rr, as, nullptr);
-		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-			if (rr[i] == true)
-				maxFPS = DockedModeRefreshRateAllowedValues[i];
+		for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+			if (rr[i] == true) {
+				AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
+			}
 		}
 		if (Shared -> FPSlocked) {
-			for (size_t i = 0; i < sizeof(AllowedFPSTargets); i++) {
+			for (size_t i = 0; i < sizeofAllowedFPSTargets; i++) {
 				if (Shared->FPSlocked == AllowedFPSTargets[i]) {
 					selected = i;
 					break;
@@ -313,21 +314,23 @@ public:
 		auto list = new tsl::elm::List();
 
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-			for (uint8_t i = 0; i < sizeof(AllowedFPSTargets); i += 1) {
+			for (uint8_t i = 0; i < sizeofAllowedFPSTargets; i += 1) {
 				char FPS[] = "254";
 				snprintf(FPS, sizeof(FPS), "%d", AllowedFPSTargets[i]);
 				if (selected == i) {
-					auto new_pos = renderer->drawString(FPS, false, x+((80 * (i % 4)) + 20), y+((80*(i / 4))+50), 40, renderer->a(0x0000));
+					auto new_pos = renderer->drawString(FPS, false, x+40, y+60, 40, renderer->a(0x0000));
 					auto offset_x = (60 - new_pos.first) / 2;
+					if (AllowedFPSTargets[i] >= 100) offset_x = (80 - new_pos.first) / 2;
 					float progress = (std::sin(counter) + 1) / 2;
 					tsl::Color highlightColor = {   static_cast<u8>((0x2 - 0x8) * progress + 0x8),
 													static_cast<u8>((0x8 - 0xF) * progress + 0xF),
 													static_cast<u8>((0xC - 0xF) * progress + 0xF),
 													0xF };
 					renderer->drawRect(x+((80 * (i % 4)) + 20) - offset_x, y+((80*(i / 4))+5), 4, 56, a(highlightColor));
-					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+4, y+((80*(i / 4))+5), 56, 4, a(highlightColor));
-					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+56, y+((80*(i / 4))+5), 4, 60, a(highlightColor));
-					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x), (y+((80*(i / 4))+5))+56, 56, 4, a(highlightColor));
+					//renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+4, y+((80*(i / 4))+5), 56, 4, a(highlightColor));
+					//renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+56, y+((80*(i / 4))+5), 4, 60, a(highlightColor));
+					if (AllowedFPSTargets[i] < 100) renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x), (y+((80*(i / 4))+5))+56, 56, 4, a(highlightColor));
+					else renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x), (y+((80*(i / 4))+5))+56, 80, 4, a(highlightColor));
 				}
 				renderer->drawString(FPS, false, x+((80 * (i % 4)) + 20), y+((80*(i / 4))+50), 40, renderer->a(0xFFFF));
 			}
@@ -354,19 +357,19 @@ public:
 		smExit();
 		counter += 0.1f;
 		if (keysDown & HidNpadButton_Down) {
-			if ((selected / 4) < (sizeof(AllowedFPSTargets) / 4)) 
+			if ((selected / 4) < (sizeofAllowedFPSTargets / 4)) 
 				selected += 4;
 			else selected = selected % 4;
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Up) {
 			if ((selected / 4) > 0) 
 				selected -= 4;
-			else selected = ((sizeof(AllowedFPSTargets) / 4) * 4) + (selected % 4);
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;	
+			else selected = ((sizeofAllowedFPSTargets / 4) * 4) + (selected % 4);
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;	
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Right) {
@@ -375,8 +378,8 @@ public:
 			else {
 				selected -= 3;
 			}
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = (sizeof(AllowedFPSTargets) / 4) * 4;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = (sizeofAllowedFPSTargets / 4) * 4;
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Left) {
@@ -385,8 +388,8 @@ public:
 			else {
 				selected += 3;
 			}
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;
 			return true;
 		}
 
