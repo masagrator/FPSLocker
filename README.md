@@ -9,7 +9,7 @@ Max supported yaml size is 32kB, though it can be expanded in next updates.
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 1.3.0+](https://github.com/masagrator/SaltyNX/releases)
+- [My fork of SaltyNX, version 1.2.5+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 
 How to setup everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
@@ -25,7 +25,7 @@ Explanation of each line:
 - `Custom FPS Target` - it's used to lock game to certain FPS. If game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
 - `Increase/Decrease FPS target` - Shows up only in handheld mode. Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS.
-- `Change FPS target` - Shows up only in docked mode. Shows up table with different FPS values, from 15 to 60 by default with possibility of expanding to 120 FPS.
+- `Change FPS target` - Shows up only in docked mode. Shows up table with different FPS values, from 15 to 60.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
 - `Advanced settings` - submenu which consists of:
   - If game is using NVN
@@ -48,12 +48,11 @@ Explanation of each line:
   - `Display Sync` - When turned on, both options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target. In OLED units it works only in docked mode.
   - `Docked Settings` - submenu related to display refresh rate of external displays. Not accessible for Lite units. Consists of:
       - `Allowed refresh rates` - you can check and edit manually which refresh rates are enabled for currently connected external display. It consists of 40, 45, 50 and 55 Hz. By default 50 is turned on, everything else is turned off.
-      - `Display underclock wizard` - it goes automatically through refresh rates from 40 to 55, user is asked to press required button to confirm it's working, if not pressed for 15 seconds it goes to next refresh rate. After checking all refresh rates you are moved to `Allowed refresh rates` menu to check results.
-      - `Display overclock wizard` - it shows only if external display reported max refresh rate is equal or above 70 Hz. Goes automatically through refresh rates from 70 to max your display supports with cap being 120 Hz, user is asked to press required button to confirm it's working, if not pressed for 10 seconds it goes to next refresh rate. After checking all refresh rates you are moved to `Allowed refresh rates` menu to check results.
+      - `Refresh rate wizard` - it goes automatically to next refresh rates, user is asked to press required button to confirm it's working, if not pressed for 15 seconds it goes to next refresh rate. After checking all refresh rates you are moved to `Allowed refresh rates` menu to check results.
       - `Frameskip tester` - It allows to check if your display is showing currently used signal at native refresh rates. Many displays may support for example 50 Hz, but they are still displaying stuff at 60 Hz. Instructions how to use it are provided when this menu is selected. This menu is also available in handheld mode.
       - `Additional settings` - submenu with options related to how FPSLocker/FPSLocker patches are working in docked mode. Currently you can choose from:
           - `Allow patches to force 60 Hz` - some FPSLocker patches are forcing 60 Hz to fix framepacing issues with 30 FPS cutscenes. When such change happens, game is paused for 4 seconds before continuing. By default is turned on. Turning it off will apply only FPS lock without changing refresh rate and without delay.
-          - `Use lowest refresh rate for unmatched FPS targets` - For example for 60 Hz display 35 FPS target may not have avaialble refresh rate matching it. By enabling this option you will get lowest enabled refresh rate in `Allowed refresh rates` menu. This option is disabled by default, which will result in setting 60 Hz in that case.
+          - `Use lowest refresh rate for unmatched FPS targets` - For example for 60 Hz display 35 FPS target doesn't have avaialble refresh rate matching it. By enabling this option you will get lowest enabled refresh rate in `Allowed refresh rates` menu. This option is disabled by default, which will result in setting 60 Hz in that case.
 
 > When game is not running
 
@@ -65,7 +64,7 @@ You will have two submenus to choose from (if you are using OLED model, you will
   - `Delete patches` - it will delete file created by "Convert config to patch file" option
 - `Display settings` - you can read about in previous section.
 
-# Information about changing refresh rates in handheld mode
+# Information about changing refresh rates
 
 I want to use this space to clarify few things.<br>
 
@@ -84,12 +83,6 @@ Changing refresh rate affects animations speed of OS and Tesla overlays, making 
 Adding support for custom display refresh rate required changing how game configs are written, so you are advised to redownload all FPSLocker Warehouse configs if you want them to properly support custom refresh rates.
 
 I am not taking any responsibility for damages occuring from changing refresh rate. Each time you will go to `Display settings`, you will be welcomed by prompt with warning that you - user - are taking full responsibility. You must choose `Accept` to go further.
-
-# Information about changing refresh rates in docked mode
-
-Changing refresh rate utilizes CEA-861 timings whenever possible, for anything below 75 Hz outside of CEA-861 60 Hz timings are used with adjusted pixel clock. From 75 Hz above anything outside of CEA-861 is using CVT-RBv2 timings. This approach allowed us to get best compatibility with various displays at 1080p. At 720p all refresh rates utilize 60 Hz timings with adjusted pixel clock. 
-
-From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash. 
 
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
