@@ -87,7 +87,7 @@ I am not taking any responsibility for damages occuring from changing refresh ra
 
 # Information about changing refresh rates in docked mode
 
-Monitors that are not 1920x1080/1280x720 may not be compatible with higher refresh rates. As an example MSI G274QPF which is 2560x1440 monitor reports support for 1080p@120, but in fact it doesn't support it natively - it goes up to 75 Hz for 1080p. On Windows driver workarounds this by upscaling image to 1440p before sending it via HDMI.
+Monitors that are not 1920x1080/1280x720 may not be compatible with higher refresh rates. As an example MSI G274QPF which is 2560x1440 monitor reports support for 1080p@120, but in fact it doesn't support it natively - it goes up to 75 Hz for 1080p. On Windows driver workarounds this by upscaling image to 1440p before sending it via HDMI - something we cannot do on Switch 1.
 
 From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
 
