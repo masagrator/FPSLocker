@@ -87,11 +87,11 @@ I am not taking any responsibility for damages occuring from changing refresh ra
 
 # Information about changing refresh rates in docked mode
 
-Changing refresh rate utilizes CEA-861 timings whenever possible, for anything below 75 Hz outside of CEA-861 60 Hz timings are used with adjusted pixel clock. From 75 Hz above anything outside of CEA-861 is using CVT-RBv2 timings. This approach allowed us to get best compatibility with various displays at 1080p. At 720p all refresh rates utilize 60 Hz timings with adjusted pixel clock. 
+Monitors that are not 1920x1080/1280x720 may not be compatible with higher refresh rates. As an example MSI G274QPF which is 2560x1440 monitor reports support for 1080p@120, but in fact it doesn't support it natively - it goes up to 75 Hz. On Windows driver workarounds this by upscaling image to 1440p before sending it via HDMI.
 
 From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
 
-Monitors that are not 1920x1080/1280x720 may not be compatible with higher refresh rates. As an example MSI G274QPF which is 2560x1440 monitor reports support for 1080p@120, but in fact it doesn't support it natively - it goes up to 75 Hz. On Windows driver workarounds this by upscaling image to 1440p before sending it via HDMI.
+Changing refresh rate utilizes CEA-861 timings whenever possible, for anything below 75 Hz outside of CEA-861 60 Hz timings are used with adjusted pixel clock. From 75 Hz above anything outside of CEA-861 is using CVT-RBv2 timings. This approach allowed us to get best compatibility with various displays at 1080p. At 720p all refresh rates utilize 60 Hz timings with adjusted pixel clock. 
 
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
