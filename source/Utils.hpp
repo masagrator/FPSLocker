@@ -106,6 +106,12 @@ struct DisplayData {
 std::vector<Title> titles;
 std::string TV_name = "Unknown";
 
+bool file_exists(const char *filename)
+{
+    struct stat buffer;
+    return stat(filename, &buffer) == 0 ? true : false;
+}
+
 template <typename T> float parseEdid(T* edid_impl) {
 	unsigned char* edid = (unsigned char*)edid_impl;
 	uint8_t magic[8] = {0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0};
@@ -318,8 +324,8 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 	int crc32 = crc32Calculate(&edid, sizeof(edid));
 	if (displayCRC) *displayCRC = crc32;
     snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.ini", crc32);
-    FILE* file = fopen(path, "r");
-    if (file) {
+    if (file_exists(path) == true) {
+		FILE* file = fopen(path, "r");
 		fseek(file, 0, 2);
 		size_t size = ftell(file);
 		fseek(file, 0, 0);
