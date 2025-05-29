@@ -172,7 +172,7 @@ public:
 			return true;
 		}
 		if (tick) {
-			if (DockedModeRefreshRateAllowedValues[i] == 60) {
+			if (i > 3) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
 					SaltySD_SetAllowedDockedRefreshRates(rr);
 					svcSleepThread(100'000);
@@ -266,7 +266,7 @@ public:
 		}
 		snprintf(Docked_c, sizeof(Docked_c), "This menu will go through all\n"
 											"supported refresh rates above 60 Hz\n"
-											"up to %d Hz. It's recommended\n"
+											"up to %d Hz. It's needed only\n"
 											"for 1080p output, for 720p\n"
 											"everything should work fine.\n\n"
 											"Press button you are asked for\n"
