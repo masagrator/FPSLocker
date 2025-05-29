@@ -23,12 +23,13 @@ struct NxFpsSharedBlock {
 	uint8_t SetBuffers;
 	uint8_t ActiveBuffers;
 	uint8_t SetActiveBuffers;
-	uint8_t displaySync;
+	bool displaySync;
 	resolutionCalls renderCalls[8];
 	resolutionCalls viewportCalls[8];
 	bool forceOriginalRefreshRate;
 	bool dontForce60InDocked;
 	bool forceSuspend;
+	uint8_t currentRefreshRate;
 } NX_PACKED;
 
 struct DockedAdditionalSettings {

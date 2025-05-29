@@ -151,12 +151,26 @@ public:
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr_default);
 				svcSleepThread(100'000);
-				SaltySD_SetDisplayRefreshRate(60);
-				svcSleepThread(100'000);
+				if (tick) {
+					SaltySD_SetDisplayRefreshRate(60);
+					svcSleepThread(100'000);
+				}
 				SaltySD_Term();
 			}
 			tsl::goBack();
 			return true;
+		}
+		s32 width = 0;
+		s32 height = 0;
+		if (R_SUCCEEDED(ommGetDefaultDisplayResolution(&width, &height))) {
+			if (height != 720 && height != 1080) {
+				snprintf(PressButton, sizeof(PressButton), "Not supported at %dp!", (uint16_t)height);
+				return true;
+			}
+		}
+		if (check && PluginRunning && (Shared -> pluginActive)) {
+				snprintf(PressButton, sizeof(PressButton), "Close game first!");
+				return true;			
 		}
 		static u64 keyCheck = HidNpadButton_ZL;
 		if ((keysHeld & HidNpadButton_X) && !tick) {
@@ -247,6 +261,7 @@ public:
 	DockedAdditionalSettings as;
 	uint8_t m_maxRefreshRate;
 	uint16_t delay_s = 10;
+	bool block = false;
     DockedOverWizardGui(uint8_t maxRefreshRate) {
 		if (maxRefreshRate > DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1])
 			maxRefreshRate = DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1];
@@ -301,7 +316,10 @@ public:
 			ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
 			apmGetPerformanceMode(&mode);
 			apmExit();
-			if (mode != ApmPerformanceMode_Boost) {
+			s32 width = 0;
+			s32 height = 1080;
+			if (tick) ommGetDefaultDisplayResolution(&width, &height);
+			if (height != 1080 || mode != ApmPerformanceMode_Boost) {
 				smExit();
 				tsl::goBack();
 				return true;
@@ -312,12 +330,26 @@ public:
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr_default);
 				svcSleepThread(100'000);
-				SaltySD_SetDisplayRefreshRate(60);
-				svcSleepThread(100'000);
+				if (tick) {
+					SaltySD_SetDisplayRefreshRate(60);
+					svcSleepThread(100'000);
+				}
 				SaltySD_Term();
 			}
 			tsl::goBack();
 			return true;
+		}
+		s32 width = 0;
+		s32 height = 0;
+		if (R_SUCCEEDED(ommGetDefaultDisplayResolution(&width, &height))) {
+			if (height != 1080) {
+				snprintf(PressButton, sizeof(PressButton), "Not supported at %dp!", (uint16_t)height);
+				return true;
+			}
+		}
+		if (check && PluginRunning && (Shared -> pluginActive)) {
+				snprintf(PressButton, sizeof(PressButton), "Close game first!");
+				return true;			
 		}
 		static u64 keyCheck = HidNpadButton_ZL;
 		if ((keysHeld & HidNpadButton_X) && !tick) {
@@ -422,7 +454,7 @@ public:
 	}
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Docked display manual settings");
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Docked 1080p display manual settings");
 
 		auto list = new tsl::elm::List();
 
@@ -592,7 +624,7 @@ public:
 			
 		}), 65);
 
-		auto *clickableListItem1 = new tsl::elm::ListItem2("Allowed refresh rates");
+		auto *clickableListItem1 = new tsl::elm::ListItem2("Allowed 1080p refresh rates");
 		clickableListItem1->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && !block) {
 				tsl::changeTo<DockedManualGui>((uint8_t)std::round(highestRefreshRate));
@@ -615,7 +647,7 @@ public:
 		list->addItem(clickableListItem2);
 
 		if (highestRefreshRate >= 70.f) {
-			auto *clickableListItem22 = new tsl::elm::ListItem2("Display overclock wizard");
+			auto *clickableListItem22 = new tsl::elm::ListItem2("1080p overclock wizard");
 			clickableListItem22->setClickListener([this](u64 keys) { 
 				if ((keys & HidNpadButton_A) && !block) {
 					tsl::changeTo<DockedOverWizardGui>((uint8_t)std::round(highestRefreshRate));
@@ -780,7 +812,7 @@ public:
 								refreshRate_g += 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
 								SaltySD_Term();
-								if (Shared) (Shared -> displaySync) = refreshRate_g;
+								if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
 							}
 						}
 						return true;
@@ -797,7 +829,7 @@ public:
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								refreshRate_g -= 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
-								if (Shared) (Shared -> displaySync) = refreshRate_g;
+								if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
 								SaltySD_Term();
 							}
 						}
@@ -835,14 +867,14 @@ public:
 							if (R_SUCCEEDED(rc) && Shared) {
 								if (!displaySync == true && (Shared -> FPSlocked) < 40) {
 									SaltySD_SetDisplayRefreshRate(60);
-									(Shared -> displaySync) = 0;
+									(Shared -> displaySync) = false;
 								}
 								else if (!displaySync == true) {
 									SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
-									(Shared -> displaySync) = (Shared -> FPSlocked);
+									(Shared -> displaySync) = (Shared -> FPSlocked) ? true : false;
 								}
 								else {
-									(Shared -> displaySync) = 0;
+									(Shared -> displaySync) = false;
 								}
 							}
 							else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
