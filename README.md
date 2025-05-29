@@ -87,11 +87,11 @@ I am not taking any responsibility for damages occuring from changing refresh ra
 
 # Information about changing refresh rates in docked mode
 
-Monitors that are not 1920x1080/1280x720 may not be compatible with higher refresh rates. As an example MSI G274QPF which is 2560x1440 monitor reports support for 1080p@120, but in fact it doesn't support it natively - it goes up to 75 Hz for 1080p. On Windows driver workarounds this by upscaling image to 1440p before sending it via HDMI - something we cannot do on Switch 1.
+Cap was set to 144 Hz as this is the max refresh rate supported by OG dock and non-OLED switches, which makes it the most universal.
+
+Many displays are locked to 165 MHz pixel clock by default because from what I understand they expect running 1080p only with refresh rates listed as part of Video format Identification Code (VIC). 1080p has listed 24, 25, 50, 60, 100 and 120 Hz as VICs. But HOS refuse to acknowledge existence of VICs for 100 and 120 Hz, so we can't inform those displays we need higher limit available. That's why if display relies on receiving compatible VIC number via HDMI, you are locked in 1080p up to 75 Hz (720p up to 144 Hz fits into 165 MHz limit). This issue touches mainly TVs and non-1080p monitors.
 
 From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
-
-Changing refresh rate utilizes CEA-861 timings whenever possible, for anything below 75 Hz outside of CEA-861 60 Hz timings are used with adjusted pixel clock. From 75 Hz above anything outside of CEA-861 is using CVT-RBv2 timings. This approach allowed us to get best compatibility with various displays at 1080p. At 720p all refresh rates utilize 60 Hz timings with adjusted pixel clock. 
 
 # Thanks
 Thanks to ~WerWolv for creating Tesla environment, and ~cucholix + ~Monked for tests.
