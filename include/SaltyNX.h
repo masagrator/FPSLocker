@@ -295,8 +295,7 @@ Result SaltySD_SetAllowedDockedRefreshRates(DockedModeRefreshRateAllowed refresh
 		unsigned int Hz_100: 1;
 		unsigned int Hz_110: 1;
 		unsigned int Hz_120: 1;
-		unsigned int Hz_144: 1;
-		unsigned int reserved: 17;
+		unsigned int reserved: 18;
 	} DockedRefreshRates;
 
 	memset(&DockedRefreshRates, 0, sizeof(DockedRefreshRates));
