@@ -110,7 +110,8 @@ public:
     DockedWizardGui(uint8_t highestRefreshRate_impl) {
 		if (highestRefreshRate_impl >= 70) highestRefreshRate = highestRefreshRate_impl;
 		LoadDockedModeAllowedSave(rr_default, as, nullptr);
-		memset(&rr, 1, sizeof(rr));
+		memcpy(&rr, &rr_default, sizeof(rr));
+		memset(&rr, 1, 5);
 		tick = 0;
         i = 0;
 	}
@@ -150,6 +151,7 @@ public:
 		if (keysHeld & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr_default);
+				remove("sdmc:/SaltySD/test.flag");
 				svcSleepThread(100'000);
 				if (tick) {
 					SaltySD_SetDisplayRefreshRate(60);
@@ -177,6 +179,8 @@ public:
 			tick = svcGetSystemTick();
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr);
+				FILE* file = fopen("sdmc:/SaltySD/test.flag", "wb");
+				if (file) fclose(file);
 				svcSleepThread(100'000);
 				SaltySD_SetDisplayRefreshRate(40);
 				svcSleepThread(100'000);
@@ -189,10 +193,12 @@ public:
 			if (i > 3) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
 					SaltySD_SetAllowedDockedRefreshRates(rr);
+					remove("sdmc:/SaltySD/test.flag");
 					svcSleepThread(100'000);
 					SaltySD_Term();
 				}
 				SaveDockedModeAllowedSave(rr, as);
+
 				tsl::goBack();
 				tsl::changeTo<DockedManualGui>(highestRefreshRate);
 				return true;
@@ -329,6 +335,7 @@ public:
 		if (keysHeld & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr_default);
+				remove("sdmc:/SaltySD/test.flag");
 				svcSleepThread(100'000);
 				if (tick) {
 					SaltySD_SetDisplayRefreshRate(60);
@@ -356,6 +363,8 @@ public:
 			tick = svcGetSystemTick();
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr);
+				FILE* file = fopen("sdmc:/SaltySD/test.flag", "wb");
+				if (file) fclose(file);
 				svcSleepThread(100'000);
 				SaltySD_SetDisplayRefreshRate(DockedModeRefreshRateAllowedValues[i]);
 				svcSleepThread(100'000);
@@ -368,6 +377,7 @@ public:
 			if (i > sizeof(DockedModeRefreshRateAllowedValues)) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
 					SaltySD_SetAllowedDockedRefreshRates(rr);
+					remove("sdmc:/SaltySD/test.flag");
 					svcSleepThread(100'000);
 					SaltySD_SetDisplayRefreshRate(60);
 					svcSleepThread(100'000);
