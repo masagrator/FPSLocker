@@ -246,5 +246,5 @@ const struct timings *find_vic_id(unsigned char vic)
 		return edid_cta_modes1 + vic - 1;
 	if (vic >= 193 && vic < ARRAY_SIZE(edid_cta_modes2) + 193)
 		return edid_cta_modes2 + vic - 193;
-	return NULL;
+	return edid_cta_modes1 + 15; //Default to 1920x1080@60Hz
 }
