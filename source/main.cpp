@@ -9,6 +9,7 @@
 #include "Lock.hpp"
 #include "Utils.hpp"
 #include <cstdlib>
+#include "omm.h"
 
 bool displaySync = false;
 bool isOLED = false;
@@ -275,8 +276,6 @@ public:
 	}
 };
 
-uint8_t AllowedFPSTargets[] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60};
-
 class DockedFPSTargetGui : public tsl::Gui {
 public:
 	uint8_t maxFPS = 0;
@@ -284,14 +283,41 @@ public:
 	DockedAdditionalSettings as = {0};
 	uint8_t selected = 0;
 	float counter = 0;
+	uint8_t AllowedFPSTargets[32] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60};
+	uint8_t sizeofAllowedFPSTargets = 10;
+	s32 height = 720;
+	uint8_t highestRefreshRate = 0;
 	DockedFPSTargetGui() {
-		LoadDockedModeAllowedSave(rr, as, nullptr);
-		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-			if (rr[i] == true)
-				maxFPS = DockedModeRefreshRateAllowedValues[i];
+		s32 width = 0;
+		s32 height = 0;
+		ommGetDefaultDisplayResolution(&width, &height);
+		if (height == 1080) {
+			LoadDockedModeAllowedSave(rr, as, nullptr);
+		}
+		else if (height == 720) {
+			smInitialize();
+			setsysInitialize();
+			SetSysEdid edid = {0};
+			float highestRefreshRate_impl = 60;
+			if (R_SUCCEEDED(setsysGetEdid(&edid))) {
+				highestRefreshRate_impl = parseEdid(&edid);
+			}
+			highestRefreshRate = (uint8_t)std::round(highestRefreshRate_impl);
+			setsysExit();
+			smExit();
+			for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+				if (DockedModeRefreshRateAllowedValues[i] <= highestRefreshRate) {
+					rr[i] = true;
+				}
+			}
+		}
+		if (height == 720 || height == 1080) for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+			if (rr[i] == true) {
+				AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
+			}
 		}
 		if (Shared -> FPSlocked) {
-			for (size_t i = 0; i < sizeof(AllowedFPSTargets); i++) {
+			for (size_t i = 0; i < sizeofAllowedFPSTargets; i++) {
 				if (Shared->FPSlocked == AllowedFPSTargets[i]) {
 					selected = i;
 					break;
@@ -313,21 +339,23 @@ public:
 		auto list = new tsl::elm::List();
 
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
-			for (uint8_t i = 0; i < sizeof(AllowedFPSTargets); i += 1) {
+			for (uint8_t i = 0; i < sizeofAllowedFPSTargets; i += 1) {
 				char FPS[] = "254";
 				snprintf(FPS, sizeof(FPS), "%d", AllowedFPSTargets[i]);
 				if (selected == i) {
-					auto new_pos = renderer->drawString(FPS, false, x+((80 * (i % 4)) + 20), y+((80*(i / 4))+50), 40, renderer->a(0x0000));
+					auto new_pos = renderer->drawString(FPS, false, x+40, y+60, 40, renderer->a(0x0000));
 					auto offset_x = (60 - new_pos.first) / 2;
+					if (AllowedFPSTargets[i] >= 100) offset_x = (80 - new_pos.first) / 2;
 					float progress = (std::sin(counter) + 1) / 2;
 					tsl::Color highlightColor = {   static_cast<u8>((0x2 - 0x8) * progress + 0x8),
 													static_cast<u8>((0x8 - 0xF) * progress + 0xF),
 													static_cast<u8>((0xC - 0xF) * progress + 0xF),
 													0xF };
 					renderer->drawRect(x+((80 * (i % 4)) + 20) - offset_x, y+((80*(i / 4))+5), 4, 56, a(highlightColor));
-					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+4, y+((80*(i / 4))+5), 56, 4, a(highlightColor));
-					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+56, y+((80*(i / 4))+5), 4, 60, a(highlightColor));
-					renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x), (y+((80*(i / 4))+5))+56, 56, 4, a(highlightColor));
+					//renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+4, y+((80*(i / 4))+5), 56, 4, a(highlightColor));
+					//renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x)+56, y+((80*(i / 4))+5), 4, 60, a(highlightColor));
+					if (AllowedFPSTargets[i] < 100) renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x), (y+((80*(i / 4))+5))+56, 56, 4, a(highlightColor));
+					else renderer->drawRect((x+((80 * (i % 4)) + 20) - offset_x), (y+((80*(i / 4))+5))+56, 80, 4, a(highlightColor));
 				}
 				renderer->drawString(FPS, false, x+((80 * (i % 4)) + 20), y+((80*(i / 4))+50), 40, renderer->a(0xFFFF));
 			}
@@ -352,21 +380,47 @@ public:
 			}
 		}
 		smExit();
+		s32 width_impl = 0;
+		s32 height_impl = 0;
+		ommGetDefaultDisplayResolution(&width_impl, &height_impl);
+		if ((height_impl != height)) {
+			height = height_impl;
+			sizeofAllowedFPSTargets = 10;
+			if (height == 1080) {
+				LoadDockedModeAllowedSave(rr, as, nullptr);
+			}
+			else if (height == 720) {
+				for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+					if (DockedModeRefreshRateAllowedValues[i] <= (uint8_t)std::round(highestRefreshRate)) {
+						rr[i] = true;
+					}
+				}
+			}
+			else {
+				return true;
+			}
+			for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+				if (rr[i] == true) {
+					AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
+				}
+			}
+			return true;
+		}
 		counter += 0.1f;
 		if (keysDown & HidNpadButton_Down) {
-			if ((selected / 4) < (sizeof(AllowedFPSTargets) / 4)) 
+			if ((selected / 4) < (sizeofAllowedFPSTargets / 4)) 
 				selected += 4;
 			else selected = selected % 4;
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Up) {
 			if ((selected / 4) > 0) 
 				selected -= 4;
-			else selected = ((sizeof(AllowedFPSTargets) / 4) * 4) + (selected % 4);
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;	
+			else selected = ((sizeofAllowedFPSTargets / 4) * 4) + (selected % 4);
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;	
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Right) {
@@ -375,8 +429,8 @@ public:
 			else {
 				selected -= 3;
 			}
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = (sizeof(AllowedFPSTargets) / 4) * 4;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = (sizeofAllowedFPSTargets / 4) * 4;
 			return true;
 		}
 		else if (keysDown & HidNpadButton_Left) {
@@ -385,8 +439,8 @@ public:
 			else {
 				selected += 3;
 			}
-			if (selected >= sizeof(AllowedFPSTargets))
-				selected = sizeof(AllowedFPSTargets) - 1;
+			if (selected >= sizeofAllowedFPSTargets)
+				selected = sizeofAllowedFPSTargets - 1;
 			return true;
 		}
 
@@ -425,7 +479,7 @@ public:
 						refreshRate_g = target;
 					}
 					SaltySD_Term();
-					(Shared -> displaySync) = refreshRate_g;
+					(Shared -> displaySync) = refreshRate_g ? true : false;
 				}
 			}
 			tsl::goBack();
@@ -438,6 +492,7 @@ public:
 class GuiTest : public tsl::Gui {
 public:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
+	bool render100Above = false;
 	GuiTest(u8 arg1, u8 arg2, bool arg3) { 
 		
 		if (isLite) entry_mode = ApmPerformanceMode_Normal;
@@ -462,7 +517,7 @@ public:
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
 		
-		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 			if (!SaltySD) {
 				renderer->drawString("SaltyNX is not working!", false, x, y+50, 20, renderer->a(0xF33F));
 			}
@@ -490,7 +545,8 @@ public:
 				if (((Shared -> API) > 0) && ((Shared -> API) <= 2))
 					renderer->drawString(FPSMode_c, false, x, y+40, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSTarget_c, false, x, y+60, 20, renderer->a(0xFFFF));
-				renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
+				if (render100Above) renderer->drawString(PFPS_c, false, x+265, y+48, 50, renderer->a(0xFFFF));
+				else renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
 				if (Shared -> forceOriginalRefreshRate) renderer->drawString("Patch is now forcing 60 Hz.", false, x, y+80, 20, renderer->a(0xF99F));
 			}
 		}), 90);
@@ -535,7 +591,7 @@ public:
 								if (!skip) {
 									refreshRate_g = 60;
 								}
-								(Shared -> displaySync) = refreshRate_g;
+								(Shared -> displaySync) = refreshRate_g ? true : false;
 								SaltySD_Term();
 							}
 						}
@@ -585,7 +641,7 @@ public:
 									refreshRate_g = 60;
 								}
 								SaltySD_Term();
-								(Shared -> displaySync) = refreshRate_g;
+								(Shared -> displaySync) = refreshRate_g ? true : false;
 							}
 						}
 						return true;
@@ -615,7 +671,7 @@ public:
 					if (displaySync) {
 						if (!oldSalty && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(60);
-							(Shared -> displaySync) = 0;
+							(Shared -> displaySync) = false;
 							SaltySD_Term();
 						}
 					}
@@ -714,7 +770,10 @@ public:
 					sprintf(FPSTarget_c, "Custom FPS Target: Disabled");
 				}
 				else sprintf(FPSTarget_c, "Custom FPS Target: %d", (Shared -> FPSlocked));
-				sprintf(PFPS_c, "%d", (Shared -> FPS));
+				uint8_t value = (Shared -> FPS);
+				sprintf(PFPS_c, "%d", value);
+				if (value >= 100) render100Above = true;
+				else render100Above = false;
 				i = 0;
 			}
 			else i++;
@@ -772,7 +831,7 @@ public:
 	virtual void initServices() override {
 
 		tsl::hlp::doWithSmSession([]{
-			
+			ommInitialize();
 			setsysInitialize();
 			SetSysProductModel model;
 			if (R_SUCCEEDED(setsysGetProductModel(&model))) {
@@ -845,6 +904,7 @@ public:
 		threadClose(&t0);
 		shmemClose(&_sharedmemory);
 		nsExit();
+		ommExit();
 		fsdevUnmountDevice("sdmc");
 	}  // Callet at the end to clean up all services previously initialized
 

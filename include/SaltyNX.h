@@ -270,13 +270,9 @@ Result SaltySD_SetDisplaySync(bool isTrue)
 	return ret;
 }
 
-typedef bool DockedModeRefreshRateAllowed[5];
+typedef bool DockedModeRefreshRateAllowed[14];
 
-uint8_t DockedModeRefreshRateAllowedValues[] = { 40,
-                                                 45,
-                                                 50,
-                                                 55,
-                                                 60};
+uint8_t DockedModeRefreshRateAllowedValues[] = {40, 45, 50, 55, 60, 70, 72, 75, 80, 90, 95, 100, 110, 120};
 
 static_assert(sizeof(DockedModeRefreshRateAllowedValues) == sizeof(DockedModeRefreshRateAllowed));
 
@@ -290,7 +286,16 @@ Result SaltySD_SetAllowedDockedRefreshRates(DockedModeRefreshRateAllowed refresh
 		unsigned int Hz_50: 1;
 		unsigned int Hz_55: 1;
 		unsigned int Hz_60: 1;
-		unsigned int reserved: 27;
+		unsigned int Hz_70: 1;
+		unsigned int Hz_72: 1;
+		unsigned int Hz_75: 1;
+		unsigned int Hz_80: 1;
+		unsigned int Hz_90: 1;
+		unsigned int Hz_95: 1;
+		unsigned int Hz_100: 1;
+		unsigned int Hz_110: 1;
+		unsigned int Hz_120: 1;
+		unsigned int reserved: 18;
 	} DockedRefreshRates;
 
 	memset(&DockedRefreshRates, 0, sizeof(DockedRefreshRates));

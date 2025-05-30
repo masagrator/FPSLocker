@@ -23,12 +23,13 @@ struct NxFpsSharedBlock {
 	uint8_t SetBuffers;
 	uint8_t ActiveBuffers;
 	uint8_t SetActiveBuffers;
-	uint8_t displaySync;
+	bool displaySync;
 	resolutionCalls renderCalls[8];
 	resolutionCalls viewportCalls[8];
 	bool forceOriginalRefreshRate;
 	bool dontForce60InDocked;
 	bool forceSuspend;
+	uint8_t currentRefreshRate;
 } NX_PACKED;
 
 struct DockedAdditionalSettings {
@@ -105,6 +106,12 @@ struct DisplayData {
 
 std::vector<Title> titles;
 std::string TV_name = "Unknown";
+
+bool file_exists(const char *filename)
+{
+    struct stat buffer;
+    return stat(filename, &buffer) == 0 ? true : false;
+}
 
 template <typename T> float parseEdid(T* edid_impl) {
 	unsigned char* edid = (unsigned char*)edid_impl;
@@ -318,8 +325,8 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 	int crc32 = crc32Calculate(&edid, sizeof(edid));
 	if (displayCRC) *displayCRC = crc32;
     snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.ini", crc32);
-    FILE* file = fopen(path, "r");
-    if (file) {
+    if (file_exists(path) == true) {
+		FILE* file = fopen(path, "r");
 		fseek(file, 0, 2);
 		size_t size = ftell(file);
 		fseek(file, 0, 0);

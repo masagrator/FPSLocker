@@ -106,7 +106,9 @@ public:
 	DockedModeRefreshRateAllowed rr;
 	DockedModeRefreshRateAllowed rr_default;
 	DockedAdditionalSettings as;
-    DockedWizardGui() {
+	uint8_t highestRefreshRate = 60;
+    DockedWizardGui(uint8_t highestRefreshRate_impl) {
+		if (highestRefreshRate_impl >= 70) highestRefreshRate = highestRefreshRate_impl;
 		LoadDockedModeAllowedSave(rr_default, as, nullptr);
 		memset(&rr, 1, sizeof(rr));
 		tick = 0;
@@ -114,7 +116,7 @@ public:
 	}
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Docked display settings wizard");
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Display underclock wizard");
 
 		auto list = new tsl::elm::List();
 
@@ -149,12 +151,26 @@ public:
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr_default);
 				svcSleepThread(100'000);
-				SaltySD_SetDisplayRefreshRate(60);
-				svcSleepThread(100'000);
+				if (tick) {
+					SaltySD_SetDisplayRefreshRate(60);
+					svcSleepThread(100'000);
+				}
 				SaltySD_Term();
 			}
 			tsl::goBack();
 			return true;
+		}
+		s32 width = 0;
+		s32 height = 0;
+		if (R_SUCCEEDED(ommGetDefaultDisplayResolution(&width, &height))) {
+			if (height != 720 && height != 1080) {
+				snprintf(PressButton, sizeof(PressButton), "Not supported at %dp!", (uint16_t)height);
+				return true;
+			}
+		}
+		if (check && PluginRunning && (Shared -> pluginActive)) {
+				snprintf(PressButton, sizeof(PressButton), "Close game first!");
+				return true;			
 		}
 		static u64 keyCheck = HidNpadButton_ZL;
 		if ((keysHeld & HidNpadButton_X) && !tick) {
@@ -170,7 +186,7 @@ public:
 			return true;
 		}
 		if (tick) {
-			if (DockedModeRefreshRateAllowedValues[i] == 60) {
+			if (i > 3) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
 					SaltySD_SetAllowedDockedRefreshRates(rr);
 					svcSleepThread(100'000);
@@ -178,7 +194,7 @@ public:
 				}
 				SaveDockedModeAllowedSave(rr, as);
 				tsl::goBack();
-				tsl::changeTo<DockedManualGui>();
+				tsl::changeTo<DockedManualGui>(highestRefreshRate);
 				return true;
 			}
 			if (svcGetSystemTick() - tick < (15 * 19200000)) {
@@ -233,22 +249,216 @@ public:
 	}
 };
 
+class DockedOverWizardGui : public tsl::Gui {
+public:
+	uint64_t tick;
+    size_t i;
+	char Docked_c[384] ="";
+
+	char PressButton[40] = "To start press X.";
+	DockedModeRefreshRateAllowed rr;
+	DockedModeRefreshRateAllowed rr_default;
+	DockedAdditionalSettings as;
+	uint8_t m_maxRefreshRate;
+	uint16_t delay_s = 10;
+	bool block = false;
+    DockedOverWizardGui(uint8_t maxRefreshRate) {
+		if (maxRefreshRate > DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1])
+			maxRefreshRate = DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1];
+		m_maxRefreshRate = maxRefreshRate;
+		LoadDockedModeAllowedSave(rr_default, as, nullptr);
+		memcpy(&rr, &rr_default, sizeof(rr));
+		tick = 0;
+        i = 5;
+		uint8_t times = 0;
+		for (size_t x = 5; x < sizeof(DockedModeRefreshRateAllowedValues); x++) {
+			if (DockedModeRefreshRateAllowedValues[i] > maxRefreshRate)
+				rr[x] = false;
+			else {
+				rr[x] = true;
+				times++;
+			}
+		}
+		snprintf(Docked_c, sizeof(Docked_c), "This menu will go through all\n"
+											"supported refresh rates above 60 Hz\n"
+											"up to %d Hz. It's needed only\n"
+											"for 1080p output, for 720p\n"
+											"everything should work fine.\n\n"
+											"Press button you are asked for\n"
+											"to confirm that it works.\n"
+											"If nothing is pressed in 10 seconds,\n"
+											"it will check next refresh rate.\n"
+											"This can take up to %d seconds.", maxRefreshRate, delay_s * times);
+	}
+
+    virtual tsl::elm::Element* createUI() override {
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Display overclock wizard");
+
+		auto list = new tsl::elm::List();
+
+		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
+
+			renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
+
+			renderer->drawString(PressButton, false, x, y+260, 20, renderer->a(0xFFFF));
+			
+		}), 270);		
+		
+		frame->setContent(list);
+
+        return frame;
+    }
+
+	// Called once every frame to handle inputs not handled by other UI elements
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		smInitialize();
+		if (R_SUCCEEDED(apmInitialize())) {
+			ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
+			apmGetPerformanceMode(&mode);
+			apmExit();
+			s32 width = 0;
+			s32 height = 1080;
+			if (tick) ommGetDefaultDisplayResolution(&width, &height);
+			if (height != 1080 || mode != ApmPerformanceMode_Boost) {
+				smExit();
+				tsl::goBack();
+				return true;
+			}
+		}
+		smExit();
+		if (keysHeld & HidNpadButton_B) {
+			if (R_SUCCEEDED(SaltySD_Connect())) {
+				SaltySD_SetAllowedDockedRefreshRates(rr_default);
+				svcSleepThread(100'000);
+				if (tick) {
+					SaltySD_SetDisplayRefreshRate(60);
+					svcSleepThread(100'000);
+				}
+				SaltySD_Term();
+			}
+			tsl::goBack();
+			return true;
+		}
+		s32 width = 0;
+		s32 height = 0;
+		if (R_SUCCEEDED(ommGetDefaultDisplayResolution(&width, &height))) {
+			if (height != 1080) {
+				snprintf(PressButton, sizeof(PressButton), "Not supported at %dp!", (uint16_t)height);
+				return true;
+			}
+		}
+		if (check && PluginRunning && (Shared -> pluginActive)) {
+				snprintf(PressButton, sizeof(PressButton), "Close game first!");
+				return true;			
+		}
+		static u64 keyCheck = HidNpadButton_ZL;
+		if ((keysHeld & HidNpadButton_X) && !tick) {
+			tick = svcGetSystemTick();
+			if (R_SUCCEEDED(SaltySD_Connect())) {
+				SaltySD_SetAllowedDockedRefreshRates(rr);
+				svcSleepThread(100'000);
+				SaltySD_SetDisplayRefreshRate(DockedModeRefreshRateAllowedValues[i]);
+				svcSleepThread(100'000);
+				SaltySD_Term();
+				snprintf(PressButton, sizeof(PressButton), "Press ZL to confirm %d Hz is working.", DockedModeRefreshRateAllowedValues[i]);
+			}
+			return true;
+		}
+		if (tick) {
+			if (i > sizeof(DockedModeRefreshRateAllowedValues)) {
+				if (R_SUCCEEDED(SaltySD_Connect())) {
+					SaltySD_SetAllowedDockedRefreshRates(rr);
+					svcSleepThread(100'000);
+					SaltySD_SetDisplayRefreshRate(60);
+					svcSleepThread(100'000);
+					SaltySD_Term();
+				}
+				SaveDockedModeAllowedSave(rr, as);
+				tsl::goBack();
+				tsl::changeTo<DockedManualGui>(m_maxRefreshRate);
+				return true;
+			}
+			if (svcGetSystemTick() - tick < (delay_s * 19200000)) {
+				if (keysHeld & keyCheck) {
+					rr[i] = true;
+					i++;
+					if (R_SUCCEEDED(SaltySD_Connect())) {
+						Result rc = SaltySD_SetDisplayRefreshRate(DockedModeRefreshRateAllowedValues[i]);
+						svcSleepThread(100'000);
+						if (R_FAILED(rc)) {
+							while(i < sizeof(DockedModeRefreshRateAllowedValues) && DockedModeRefreshRateAllowedValues[i] <= m_maxRefreshRate) {
+								rr[i] = false;
+								i++;
+								tick = svcGetSystemTick();
+								svcSleepThread(100'000);
+								if (R_SUCCEEDED(SaltySD_SetDisplayRefreshRate(DockedModeRefreshRateAllowedValues[i])))
+									break;
+							}
+							SaltySD_Term();
+							return true;
+						}
+						else SaltySD_Term();
+					}
+					if (i % 1 == 0) {
+						keyCheck = HidNpadButton_X;
+						snprintf(PressButton, sizeof(PressButton), "Press X to confirm %d Hz is working.", DockedModeRefreshRateAllowedValues[i]);
+					}
+					if (i % 3 == 0) {
+						keyCheck = HidNpadButton_Y;
+						snprintf(PressButton, sizeof(PressButton), "Press Y to confirm %d Hz is working.", DockedModeRefreshRateAllowedValues[i]);
+					}
+					if (i % 2 == 0) {
+						keyCheck = HidNpadButton_ZR;
+						snprintf(PressButton, sizeof(PressButton), "Press ZR to confirm %d Hz is working.", DockedModeRefreshRateAllowedValues[i]);
+					}
+					tick = svcGetSystemTick();
+					return true;
+				}
+			}
+			else {
+				rr[i] = false;
+				i++;
+				if (i % 1 == 0) {
+					keyCheck = HidNpadButton_X;
+					snprintf(PressButton, sizeof(PressButton), "Press X to confirm %d Hz is working.", DockedModeRefreshRateAllowedValues[i]);
+				}
+				if (i % 3 == 0) {
+					keyCheck = HidNpadButton_Y;
+					snprintf(PressButton, sizeof(PressButton), "Press Y to confirm %d Hz is working.", DockedModeRefreshRateAllowedValues[i]);
+				}
+				if (i % 2 == 0) {
+					keyCheck = HidNpadButton_ZR;
+					snprintf(PressButton, sizeof(PressButton), "Press ZR to confirm %d Hz is working.", DockedModeRefreshRateAllowedValues[i]);
+				}
+				if (R_SUCCEEDED(SaltySD_Connect())) {
+					SaltySD_SetDisplayRefreshRate(DockedModeRefreshRateAllowedValues[i]);
+					svcSleepThread(100'000);
+					SaltySD_Term();
+				}
+				tick = svcGetSystemTick();
+			}
+		}
+		return false;   // Return true here to singal the inputs have been consumed
+	}
+};
+
 class DockedManualGui : public tsl::Gui {
 public:
 	uint32_t crc = 0;
 	DockedModeRefreshRateAllowed rr = {0};
 	DockedAdditionalSettings as;
-    DockedManualGui() {
+	uint8_t maxRefreshRate = 60;
+    DockedManualGui(uint8_t maxRefreshRate_impl) {
+		if (maxRefreshRate_impl >= 70) maxRefreshRate = maxRefreshRate_impl;
 		LoadDockedModeAllowedSave(rr, as, nullptr);
 	}
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Docked display manual settings");
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Docked 1080p display manual settings");
 
 		auto list = new tsl::elm::List();
 
-		size_t i = 0;
-		while (i < 4) {
+		for (size_t i = 0; i < 4; i++) {
 			char Hz[] = "120 Hz";
 			snprintf(Hz, sizeof(Hz), "%d Hz", DockedModeRefreshRateAllowedValues[i]);
 			auto *clickableListItem = new tsl::elm::ToggleListItem(Hz, rr[i]);
@@ -260,7 +470,20 @@ public:
 				return false;
 			});
 			list->addItem(clickableListItem);	
-			i++;
+		}
+		for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+			if (maxRefreshRate < DockedModeRefreshRateAllowedValues[i]) break;
+			char Hz[] = "120 Hz";
+			snprintf(Hz, sizeof(Hz), "%d Hz", DockedModeRefreshRateAllowedValues[i]);
+			auto *clickableListItem = new tsl::elm::ToggleListItem(Hz, rr[i]);
+			clickableListItem->setClickListener([this, i](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					rr[i] = !rr[i];
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem);	
 		}
 		
 		frame->setContent(list);
@@ -368,6 +591,7 @@ private:
 	char Docked_c[256] = "";
 	DockedModeRefreshRateAllowed rr;
 	DockedAdditionalSettings as;
+	float highestRefreshRate;
 public:
     DockedGui() {
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
@@ -377,8 +601,9 @@ public:
 		smInitialize();
 		setsysInitialize();
 		SetSysEdid edid = {0};
+		highestRefreshRate = 60;
 		if (R_SUCCEEDED(setsysGetEdid(&edid))) {
-			float highestRefreshRate = parseEdid(&edid);
+			highestRefreshRate = parseEdid(&edid);
 			snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %.2f Hz\nConfig ID: %08X", highestRefreshRate, crc32);
 		}
 		setsysExit();
@@ -399,10 +624,10 @@ public:
 			
 		}), 65);
 
-		auto *clickableListItem1 = new tsl::elm::ListItem2("Allowed refresh rates");
+		auto *clickableListItem1 = new tsl::elm::ListItem2("Allowed 1080p refresh rates");
 		clickableListItem1->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && !block) {
-				tsl::changeTo<DockedManualGui>();
+				tsl::changeTo<DockedManualGui>((uint8_t)std::round(highestRefreshRate));
 				return true;
 			}
 			return false;
@@ -410,16 +635,29 @@ public:
 
 		list->addItem(clickableListItem1);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem2("Refresh rate wizard");
+		auto *clickableListItem2 = new tsl::elm::ListItem2("Display underclock wizard");
 		clickableListItem2->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && !block) {
-				tsl::changeTo<DockedWizardGui>();
+				tsl::changeTo<DockedWizardGui>((uint8_t)std::round(highestRefreshRate));
 				return true;
 			}
 			return false;
 		});
 
 		list->addItem(clickableListItem2);
+
+		if (highestRefreshRate >= 70.f) {
+			auto *clickableListItem22 = new tsl::elm::ListItem2("1080p overclock wizard");
+			clickableListItem22->setClickListener([this](u64 keys) { 
+				if ((keys & HidNpadButton_A) && !block) {
+					tsl::changeTo<DockedOverWizardGui>((uint8_t)std::round(highestRefreshRate));
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem22);
+		}
 
 		auto *clickableListItem3 = new tsl::elm::ListItem2("Frameskip tester");
 		clickableListItem3->setClickListener([this](u64 keys) { 
@@ -574,7 +812,7 @@ public:
 								refreshRate_g += 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
 								SaltySD_Term();
-								if (Shared) (Shared -> displaySync) = refreshRate_g;
+								if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
 							}
 						}
 						return true;
@@ -591,7 +829,7 @@ public:
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								refreshRate_g -= 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
-								if (Shared) (Shared -> displaySync) = refreshRate_g;
+								if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
 								SaltySD_Term();
 							}
 						}
@@ -629,14 +867,14 @@ public:
 							if (R_SUCCEEDED(rc) && Shared) {
 								if (!displaySync == true && (Shared -> FPSlocked) < 40) {
 									SaltySD_SetDisplayRefreshRate(60);
-									(Shared -> displaySync) = 0;
+									(Shared -> displaySync) = false;
 								}
 								else if (!displaySync == true) {
 									SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
-									(Shared -> displaySync) = (Shared -> FPSlocked);
+									(Shared -> displaySync) = (Shared -> FPSlocked) ? true : false;
 								}
 								else {
-									(Shared -> displaySync) = 0;
+									(Shared -> displaySync) = false;
 								}
 							}
 							else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
