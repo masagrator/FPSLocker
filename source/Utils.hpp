@@ -120,11 +120,11 @@ template <typename T> float parseEdid(T* edid_impl) {
 		#ifdef DEBUG
 		printf("WRONG MAGIC! %d\n", memcmp(magic, edid, 8));
 		#endif
-		return 0;
+		return highestRefreshRate;
 	}
 	SetSysModeLine* timingd = (SetSysModeLine*)calloc(sizeof(SetSysModeLine), 2);
 	memcpy(timingd, &edid[offsetof(SetSysEdid, timing_descriptor)], sizeof(SetSysModeLine)*2);
-	float highestRefreshRate = 0;
+	float highestRefreshRate = 60;
 	for (size_t i = 0; i < 2; i++) {
 		SetSysModeLine td = timingd[i];
 		uint32_t width = (uint32_t)td.horizontal_active_pixels_msb << 8 | td.horizontal_active_pixels_lsb;
@@ -173,7 +173,7 @@ template <typename T> float parseEdid(T* edid_impl) {
 		#ifdef DEBUG
 		printf("Wrong extension type!\n");
 		#endif
-		return 0;
+		return highestRefreshRate;
 	}
 	uint8_t dtd_start = 0;
 	memcpy(&dtd_start, &edid[offsetof(SetSysEdid, dtd_start)], 1);
@@ -640,14 +640,6 @@ void loopThread(void*) {
 	PluginRunning = false;
 	check = false;
 	closed = true;
-}
-
-uint64_t checkFile(const char* path) {
-    FILE* file = fopen(path, "rb");
-    if (!file)
-        return 0x202;
-    fclose(file);
-    return 0;
 }
 
 uint64_t getBID() {
