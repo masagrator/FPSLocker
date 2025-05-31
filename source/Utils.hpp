@@ -115,16 +115,16 @@ bool file_exists(const char *filename)
 
 template <typename T> float parseEdid(T* edid_impl) {
 	unsigned char* edid = (unsigned char*)edid_impl;
+	float highestRefreshRate_impl = 60;
 	uint8_t magic[8] = {0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0};
 	if (memcmp(magic, edid, 8)) {
 		#ifdef DEBUG
 		printf("WRONG MAGIC! %d\n", memcmp(magic, edid, 8));
 		#endif
-		return highestRefreshRate;
+		return highestRefreshRate_impl;
 	}
 	SetSysModeLine* timingd = (SetSysModeLine*)calloc(sizeof(SetSysModeLine), 2);
 	memcpy(timingd, &edid[offsetof(SetSysEdid, timing_descriptor)], sizeof(SetSysModeLine)*2);
-	float highestRefreshRate = 60;
 	for (size_t i = 0; i < 2; i++) {
 		SetSysModeLine td = timingd[i];
 		uint32_t width = (uint32_t)td.horizontal_active_pixels_msb << 8 | td.horizontal_active_pixels_lsb;
@@ -135,7 +135,7 @@ template <typename T> float parseEdid(T* edid_impl) {
 		#ifdef DEBUG
 		if (td.pixel_clock) printf("Res: %dx%d, pixel clock: %d, refresh rate: %0.4f\n", width, height, td.pixel_clock * 10, refreshRate);
 		#endif
-		if (!td.interlaced && refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
+		if (!td.interlaced && refreshRate > highestRefreshRate_impl) highestRefreshRate_impl = refreshRate;
 		/*
 		if (!td.interlaced && ((width == 1280 && height == 720) || (width == 1920 && height == 1080)) && (refreshRate > 60)) {
 			uint16_t widthSync = (uint16_t)td.horizontal_sync_pulse_width_pixels_msb << 8 | td.horizontal_sync_pulse_width_pixels_lsb;
@@ -173,7 +173,7 @@ template <typename T> float parseEdid(T* edid_impl) {
 		#ifdef DEBUG
 		printf("Wrong extension type!\n");
 		#endif
-		return highestRefreshRate;
+		return highestRefreshRate_impl;
 	}
 	uint8_t dtd_start = 0;
 	memcpy(&dtd_start, &edid[offsetof(SetSysEdid, dtd_start)], 1);
@@ -201,7 +201,7 @@ template <typename T> float parseEdid(T* edid_impl) {
 				#ifdef DEBUG
 				printf("VIC: %u%s, Res: %ux%u%s, refresh rate: %.4f\n", index, ((index <= 64 && data -> video.svd[i].native_flag) ? " (native)" : ""), timing->hact, timing->vact, (timing->interlaced ? "i" : ""), refreshRate);
 				#endif
-				if (!timing->interlaced && refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
+				if (!timing->interlaced && refreshRate > highestRefreshRate_impl) highestRefreshRate_impl = refreshRate;
 				/*
 				if (!timing->interlaced && ((timing->hact == 1280 && timing->vact == 720) || (timing->hact == 1920 && timing->vact == 1080)) && (refreshRate > 60)) {
 					EdidData.push_back({
@@ -237,7 +237,7 @@ template <typename T> float parseEdid(T* edid_impl) {
 			#ifdef DEBUG
 			if (td.pixel_clock) printf("Res: %dx%d, pixel clock: %d, refresh rate: %0.4f\n", width, height, td.pixel_clock * 10, refreshRate);
 			#endif
-			if (!td.interlaced && refreshRate > highestRefreshRate) highestRefreshRate = refreshRate;
+			if (!td.interlaced && refreshRate > highestRefreshRate_impl) highestRefreshRate_impl = refreshRate;
 			/*
 			if (!td.interlaced && ((width == 1280 && height == 720) || (width == 1920 && height == 1080)) && (refreshRate > 60)) {
 				uint16_t widthSync = (uint16_t)td.horizontal_sync_pulse_width_pixels_msb << 8 | td.horizontal_sync_pulse_width_pixels_lsb;
@@ -261,7 +261,7 @@ template <typename T> float parseEdid(T* edid_impl) {
 		}
 		free(modeline);
 	}
-	return highestRefreshRate;
+	return highestRefreshRate_impl;
 }
 
 void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditionalSettings &as) {
