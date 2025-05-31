@@ -159,7 +159,7 @@ public:
 			else sprintf(&lockInvalid[0], "Game config error: 0x%X", configValid);
 		}
 		else {
-			patchValid = checkFile(&patchPath[0]);
+			patchValid = !file_exists(&patchPath[0]);
 			if (R_FAILED(patchValid)) {
 				if (!FileDownloaded) {
 					if (R_SUCCEEDED(configValid)) {

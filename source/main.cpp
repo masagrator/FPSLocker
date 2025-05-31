@@ -286,7 +286,7 @@ public:
 	uint8_t AllowedFPSTargets[32] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60};
 	uint8_t sizeofAllowedFPSTargets = 10;
 	s32 height = 720;
-	uint8_t highestRefreshRate = 0;
+	uint8_t highestRefreshRate = 60;
 	DockedFPSTargetGui() {
 		s32 width = 0;
 		s32 height = 0;
@@ -295,16 +295,7 @@ public:
 			LoadDockedModeAllowedSave(rr, as, nullptr);
 		}
 		else if (height == 720) {
-			smInitialize();
-			setsysInitialize();
-			SetSysEdid edid = {0};
-			float highestRefreshRate_impl = 60;
-			if (R_SUCCEEDED(setsysGetEdid(&edid))) {
-				highestRefreshRate_impl = parseEdid(&edid);
-			}
-			highestRefreshRate = (uint8_t)std::round(highestRefreshRate_impl);
-			setsysExit();
-			smExit();
+			getDockedHighestRefreshRate(&highestRefreshRate);
 			for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
 				if (DockedModeRefreshRateAllowedValues[i] <= highestRefreshRate) {
 					rr[i] = true;

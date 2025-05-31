@@ -601,23 +601,16 @@ private:
 	char Docked_c[256] = "";
 	DockedModeRefreshRateAllowed rr;
 	DockedAdditionalSettings as;
-	float highestRefreshRate;
+	uint8_t highestRefreshRate;
 public:
     DockedGui() {
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/", 777);
 		int crc32 = 0;
 		LoadDockedModeAllowedSave(rr, as, &crc32);
-		smInitialize();
-		setsysInitialize();
-		SetSysEdid edid = {0};
 		highestRefreshRate = 60;
-		if (R_SUCCEEDED(setsysGetEdid(&edid))) {
-			highestRefreshRate = parseEdid(&edid);
-			snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %.2f Hz\nConfig ID: %08X", highestRefreshRate, crc32);
-		}
-		setsysExit();
-		smExit();
+		getDockedHighestRefreshRate(&highestRefreshRate);
+		snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %u Hz\nConfig ID: %08X", highestRefreshRate, crc32);
 	}
 
 	size_t base_height = 128;
@@ -637,7 +630,7 @@ public:
 		auto *clickableListItem1 = new tsl::elm::ListItem2("Allowed 1080p refresh rates");
 		clickableListItem1->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && !block) {
-				tsl::changeTo<DockedManualGui>((uint8_t)std::round(highestRefreshRate));
+				tsl::changeTo<DockedManualGui>(highestRefreshRate);
 				return true;
 			}
 			return false;
@@ -648,7 +641,7 @@ public:
 		auto *clickableListItem2 = new tsl::elm::ListItem2("Display underclock wizard");
 		clickableListItem2->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && !block) {
-				tsl::changeTo<DockedWizardGui>((uint8_t)std::round(highestRefreshRate));
+				tsl::changeTo<DockedWizardGui>(highestRefreshRate);
 				return true;
 			}
 			return false;
