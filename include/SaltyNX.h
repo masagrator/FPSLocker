@@ -421,3 +421,49 @@ Result SaltySD_SetMatchLowestRR(bool isTrue)
 	
 	return ret;
 }
+
+Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate)
+{
+	Result ret = 0;
+
+	// Send a command
+	IpcCommand c;
+	ipcInitialize(&c);
+	ipcSendPid(&c);
+
+	struct input {
+		u64 magic;
+		u64 cmd_id;
+		u64 zero;
+		u64 reserved;
+	} *raw;
+
+	raw = (input*)ipcPrepareHeader(&c, sizeof(*raw));
+
+	raw->magic = SFCI_MAGIC;
+	raw->cmd_id = 16;
+	raw->zero = 0;
+
+	ret = ipcDispatch(saltysd_orig);
+
+	if (R_SUCCEEDED(ret)) {
+		IpcParsedCommand r;
+		ipcParse(&r);
+
+		struct output {
+			u64 magic;
+			u64 result;
+			u64 refreshRate;
+			u64 reserved;
+		} *resp = (output*)r.Raw;
+
+		ret = resp->result;
+		
+		if (!ret)
+		{
+			*refreshRate = (uint8_t)(resp->refreshRate);
+		}
+	}
+	
+	return ret;
+}
