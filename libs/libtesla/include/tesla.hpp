@@ -88,6 +88,7 @@ namespace tsl {
         extern u16 LayerPosY;                   ///< Y position of the Tesla layer
         extern u16 FramebufferWidth;            ///< Width of the framebuffer
         extern u16 FramebufferHeight;           ///< Height of the framebuffer
+        extern u16 FramebufferWidthForSwizzling;
         extern u64 launchCombo;                 ///< Overlay activation key combo
 
     }
@@ -1004,7 +1005,7 @@ namespace tsl {
              * @param y Y Pos
              * @return Offset
              */
-            u32 getPixelOffset(s32 x, s32 y) {
+            inline u32 getPixelOffset(s32 x, s32 y) {
                 if (!this->m_scissoringStack.empty()) {
                     auto currScissorConfig = this->m_scissoringStack.top();
                     if (x < currScissorConfig.x ||
@@ -1013,11 +1014,16 @@ namespace tsl {
                         y > currScissorConfig.y + currScissorConfig.h)
                             return UINT32_MAX;
                 }
+                if (x < 0 || y < 0) return UINT32_MAX;
 
-                u32 tmpPos = ((y & 127) / 16) + (x / 32 * 8) + ((y / 16 / 8) * (((cfg::FramebufferWidth / 2) / 16 * 8)));
+                //Optimization trick to make it faster
+                u32 x_impl = (u32)x;
+                u32 y_impl = (u32)y;
+
+                u32 tmpPos = ((y_impl & 127) / 16) + (x_impl / 32 * 8) + ((y_impl / 16 / 8) * cfg::FramebufferWidthForSwizzling);
                 tmpPos *= 16 * 16 * 4;
 
-                tmpPos += ((y % 16) / 8) * 512 + ((x % 32) / 16) * 256 + ((y % 8) / 2) * 64 + ((x % 16) / 8) * 32 + (y % 2) * 16 + (x % 8) * 2;
+                tmpPos += ((y_impl % 16) / 8) * 512 + ((x_impl % 32) / 16) * 256 + ((y_impl % 8) / 2) * 64 + ((x_impl % 16) / 8) * 32 + (y_impl % 2) * 16 + (x_impl % 8) * 2;
 
                 return tmpPos / 2;
             }
@@ -1034,6 +1040,7 @@ namespace tsl {
                 cfg::FramebufferHeight = 720;
                 cfg::LayerWidth  = cfg::ScreenHeight * (float(cfg::FramebufferWidth) / float(cfg::FramebufferHeight));
                 cfg::LayerHeight = cfg::ScreenHeight;
+                cfg::FramebufferWidthForSwizzling = (cfg::FramebufferWidth / 2) / 16 * 8;
 
                 if (this->m_initialized)
                     return;
@@ -3612,6 +3619,7 @@ namespace tsl::cfg {
     u16 LayerPosY   = 0;
     u16 FramebufferWidth  = 0;
     u16 FramebufferHeight = 0;
+    u16 FramebufferWidthForSwizzling = 0;
     u64 launchCombo = HidNpadButton_L | HidNpadButton_Down | HidNpadButton_StickR;
 }
 
