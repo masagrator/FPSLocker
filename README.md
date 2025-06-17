@@ -87,9 +87,9 @@ I am not taking any responsibility for damages occuring from changing refresh ra
 
 # Information about changing refresh rates in docked mode
 
-Cap was set to 144 Hz as this is the max refresh rate supported by OG dock and non-OLED switches, which makes it the most universal.
+Cap was set to 120 Hz as this is the max refresh rate supported by OG dock and non-OLED switches, which makes it the most universal.
 
-Many displays are locked to 180 MHz pixel clock by default because from what I understand they expect running 1080p only with refresh rates listed as part of Video format Identification Code (VIC). 1080p has listed 24, 25, 50, 60, 100 and 120 Hz as VICs. But HOS refuse to acknowledge existence of VICs for 100 and 120 Hz, so we can't inform those displays we need higher limit available. That's why if display relies on receiving compatible VIC number via HDMI, you are locked in 1080p up to 75 Hz (720p up to 144 Hz fits into 180 MHz limit). This issue touches mainly TVs and non-1080p monitors.
+Many displays are locked to 180 MHz pixel clock by default because from what I understand something hinders connection between Switch and dock which ends in failed HBR2 training, leaving connection in HBR mode. HBR mode with 2 lanes is where 180 MHz limit comes from. Issue may come from Switch and/or dock itself.
 
 From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
 
