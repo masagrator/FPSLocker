@@ -602,6 +602,7 @@ private:
 	DockedModeRefreshRateAllowed rr;
 	DockedAdditionalSettings as;
 	uint8_t highestRefreshRate;
+	uint8_t linkRate;
 public:
     DockedGui() {
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
@@ -609,8 +610,14 @@ public:
 		int crc32 = 0;
 		LoadDockedModeAllowedSave(rr, as, &crc32);
 		highestRefreshRate = 60;
-		getDockedHighestRefreshRate(&highestRefreshRate);
-		snprintf(Docked_c, sizeof(Docked_c), "Reported max refresh rate: %u Hz\nConfig ID: %08X", highestRefreshRate, crc32);
+		linkRate = 10;
+		getDockedHighestRefreshRate(&highestRefreshRate, &linkRate);
+		char linkMode[5] = "HBR";
+		if (linkRate == 30) strcpy(linkMode, "HBR3");
+		else if (linkRate == 20) strcpy(linkMode, "HBR2");
+		else if (linkRate == 6) strcpy(linkMode, "RBR");
+		else if (linkRate != 10) strcpy(linkMode, "n/d");
+		snprintf(Docked_c, sizeof(Docked_c), "Max refresh rate available: %u Hz\nmyDP link rate: %s\nConfig ID: %08X", highestRefreshRate, linkMode, crc32);
 	}
 
 	size_t base_height = 128;
@@ -624,8 +631,13 @@ public:
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 
 			renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
+			if (!block) {
+				if (linkRate < 20) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
+				else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
+			}
+
 			
-		}), 65);
+		}), 85);
 
 		auto *clickableListItem1 = new tsl::elm::ListItem2("Allowed 1080p refresh rates");
 		clickableListItem1->setClickListener([this](u64 keys) { 

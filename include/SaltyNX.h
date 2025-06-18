@@ -422,7 +422,7 @@ Result SaltySD_SetMatchLowestRR(bool isTrue)
 	return ret;
 }
 
-Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate)
+Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate, uint8_t* linkRate)
 {
 	Result ret = 0;
 
@@ -453,7 +453,8 @@ Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate)
 		struct output {
 			u64 magic;
 			u64 result;
-			u64 refreshRate;
+			u32 refreshRate;
+			u32 linkRate;
 			u64 reserved;
 		} *resp = (output*)r.Raw;
 
@@ -462,6 +463,7 @@ Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate)
 		if (!ret)
 		{
 			*refreshRate = (uint8_t)(resp->refreshRate);
+			*linkRate = (uint8_t)(resp->linkRate);
 		}
 	}
 	
