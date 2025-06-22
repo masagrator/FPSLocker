@@ -23,7 +23,7 @@ If game is supported by SaltyNX and you installed everything correctly, you will
 
 **Short explanation:**
 The best approach if you want to run 30 FPS games at higher FPS: 
-1. Connect your Switch to internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version will be compatible with FPSLocker Warehouse, menu will be refreshed with option `Convert config to patch` appearing. Press on it, restart game and now change FPS target in FPSLocker.
+1. Connect your Switch to internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version will be compatible with FPSLocker Warehouse repository, menu will be refreshed with option `Convert config to patch` appearing. Press on it, restart game and now change FPS target in FPSLocker.
 2. Go to Advanced Settings, if you will see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, go back to FPSLocker main menu, press `Save settings` and restart game.
 
 **Explanation of each setting**:
