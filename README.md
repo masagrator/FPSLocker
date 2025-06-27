@@ -98,7 +98,7 @@ I am not taking any responsibility for damages occuring from changing refresh ra
 
 Cap was set to 120 Hz as this is the max refresh rate supported by OG dock and non-OLED switches, which makes it the most universal.
 
-Many displays are locked to 180 MHz pixel clock by default because from what I understand something hinders connection between Switch and dock which ends in failed HBR2 training, leaving connection in HBR mode. HBR mode with 2 lanes is where 180 MHz limit comes from. Issue may come from Switch and/or dock itself.
+Many displays are locked to 180 MHz pixel clock by default because from what I understand something hinders connection between Switch and dock which ends in failed HBR2 training, leaving connection in HBR mode. HBR mode with 2 lanes is where 180 MHz limit comes from. Issue may come from Switch and/or dock itself. Being in HBR mode also can result in audio not being passed to dock above 60 Hz at 1080p.
 
 From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
 
