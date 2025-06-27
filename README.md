@@ -51,7 +51,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
   - `Increase refresh rate` - Shows up only in handheld mode. Change display refresh rate up to 60 Hz. In OLED units it's blocked.
   - `Decrease refresh rate` - Shows up only in handheld mode. Change display refresh rate down to 40 Hz. In OLED units it's blocked.
   - `Change refresh rate` - Shows up only in docked mode. Choose display refresh rate from list.
-  - `Display Sync` - When turned on, all three options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target. In OLED units it works only in docked mode.
+  - `Display Sync` - When turned on, all three options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target.
   - `Retro Remake Mode` - this option shows only for people that use Lite with screen `InnoLux 2J055IA-27A (Rev B1)` or `Retro Remake SUPER5` (first revision only). That is because Retro Remake displays require special approach to change refresh rate, and first version of SUPER5 is spoofing ID of already existing display, which makes it impossible to detect which one is in use, so user must manually enable it if they are using SUPER5 display. All other Retro Remake displays are detected automatically.
   - `Docked Settings` - submenu related to display refresh rate of external displays. Not accessible for Lite units. Consists of:
       - `Allowed refresh rates` - you can check and edit manually which refresh rates are enabled for currently connected external display. It consists of 40, 45, 50 and 55 Hz. By default 50 is turned on, everything else is turned off.
