@@ -469,3 +469,49 @@ Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate, uint8_t* linkRa
 	
 	return ret;
 }
+
+Result SaltySD_isPossiblyRetroRemake(bool* isPossiblyRetroRemake)
+{
+	Result ret = 0;
+
+	// Send a command
+	IpcCommand c;
+	ipcInitialize(&c);
+	ipcSendPid(&c);
+
+	struct input {
+		u64 magic;
+		u64 cmd_id;
+		u64 zero;
+		u64 reserved;
+	} *raw;
+
+	raw = (input*)ipcPrepareHeader(&c, sizeof(*raw));
+
+	raw->magic = SFCI_MAGIC;
+	raw->cmd_id = 17;
+	raw->zero = 0;
+
+	ret = ipcDispatch(saltysd_orig);
+
+	if (R_SUCCEEDED(ret)) {
+		IpcParsedCommand r;
+		ipcParse(&r);
+
+		struct output {
+			u64 magic;
+			u64 result;
+			u64 value;
+			u64 reserved;
+		} *resp = (output*)r.Raw;
+
+		ret = resp->result;
+		
+		if (!ret)
+		{
+			*isPossiblyRetroRemake = (bool)(resp->value);
+		}
+	}
+	
+	return ret;
+}

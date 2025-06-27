@@ -83,6 +83,7 @@ bool downloadingRunning = false;
 Result error_code = UINT32_MAX;
 bool curl_timeout = false;
 uint8_t supportedHandheldRefreshRates[] = {40, 45, 50, 55, 60};
+uint8_t supportedHandheldRefreshRatesOLED[] = {45, 50, 55, 60};
 
 struct Title
 {
