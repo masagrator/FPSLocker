@@ -20,13 +20,7 @@ Overlay runs in two modes:<br>
 > When game is running
 
 If game is supported by SaltyNX and you installed everything correctly, you will see menu where first line states `NX-FPS plugin is running`.
-
-**Short explanation:**
-The best approach if you want to run 30 FPS games at higher FPS: 
-1. Connect your Switch to internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version will be compatible with FPSLocker Warehouse repository, menu will be refreshed with option `Convert config to patch` appearing. Press on it, restart game and now change FPS target in FPSLocker.
-2. Go to Advanced Settings, if you will see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, go back to FPSLocker main menu, press `Save settings` and restart game.
-
-**Explanation of each option and information**:
+Explanation of each line:
 - `Interval Mode` - it's used by NVN API to set limiter to either 30 FPS (2) or 60 FPS (1). 
 - `Custom FPS Target` - it's used to lock game to certain FPS. If game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
@@ -52,6 +46,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
   - `Decrease refresh rate` - Shows up only in handheld mode. Change display refresh rate down to 40 Hz. In OLED units it's blocked.
   - `Change refresh rate` - Shows up only in docked mode. Choose display refresh rate from list.
   - `Display Sync` - When turned on, both options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target. In OLED units it works only in docked mode.
+  - `Retro Remake Mode` - this option shows only for people that use Lite with screen `InnoLux 2J055IA-27A (Rev B1)` or `Retro Remake SUPER5` (first revision only). That is because Retro Remake displays require special approach to change refresh rate, and first version of SUPER5 is spoofing ID of already existing display, which makes it impossible to detect which one is in use, so user must manually enable it if they are using SUPER5 display. All other Retro Remake displays are detected automatically.
   - `Docked Settings` - submenu related to display refresh rate of external displays. Not accessible for Lite units. Consists of:
       - `Allowed refresh rates` - you can check and edit manually which refresh rates are enabled for currently connected external display. It consists of 40, 45, 50 and 55 Hz. By default 50 is turned on, everything else is turned off.
       - `Display underclock wizard` - it goes automatically through refresh rates from 40 to 55, user is asked to press required button to confirm it's working, if not pressed for 15 seconds it goes to next refresh rate. After checking all refresh rates you are moved to `Allowed refresh rates` menu to check results.
@@ -75,13 +70,15 @@ You will have two submenus to choose from (if you are using OLED model, you will
 
 I want to use this space to clarify few things.<br>
 
-OLED screens were getting often issues with green tint and ghosting below 60 Hz. 45 Hz works for some people properly only above certain brightness. I have decided to block OLED model completely until somebody will find more reliable way to change refresh rate for those displays.<br>
+Switch OLED displays require gamma color correction after changing refresh rate. I am modifying OLED panel registers to adjust gamma curve to be as close to original experience as possible. But because those registers have very big steps, it's not possible to do it perfectly, so there are small discrepancies in colors (The worst case I found is 60% brightness at 45 Hz), additionally the lower refresh rate the lower max brightness, that's how register responsible for tweaking gamma at max brightness works for some reason. After changing refresh rate, going back to 60 Hz doesn't restore 1:1 original colors, only way to do that is to go to sleep mode/turn off/restart Switch.<br>
 
 From all reports I got, only one LCD screen was getting issue with small flickering in left bottom corner when running at 40 Hz (they were using `InnoLux P062CCA-AZ2`, but there were other users who also got this display and had no issues at 40 Hz - me included). No other issues were found.<br>
 
-I have decided to limit down to 40 Hz since lower refresh rates not only were not beneficial to user, also this allows avoid certain risks with underclocking display too much.<br>
+Retro Remake displays require time to adjust itself to new signal, that's why refresh rate is applied with delay on those displays. Too short delay between attempts in changing refresh rate results in black screen which can be fixed by going to sleep mode/turning off/restarting Switch. If you are affected, write your case in Issues so I can increase delay in SaltyNX.
 
-LCD can be overclocked up to 70 Hz without immediately visible issues but I have leaved max at 60 Hz since I have decided that there are no visible benefits running display at 70 Hz which would justify tinkering with existing patches to patch games breaking above 60 FPS. From 75 Hz all users using original display panels were reporting issues with glitchy image. OLED above 65 Hz was freezing and only way to got it back working again was lowering refresh rate to 65 Hz and lower.
+I have decided to limit LCDs and Retro Remake displays down to 40 Hz since lower refresh rates not only were not beneficial to user, also this allows avoid certain risks with underclocking display too much. For Switch OLED that limit is 45 Hz because at 40 Hz it misbehaves.<br>
+
+LCD can be overclocked up to 70 Hz without immediately visible issues but I have leaved max at 60 Hz for now. From 75 Hz all users using original display panels were reporting issues with glitchy image. OLED above 60 Hz is misbehaving.
 
 If Display Sync is turned off, custom refresh rate is not restored after sleep mode.
 
