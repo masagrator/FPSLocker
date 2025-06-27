@@ -787,12 +787,23 @@ public:
 class DisplayGui : public tsl::Gui {
 private:
 	char refreshRate_c[32] = "";
-	char oled_c[48] = "Not available for Switch OLED\nin handheld mode.";
 	bool isDocked = false;
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
+	bool isPossiblyRetroRemake = false;
+	bool RetroRemakeMode = false;
 public:
     DisplayGui() {
-		if (isLite) entry_mode = ApmPerformanceMode_Normal;
+		if (isLite) {
+			entry_mode = ApmPerformanceMode_Normal;
+			if (R_SUCCEEDED(SaltySD_Connect())) {
+				SaltySD_isPossiblyRetroRemake(&isPossiblyRetroRemake);
+				SaltySD_Term();
+				if (isPossiblyRetroRemake) {
+					if (file_exists("sdmc:/SaltySD/flags/retro.flag") == true)
+						RetroRemakeMode = true;
+				}
+			}
+		}
 		else {
 			smInitialize();
 			if (R_SUCCEEDED(apmInitialize())) {
@@ -813,16 +824,15 @@ public:
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 
 			renderer->drawString(refreshRate_c, false, x, y+20, 20, renderer->a(0xFFFF));
-			if (isOLED && !isDocked) renderer->drawString(oled_c, false, x, y+50, 20, renderer->a(0xFFFF));
-			
+
 		}), 90);
 
 		if (!displaySync) {
 			if (entry_mode == ApmPerformanceMode_Normal) {
 				auto *clickableListItem = new tsl::elm::ListItem2("Increase Refresh Rate");
 				clickableListItem->setClickListener([this](u64 keys) { 
-					if ((keys & HidNpadButton_A) && (!isOLED || isDocked)) {
-						if ((refreshRate_g >= 40) && (refreshRate_g < 60)) {
+					if (keys & HidNpadButton_A) {
+						if ((refreshRate_g >= (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) && (refreshRate_g < (isOLED ? supportedHandheldRefreshRatesOLED[sizeof(supportedHandheldRefreshRatesOLED)-1] : supportedHandheldRefreshRates[sizeof(supportedHandheldRefreshRates)-1]))) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								refreshRate_g += 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
@@ -839,8 +849,8 @@ public:
 
 				auto *clickableListItem2 = new tsl::elm::ListItem2("Decrease Refresh Rate");
 				clickableListItem2->setClickListener([this](u64 keys) { 
-					if ((keys & HidNpadButton_A) && (!isOLED || isDocked)) {
-						if (refreshRate_g > 40) {
+					if (keys & HidNpadButton_A) {
+						if (refreshRate_g > (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								refreshRate_g -= 5;
 								SaltySD_SetDisplayRefreshRate(refreshRate_g);
@@ -876,25 +886,23 @@ public:
 					if (R_SUCCEEDED(SaltySD_Connect())) {
 						SaltySD_SetDisplaySync(!displaySync);
 						svcSleepThread(100'000);
-						if (!isOLED || entry_mode == ApmPerformanceMode_Boost) {
-							u64 PID = 0;
-							Result rc = pmdmntGetApplicationProcessId(&PID);
-							if (R_SUCCEEDED(rc) && Shared) {
-								if (!displaySync == true && (Shared -> FPSlocked) < 40) {
-									SaltySD_SetDisplayRefreshRate(60);
-									(Shared -> displaySync) = false;
-								}
-								else if (!displaySync == true) {
-									SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
-									(Shared -> displaySync) = (Shared -> FPSlocked) ? true : false;
-								}
-								else {
-									(Shared -> displaySync) = false;
-								}
-							}
-							else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
+						u64 PID = 0;
+						Result rc = pmdmntGetApplicationProcessId(&PID);
+						if (R_SUCCEEDED(rc) && Shared) {
+							if (!displaySync == true && (Shared -> FPSlocked) < 40) {
 								SaltySD_SetDisplayRefreshRate(60);
+								(Shared -> displaySync) = false;
 							}
+							else if (!displaySync == true) {
+								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
+								(Shared -> displaySync) = (Shared -> FPSlocked) ? true : false;
+							}
+							else {
+								(Shared -> displaySync) = false;
+							}
+						}
+						else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
+							SaltySD_SetDisplayRefreshRate(60);
 						}
 						SaltySD_Term();
 						displaySync = !displaySync;
@@ -919,6 +927,30 @@ public:
 				});
 
 				list->addItem(clickableListItem4);
+			}
+
+			if (isPossiblyRetroRemake) {
+				auto *clickableListItem5 = new tsl::elm::ToggleListItem("Retro Remake Mode", RetroRemakeMode);
+				clickableListItem5->setClickListener([this](u64 keys) { 
+					if (keys & HidNpadButton_A) {
+						if (!RetroRemakeMode) {
+							FILE* file = fopen("sdmc:/SaltySD/flags/retro.flag", "wb");
+							if (!file) {
+								mkdir("sdmc:/SaltySD/flags/", 777);
+								file = fopen("sdmc:/SaltySD/flags/retro.flag", "wb");
+							}
+							if (file) fclose(file);
+						}
+						else {
+							remove("sdmc:/SaltySD/flags/retro.flag");
+						}
+						RetroRemakeMode = !RetroRemakeMode;
+						return true;
+					}
+					return false;
+				});
+
+				list->addItem(clickableListItem5);
 			}
 		}
 		
