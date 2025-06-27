@@ -103,7 +103,12 @@ Many displays are locked to 180 MHz pixel clock by default because from what I u
 From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
 
 # Thanks
-Thanks to ~WerWolv for creating Tesla environment, to ~cucholix + ~Monked, to ~CTCaer for info about Samsung OLED panels, ~NaGa for tests and providing me Samsung OLED unit (and backers, including: Jorge Conceição, zany tofu, Lei Feng, brandon foster, AlM, Alex Haley, Stefano Bigio, Le Duc, Sylvixor x)
+Thanks to:
+- ~WerWolv for creating Tesla environment
+- ~cucholix + ~Monked for tests
+- ~CTCaer for info about Samsung OLED panels
+- ~NaGa for tests on Retro Remake SUPER5 display and providing me Switch OLED unit
+  - and backers, including: Jorge Conceição, zany tofu, Lei Feng, brandon foster, AlM, Alex Haley, Stefano Bigio, Le Duc, Sylvixor x
 
 # Sync Wait
 In those games you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
