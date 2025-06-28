@@ -187,7 +187,7 @@ public:
 			});
 
 			list->addItem(clickableListItem3);
-
+			mutexLock(&TitlesAccess);
 			for (size_t i = 0; i < titles.size(); i++) {
 				auto *clickableListItem = new tsl::elm::ListItem2(titles[i].TitleName);
 				clickableListItem->setClickListener([i](u64 keys) { 
@@ -200,6 +200,7 @@ public:
 
 				list->addItem(clickableListItem);
 			}
+			mutexUnlock(&TitlesAccess);
 		}
 
 		frame->setContent(list);
@@ -553,10 +554,10 @@ public:
 						else if (!(Shared -> FPSlocked)) {
 							(Shared -> FPSlocked) = 60;
 						}
-						else if ((Shared -> FPSlocked) < 60) {
+						else if ((Shared -> FPSlocked) < isOLED ? supportedHandheldRefreshRatesOLED[sizeof(supportedHandheldRefreshRatesOLED)-1] : supportedHandheldRefreshRates[sizeof(supportedHandheldRefreshRates)-1]) {
 							(Shared -> FPSlocked) += 5;
 						}
-						if (!oldSalty && displaySync && !isOLED) {
+						if (!oldSalty && displaySync) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
@@ -605,7 +606,7 @@ public:
 						else if ((Shared -> FPSlocked) > 15) {
 							(Shared -> FPSlocked) -= 5;
 						}
-						if (!oldSalty && displaySync && !isOLED) {
+						if (!oldSalty && displaySync) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
@@ -828,13 +829,11 @@ public:
 			if (R_SUCCEEDED(setsysGetProductModel(&model))) {
 				if (model == SetSysProductModel_Aula) {
 					isOLED = true;
-					remove("sdmc:/SaltySD/flags/displaysync.flag");
 				}
 				else if (model == SetSysProductModel_Hoag) {
 					isLite = true;
 				}
 			}
-			setsysExit();
 			fsdevMountSdmc();
 			FILE* file = fopen("sdmc:/SaltySD/flags/displaysync.flag", "rb");
 			if (file) {
@@ -891,9 +890,12 @@ public:
 	
 	virtual void exitServices() override {
 		threadActive = false;
+		threadWaitForExit(&t1);
+		threadClose(&t1);
 		threadWaitForExit(&t0);
 		threadClose(&t0);
 		shmemClose(&_sharedmemory);
+		setsysExit();
 		nsExit();
 		ommExit();
 		fsdevUnmountDevice("sdmc");
@@ -911,10 +913,12 @@ public:
 			tsl::hlp::doWithSmSession([]{
 				nsInitialize();
 			});
-			Result rc = getTitles(32);
+			mutexInit(&TitlesAccess);
+			threadCreate(&t1, TitlesThread, NULL, NULL, 0x1000, 0x10, -2);
+			threadStart(&t1);
 			if (oldSalty || !SaltySD)
-				return initially<NoGame2>(rc, 2, true);
-			else return initially<NoGame>(rc, 2, true);
+				return initially<NoGame2>(0, 2, true);
+			else return initially<NoGame>(0, 2, true);
 		}
 	}
 };

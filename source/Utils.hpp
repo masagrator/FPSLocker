@@ -84,6 +84,7 @@ Result error_code = UINT32_MAX;
 bool curl_timeout = false;
 uint8_t supportedHandheldRefreshRates[] = {40, 45, 50, 55, 60};
 uint8_t supportedHandheldRefreshRatesOLED[] = {45, 50, 55, 60};
+Mutex TitlesAccess;
 
 struct Title
 {
@@ -589,44 +590,51 @@ bool CheckPort () {
 
 std::string getAppName(uint64_t Tid)
 {
-	NsApplicationControlData appControlData;
+	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(sizeof(NsApplicationControlData));
 	size_t appControlDataSize = 0;
-	if (R_FAILED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, &appControlData, sizeof(NsApplicationControlData), &appControlDataSize))) {
+	if (R_FAILED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), &appControlDataSize))) {
+		free(appControlData);
 		char returnTID[18];
 		sprintf(returnTID, "%016lx-", Tid);
 		return (std::string)returnTID;
 	}
 	
 	NacpLanguageEntry *languageEntry = nullptr;
-	Result rc = nsGetApplicationDesiredLanguage(&appControlData.nacp, &languageEntry);
+	Result rc = nsGetApplicationDesiredLanguage(&(appControlData -> nacp), &languageEntry);
 	if (R_FAILED(rc)) {
+		free(appControlData);
 		char returnTID[18];
 		sprintf(returnTID, "0x%X", rc);
 		return (std::string)returnTID;
 	}
-	
-	return std::string(languageEntry->name);
+	std::string to_return = languageEntry->name;
+	free(appControlData);
+	return to_return;
 }
 
 Result getTitles(int32_t count)
 {
-  NsApplicationRecord appRecords = {};
-  int32_t actualAppRecordCnt = 0;
-  Result rc;
+	NsApplicationRecord* appRecords = (NsApplicationRecord*)malloc(count * sizeof(NsApplicationRecord));
+	int32_t actualAppRecordCnt = 0;
+	Result rc = nsListApplicationRecord(appRecords, count, 0, &actualAppRecordCnt);
+	if (R_FAILED(rc)) {
+		free(appRecords);
+		return rc;
+	}
+	for (int32_t i = 0; i < actualAppRecordCnt; i++) {
+		if (appRecords[i].application_id != 0) {
+			Title title;
+			title.TitleID = appRecords[i].application_id;
+			title.TitleName = getAppName(appRecords[i].application_id);
+			mutexLock(&TitlesAccess);
+			titles.push_back(title);
+			mutexUnlock(&TitlesAccess);
+		}
+	}
+	free(appRecords);
+	return rc;
+}
 
-  while (1)
-  {
-    static int32_t offset = 0;
-    rc = nsListApplicationRecord(&appRecords, 1, offset, &actualAppRecordCnt);
-    if (R_FAILED(rc) || (actualAppRecordCnt < 1) || (offset >= count)) break;
-    if (appRecords.application_id != 0) {
-        Title title;
-        title.TitleID = appRecords.application_id;
-        title.TitleName = getAppName(appRecords.application_id);
-        titles.push_back(title);
-    }
-    offset++;
-    appRecords = {};
-  }
-  return rc;
+void TitlesThread(void*) {
+	getTitles(32);
 }
