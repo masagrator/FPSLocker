@@ -588,10 +588,6 @@ bool CheckPort () {
 	return false;
 }
 
-size_t align_up(size_t size, size_t alignment) {
-	return (size + alignment - 1) &~ (alignment - 1);
-}
-
 std::string getAppName(uint64_t Tid)
 {
 	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(sizeof(NsApplicationControlData));
