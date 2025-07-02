@@ -791,7 +791,6 @@ private:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 	bool isPossiblyRetroRemake = false;
 	bool RetroRemakeMode = false;
-	bool oledStockColors = true;
 public:
     DisplayGui() {
 		if (isLite) {
@@ -806,8 +805,6 @@ public:
 			}
 		}
 		else {
-			if (isOLED && file_exists("sdmc:/SaltySD/flags/oled_colors.flag") == true)
-				oledStockColors = false;
 			smInitialize();
 			if (R_SUCCEEDED(apmInitialize())) {
 				apmGetPerformanceMode(&entry_mode);
@@ -948,31 +945,6 @@ public:
 							remove("sdmc:/SaltySD/flags/retro.flag");
 						}
 						RetroRemakeMode = !RetroRemakeMode;
-						return true;
-					}
-					return false;
-				});
-
-				list->addItem(clickableListItem5);
-			}
-
-			if (isOLED) {
-				list->addItem(new tsl::elm::CategoryHeader("To apply change wake up from sleep mode.", true));
-				auto *clickableListItem5 = new tsl::elm::ToggleListItem("OLED 60Hz stock colors when possible", oledStockColors);
-				clickableListItem5->setClickListener([this](u64 keys) {
-					if (keys & HidNpadButton_A) {
-						if (oledStockColors) {
-							FILE* file = fopen("sdmc:/SaltySD/flags/oled_colors.flag", "wb");
-							if (!file) {
-								mkdir("sdmc:/SaltySD/flags/", 777);
-								file = fopen("sdmc:/SaltySD/flags/oled_colors.flag", "wb");
-							}
-							if (file) fclose(file);
-						}
-						else {
-							remove("sdmc:/SaltySD/flags/oled_colors.flag");
-						}
-						oledStockColors = !oledStockColors;
 						return true;
 					}
 					return false;
