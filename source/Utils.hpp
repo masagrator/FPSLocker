@@ -36,6 +36,7 @@ struct DockedAdditionalSettings {
 	bool fpsTargetWithoutRRMatchLowest;
 };
 
+#include "Langs.hpp"
 
 NxFpsSharedBlock* Shared = 0;
 uint8_t* refreshRate_shared = 0;
@@ -51,7 +52,7 @@ bool plugin = true;
 uint8_t SetBuffers_save = 0;
 bool forceSuspend_save = false;
 char FPSMode_c[64];
-char FPSTarget_c[32];
+char FPSTarget_c[64];
 char PFPS_c[32];
 char nvnBuffers[96] = "";
 char SyncWait_c[32];
@@ -85,6 +86,9 @@ bool curl_timeout = false;
 uint8_t supportedHandheldRefreshRates[] = {40, 45, 50, 55, 60};
 uint8_t supportedHandheldRefreshRatesOLED[] = {45, 50, 55, 60};
 Mutex TitlesAccess;
+
+volatile const bool forceEnglishLanguage = false;
+std::string overlayName = "sdmc:/switch/.overlays/";
 
 struct Title
 {
@@ -637,4 +641,20 @@ Result getTitles(int32_t count)
 
 void TitlesThread(void*) {
 	getTitles(32);
+}
+
+void setForceEnglishLanguage(bool set) {
+	uintptr_t ptr_func = (uintptr_t)&TitlesThread;
+	MemoryInfo mem = {0};
+	u32 pageinfo = 0;
+	svcQueryMemory(&mem, &pageinfo, ptr_func);
+	bool* ptrBool = (bool*)&forceEnglishLanguage;
+	uintptr_t ptrBool_integer = (uintptr_t)ptrBool;
+	ptrdiff_t ptrBool_offset = ptrBool_integer - mem.addr;
+	FILE* file = fopen(overlayName.c_str(), "rb+");
+	if (file) {
+		fseek(file, ptrBool_offset, 0);
+		fwrite(&set, 1, 1, file);
+		fclose(file);
+	}
 }
