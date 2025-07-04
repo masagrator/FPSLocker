@@ -1567,6 +1567,7 @@ namespace tsl {
             std::function<void(gfx::Renderer*, s32 x, s32 y, s32 w, s32 h)> m_renderFunc;
         };
 
+        std::string buttons = "\uE0E1  Back     \uE0E0  OK";
 
         /**
          * @brief The base frame which can contain another view
@@ -1595,7 +1596,7 @@ namespace tsl {
 
                 renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(tsl::style::color::ColorText));
 
-                renderer->drawString("\uE0E1  Back     \uE0E0  OK", false, 30, 693, 23, a(tsl::style::color::ColorText));
+                renderer->drawString(buttons.c_str(), false, 30, 693, 23, a(tsl::style::color::ColorText));
 
                 if (this->m_contentElement != nullptr)
                     this->m_contentElement->frame(renderer);
