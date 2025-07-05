@@ -59,7 +59,7 @@ public:
 				tick = svcGetSystemTick();
 				return false;
 			}
-			if ((svcGetSystemTick() - tick) > ((19200000 / *refreshRate_shared) * 2)) {
+			if ((svcGetSystemTick() - tick) > ((systemtickfrequency / *refreshRate_shared) * 2)) {
 				block = true;
 			}
 			else tick = svcGetSystemTick();
@@ -177,7 +177,7 @@ public:
 				tsl::changeTo<DockedManualGui>(highestRefreshRate);
 				return true;
 			}
-			if (svcGetSystemTick() - tick < (15 * 19200000)) {
+			if (svcGetSystemTick() - tick < (15 * systemtickfrequency)) {
 				if (keysHeld & keyCheck) {
 					rr[i] = true;
 					i++;
@@ -354,7 +354,7 @@ public:
 				tsl::changeTo<DockedManualGui>(m_maxRefreshRate);
 				return true;
 			}
-			if (svcGetSystemTick() - tick < (delay_s * 19200000)) {
+			if (svcGetSystemTick() - tick < (delay_s * systemtickfrequency)) {
 				if (keysHeld & keyCheck) {
 					rr[i] = true;
 					i++;

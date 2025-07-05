@@ -56,6 +56,7 @@ char FPSTarget_c[64];
 char PFPS_c[32];
 char nvnBuffers[96] = "";
 char SyncWait_c[32];
+uint64_t systemtickfrequency = 19200000;
 
 char configPath[128] = "";
 char patchPath[128] = "";
@@ -260,8 +261,8 @@ void downloadPatch(void*) {
     };
 
 	uint64_t startTick = svcGetSystemTick();
-	uint64_t timeoutTick = startTick + (30 * 19'200'000); //30 seconds
-	long msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+	uint64_t timeoutTick = startTick + (30 * systemtickfrequency); //30 seconds
+	long msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 
 	smInitialize();
 
@@ -313,7 +314,7 @@ void downloadPatch(void*) {
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-		msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+		msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 
         CURLcode res = curl_easy_perform(curl);
@@ -403,7 +404,7 @@ void downloadPatch(void*) {
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
 						curl_easy_setopt(curl, CURLOPT_URL, download_path);
-						msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+						msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 						curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 						FILE* fp = fopen(file_path, "wb");
 						if (!fp) {
@@ -432,7 +433,7 @@ void downloadPatch(void*) {
 				return;
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-			msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+			msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 			if (msPeriod < 1000) msPeriod = 1000;
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 			CURLcode res = curl_easy_perform(curl);
