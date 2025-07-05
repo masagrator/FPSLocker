@@ -74,14 +74,13 @@ class DockedWizardGui : public tsl::Gui {
 public:
 	uint64_t tick;
     size_t i;
-	char Docked_c[256] = "";
-	char PressButton[40] = "";
+	std::string Docked_c = getStringID(93);
+	char PressButton[128] = "";
 	DockedModeRefreshRateAllowed rr;
 	DockedModeRefreshRateAllowed rr_default;
 	DockedAdditionalSettings as;
 	uint8_t highestRefreshRate = 60;
     DockedWizardGui(uint8_t highestRefreshRate_impl) {
-		strcpy(Docked_c, getStringID(93));
 		strcpy(PressButton, getStringID(94));
 		if (highestRefreshRate_impl >= 70) highestRefreshRate = highestRefreshRate_impl;
 		LoadDockedModeAllowedSave(rr_default, as, nullptr);
@@ -98,7 +97,7 @@ public:
 
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 
-			renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
+			renderer->drawString(Docked_c.c_str(), false, x, y+20, 20, renderer->a(0xFFFF));
 
 			renderer->drawString(PressButton, false, x, y+160, 20, renderer->a(0xFFFF));
 			
@@ -234,9 +233,9 @@ class DockedOverWizardGui : public tsl::Gui {
 public:
 	uint64_t tick;
     size_t i;
-	char Docked_c[384] = "";
+	char Docked_c[768] = "";
 
-	char PressButton[40] = "";
+	char PressButton[128] = "";
 	DockedModeRefreshRateAllowed rr;
 	DockedModeRefreshRateAllowed rr_default;
 	DockedAdditionalSettings as;
