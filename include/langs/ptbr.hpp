@@ -43,7 +43,7 @@ namespace PTBR {
         "Triplo (forçado)",
         "Quádruplo (forçado)",
         "Quádruplo",
-        "NVN Espera de sincronização de janela",
+        "Sincronização de janela",
         "Modo",
         "Habilitado",
         "Semi-Habilitado",
@@ -192,7 +192,7 @@ namespace PTBR {
     };
 
     std::array teslaStrings = {
-       "Back",
+       "Voltar",
        "OK" 
     };
 
