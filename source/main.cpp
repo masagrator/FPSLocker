@@ -28,7 +28,7 @@ public:
 
 	NoGameSub(uint64_t titleID, std::string titleName) {
 		_titleid = titleID;
-		sprintf(&_titleidc[0], "%016lX", _titleid);
+		sprintf(&_titleidc[0], "%016lX", titleID);
 		_titleName = titleName;
 	}
 
@@ -389,27 +389,8 @@ public:
 		s32 width_impl = 0;
 		s32 height_impl = 0;
 		ommGetDefaultDisplayResolution(&width_impl, &height_impl);
-		if ((height_impl != height)) {
-			height = height_impl;
-			sizeofAllowedFPSTargets = 10;
-			if (height == 1080) {
-				LoadDockedModeAllowedSave(rr, as, nullptr);
-			}
-			else if (height == 720) {
-				for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-					if (DockedModeRefreshRateAllowedValues[i] <= (uint8_t)std::round(highestRefreshRate)) {
-						rr[i] = true;
-					}
-				}
-			}
-			else {
-				return true;
-			}
-			for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-				if (rr[i] == true) {
-					AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
-				}
-			}
+		if (height_impl != height) {
+			tsl::goBack();
 			return true;
 		}
 		counter += 0.1f;
