@@ -136,7 +136,7 @@ namespace FRA {
 		"Assistant d'underclock de l'écran",
 		"Non supporté à %dp!",
 		"Commencer par quitter le jeu!",
-		"Appuyer sur ZL pour confirmer que 40 Hz fonctionne.",
+		"Appuyer sur ZL pour confirmer que %d Hz fonctionne.",
 		"Appuyer sur X pour confirmer que %d Hz fonctionne.",
 		"Appuyer sur Y pour confirmer que %d Hz fonctionne.",
 		"Appuyer sur ZR pour confirmer que %d Hz fonctionne.",

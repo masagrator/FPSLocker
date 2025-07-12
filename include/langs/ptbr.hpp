@@ -138,7 +138,7 @@ namespace PTBR {
 		"Assistente de underclock de display",
 		"Não suportado em %dp!",
 		"Feche o jogo primeiro!",
-		"Pressione ZL para confirmar 40 Hz.",
+		"Pressione ZL para confirmar %d Hz.",
 		"Pressione X para confirmar %d Hz.",
 		"Pressione Y para confirmar %d Hz.",
 		"Pressione ZR para confirmar %d Hz.",

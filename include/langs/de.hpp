@@ -137,7 +137,7 @@ namespace GER {
 		"Display-Underclock-Assistent",
 		"Nicht unterstützt bei %dp!",
 		"Beende Spiel zuerst!",
-		"Drücke ZL um zu bestätigen, dass 40 Hz funktioniert.",
+		"Drücke ZL um zu bestätigen, dass %d Hz funktioniert.",
 		"Drücke X um zu bestätigen, dass %d Hz funktioniert.",
 		"Drücke Y um zu bestätigen, dass %d Hz funktioniert.",
 		"Drücke ZR um zu bestätigen, dass %d Hz funktioniert.",

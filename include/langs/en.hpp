@@ -135,7 +135,7 @@ namespace ENG {
 		"Display underclock wizard",
 		"Not supported at %dp!",
 		"Close game first!",
-		"Press ZL to confirm 40 Hz is working.",
+		"Press ZL to confirm %d Hz is working.",
 		"Press X to confirm %d Hz is working.",
 		"Press Y to confirm %d Hz is working.",
 		"Press ZR to confirm %d Hz is working.",
