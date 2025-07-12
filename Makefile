@@ -42,9 +42,9 @@ APP_VERSION	:=	2.2.0
 
 TARGET		:=	FPSLocker
 BUILD		:=	build
-SOURCES		:=	source source/c4 source/c4/yml libs/asmjit/src/asmjit/arm libs/asmjit/src/asmjit/core libs/asmtk/src/asmtk
+SOURCES		:=	source source/c4 source/c4/yml
 DATA		:=	data
-INCLUDES	:=	include libs/libtesla/include source libs/asmjit/src libs/asmtk/src/asmtk
+INCLUDES	:=	include libs/libtesla/include source
 
 NO_ICON		:=  1
 
