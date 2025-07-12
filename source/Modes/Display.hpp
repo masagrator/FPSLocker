@@ -81,7 +81,7 @@ public:
 	DockedAdditionalSettings as;
 	uint8_t highestRefreshRate = 60;
     DockedWizardGui(uint8_t highestRefreshRate_impl) {
-		strcpy(PressButton, getStringID(94));
+		snprintf(PressButton, sizeof(PressButton), getStringID(94), 40);
 		if (highestRefreshRate_impl >= 70) highestRefreshRate = highestRefreshRate_impl;
 		LoadDockedModeAllowedSave(rr_default, as, nullptr);
 		memcpy(&rr, &rr_default, sizeof(rr));
@@ -243,7 +243,7 @@ public:
 	uint16_t delay_s = 10;
 	bool block = false;
     DockedOverWizardGui(uint8_t maxRefreshRate) {
-		strcpy(PressButton, getStringID(94));
+		snprintf(PressButton, sizeof(PressButton), getStringID(94), 70);
 		if (maxRefreshRate > DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1])
 			maxRefreshRate = DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1];
 		m_maxRefreshRate = maxRefreshRate;
