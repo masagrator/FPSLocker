@@ -38,13 +38,13 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 APP_TITLE	:=	FPSLocker
-APP_VERSION	:=	2.2.0-prerelease.10
+APP_VERSION	:=	2.2.0
 
 TARGET		:=	FPSLocker
 BUILD		:=	build
-SOURCES		:=	source source/c4 source/c4/yml
+SOURCES		:=	source source/c4 source/c4/yml libs/asmjit/src/asmjit/arm libs/asmjit/src/asmjit/core libs/asmtk/src/asmtk
 DATA		:=	data
-INCLUDES	:=	include libs/libtesla/include source
+INCLUDES	:=	include libs/libtesla/include source libs/asmjit/src libs/asmtk/src/asmtk
 
 NO_ICON		:=  1
 
