@@ -304,7 +304,6 @@ public:
 	uint8_t highestRefreshRate = 60;
 	DockedFPSTargetGui() {
 		s32 width = 0;
-		s32 height = 0;
 		ommGetDefaultDisplayResolution(&width, &height);
 		if (height == 1080) {
 			LoadDockedModeAllowedSave(rr, as, nullptr);
