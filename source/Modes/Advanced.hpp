@@ -3,12 +3,12 @@ public:
     SetBuffers() {}
 
     virtual tsl::elm::Element* createUI() override {
-		auto frame = new tsl::elm::OverlayFrame("Set Buffering", " ");
+		auto frame = new tsl::elm::OverlayFrame(getStringID(30), " ");
 
 		auto list = new tsl::elm::List();
-		list->addItem(new tsl::elm::CategoryHeader("It will be applied on next game boot.", false));
-		list->addItem(new tsl::elm::NoteHeader("Remember to save settings after change.", true, {0xF, 0x3, 0x3, 0xF}));
-		auto *clickableListItem = new tsl::elm::ListItem2("Double");
+		list->addItem(new tsl::elm::CategoryHeader(getStringID(31), false));
+		list->addItem(new tsl::elm::NoteHeader(getStringID(32), true, {0xF, 0x3, 0x3, 0xF}));
+		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(33));
 		clickableListItem->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				SetBuffers_save = 2;
@@ -20,7 +20,7 @@ public:
 		list->addItem(clickableListItem);
 
 		if ((Shared -> API) == 3) {
-			auto *clickableListItemv1 = new tsl::elm::ListItem2("Triple");
+			auto *clickableListItemv1 = new tsl::elm::ListItem2(getStringID(34));
 			clickableListItemv1->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					SetBuffers_save = 3;
@@ -34,7 +34,7 @@ public:
 		}
 		else {
 			if ((Shared -> SetActiveBuffers) == 2 && (Shared -> Buffers) == 3 && !SetBuffers_save) {
-				auto *clickableListItem2 = new tsl::elm::ListItem2("Triple (force)");
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(35));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						SetBuffers_save = 3;
@@ -46,7 +46,7 @@ public:
 				list->addItem(clickableListItem2);
 			}
 			else {
-				auto *clickableListItem2 = new tsl::elm::ListItem2("Triple");
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(34));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						if ((Shared -> Buffers) == 4) SetBuffers_save = 3;
@@ -61,7 +61,7 @@ public:
 			
 			if ((Shared -> Buffers) == 4) {
 				if ((Shared -> SetActiveBuffers) < 4 && (Shared -> SetActiveBuffers) > 0 && (Shared -> Buffers) == 4) {
-					auto *clickableListItem3 = new tsl::elm::ListItem2("Quadruple (force)");
+					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(36));
 					clickableListItem3->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
 							SetBuffers_save = 4;
@@ -73,7 +73,7 @@ public:
 					list->addItem(clickableListItem3);	
 				}
 				else {
-					auto *clickableListItem3 = new tsl::elm::ListItem2("Quadruple");
+					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(37));
 					clickableListItem3->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
 							SetBuffers_save = 0;
@@ -98,14 +98,14 @@ public:
     SyncMode() {}
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("NVN Window Sync Wait", "Mode");
+        auto frame = new tsl::elm::OverlayFrame(getStringID(38), getStringID(39));
 
 		auto list = new tsl::elm::List();
 
-		auto *clickableListItem = new tsl::elm::ListItem2("Enabled");
+		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(40));
 		clickableListItem->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "On";
+				ZeroSyncMode = getStringID(43);
 				(Shared -> ZeroSync) = 0;
 				tsl::goBack();
 				tsl::goBack();
@@ -115,10 +115,10 @@ public:
 		});
 		list->addItem(clickableListItem);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem2("Semi-Enabled");
+		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(41));
 		clickableListItem2->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "Semi";
+				ZeroSyncMode = getStringID(45);
 				(Shared -> ZeroSync) = 2;
 				tsl::goBack();
 				tsl::goBack();
@@ -128,10 +128,10 @@ public:
 		});
 		list->addItem(clickableListItem2);
 
-		auto *clickableListItem3 = new tsl::elm::ListItem2("Disabled");
+		auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(42));
 		clickableListItem3->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = "Off";
+				ZeroSyncMode = getStringID(44);
 				(Shared -> ZeroSync) = 1;
 				tsl::goBack();
 				tsl::goBack();
@@ -154,57 +154,57 @@ public:
 		configValid = LOCK::readConfig(&configPath[0]);
 		if (R_FAILED(configValid)) {
 			if (configValid == 0x202) {
-				sprintf(&lockInvalid[0], "Game config file not found\nTID: %016lX\nBID: %016lX", TID, BID);
+				sprintf(&lockInvalid[0], getStringID(46), TID, BID);
 			}
-			else sprintf(&lockInvalid[0], "Game config error: 0x%X", configValid);
+			else sprintf(&lockInvalid[0], getStringID(47), configValid);
 		}
 		else {
 			patchValid = !file_exists(&patchPath[0]);
 			if (R_FAILED(patchValid)) {
 				if (!FileDownloaded) {
 					if (R_SUCCEEDED(configValid)) {
-						sprintf(&patchChar[0], "Patch file doesn't exist.\nUse \"Convert config to patch file\"\nto make it!");
+						sprintf(&patchChar[0], getStringID(48));
 					}
-					else sprintf(&patchChar[0], "Patch file doesn't exist.");
+					else sprintf(&patchChar[0], getStringID(49));
 				}
 				else {
-					sprintf(&patchChar[0], "New config downloaded successfully.\nUse \"Convert config to patch file\"\nto make it applicable!");
+					sprintf(&patchChar[0], getStringID(50));
 				}
 			}
-			else sprintf(&patchChar[0], "Patch file exists.");
+			else sprintf(&patchChar[0], getStringID(51));
 		}
 		switch((Shared -> ZeroSync)) {
 			case 0:
-				ZeroSyncMode = "On";
+				ZeroSyncMode = getStringID(43);
 				break;
 			case 1:
-				ZeroSyncMode = "Off";
+				ZeroSyncMode = getStringID(44);
 				break;
 			case 2:
-				ZeroSyncMode = "Semi";
+				ZeroSyncMode = getStringID(45);
 		}
 	}
 
 	size_t base_height = 134;
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Advanced settings");
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(52));
 
 		auto list = new tsl::elm::List();
 
 		if ((Shared -> API)) {
 			switch((Shared -> API)) {
 				case 1: {
-					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: NVN", false));
+					list->addItem(new tsl::elm::CategoryHeader(getStringID(53), false));
 					
 					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 						
 						renderer->drawString(&nvnBuffers[0], false, x, y+20, 20, renderer->a(0xFFFF));
 							
-					}), 40);
+					}), 60);
 
 					if ((Shared -> Buffers) == 2 || (Shared -> SetBuffers) == 2 || (Shared -> ActiveBuffers) == 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem("Window Sync Wait", ZeroSyncMode);
+						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(54), ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
@@ -215,7 +215,7 @@ public:
 						list->addItem(clickableListItem3);
 					}
 					if ((Shared -> Buffers) > 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
+						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(30));
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -228,10 +228,10 @@ public:
 					break;
 				}
 				case 2:
-					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: EGL", false));
+					list->addItem(new tsl::elm::CategoryHeader(getStringID(55), false));
 					break;
 				case 3: {
-					list->addItem(new tsl::elm::CategoryHeader("GPU API Interface: Vulkan", false));
+					list->addItem(new tsl::elm::CategoryHeader(getStringID(56), false));
 
 					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 						
@@ -240,7 +240,7 @@ public:
 					}), 40);
 
 					if ((Shared -> Buffers) >= 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem("Set Buffering");
+						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(30));
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -254,7 +254,7 @@ public:
 			}
 		}
 
-		list->addItem(new tsl::elm::CategoryHeader("FPSLocker Patches", false));
+		list->addItem(new tsl::elm::CategoryHeader(getStringID(57), false));
 
 		if (R_FAILED(configValid)) {
 			base_height = 154;
@@ -264,7 +264,7 @@ public:
 			
 			if (R_SUCCEEDED(configValid)) {
 				
-				renderer->drawString("Found valid config file!", false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(getStringID(58), false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchAppliedChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
 				if (R_FAILED(patchValid)) {
 					renderer->drawString(&patchChar[0], false, x, y+64, 20, renderer->a(0xF99F));
@@ -280,28 +280,28 @@ public:
 		}), base_height);
 
 		if (R_SUCCEEDED(configValid)) {
-			list->addItem(new tsl::elm::NoteHeader("Remember to reboot the game after conversion!", true, {0xF, 0x3, 0x3, 0xF}));
-			auto *clickableListItem = new tsl::elm::MiniListItem("Convert config to patch file");
+			list->addItem(new tsl::elm::NoteHeader(getStringID(59), true, {0xF, 0x3, 0x3, 0xF}));
+			auto *clickableListItem = new tsl::elm::MiniListItem(getStringID(60));
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
 					if (R_SUCCEEDED(patchValid)) {
-						sprintf(&patchChar[0], "Patch file created successfully.\nRestart the game and change\nFPS Target to apply the patch!");
+						sprintf(&patchChar[0], getStringID(61));
 					}
-					else sprintf(&patchChar[0], "Error while creating patch: 0x%x", patchValid);
+					else sprintf(&patchChar[0], getStringID(62), patchValid);
 					return true;
 				}
 				return false;
 			});
 			list->addItem(clickableListItem);
 
-			auto *clickableListItem2 = new tsl::elm::MiniListItem("Delete patch file");
+			auto *clickableListItem2 = new tsl::elm::MiniListItem(getStringID(63));
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
 						remove(&patchPath[0]);
 						patchValid = 0x202;
-						sprintf(&patchChar[0], "Patch file deleted successfully.");
+						sprintf(&patchChar[0], getStringID(64));
 					}
 					return true;
 				}
@@ -310,13 +310,13 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		if (R_FAILED(configValid)) {
-			list->addItem(new tsl::elm::NoteHeader("This can take up to 30 seconds.", true, {0xF, 0x3, 0x3, 0xF}));
+			list->addItem(new tsl::elm::NoteHeader(getStringID(65), true, {0xF, 0x3, 0x3, 0xF}));
 		}
-		auto *clickableListItem4 = new tsl::elm::MiniListItem("Check/download config file");
+		auto *clickableListItem4 = new tsl::elm::MiniListItem(getStringID(66));
 		clickableListItem4->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning && exitPossible) {
 				exitPossible = false;
-				sprintf(&patchChar[0], "Checking Warehouse for config...\nExit not possible until finished!");
+				sprintf(&patchChar[0], getStringID(67));
 				threadCreate(&t1, downloadPatch, NULL, NULL, 0x20000, 0x3F, 3);
 				threadStart(&t1);
 				return true;
@@ -325,9 +325,9 @@ public:
 		});
 		list->addItem(clickableListItem4);
 
-		list->addItem(new tsl::elm::CategoryHeader("Misc", false));
+		list->addItem(new tsl::elm::CategoryHeader(getStringID(68), false));
 
-		auto *clickableListItem5 = new tsl::elm::MiniToggleListItem("Halt unfocused game", forceSuspend_save);
+		auto *clickableListItem5 = new tsl::elm::MiniToggleListItem(getStringID(69), forceSuspend_save);
 		clickableListItem5->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				forceSuspend_save = !forceSuspend_save;
@@ -349,22 +349,22 @@ public:
 		if (PluginRunning) {
 			if (i > 9) {
 				if ((Shared -> patchApplied) == 1) {
-					sprintf(patchAppliedChar, "Patch was loaded to game.");
+					sprintf(patchAppliedChar, getStringID(70));
 				}
 				else if ((Shared -> patchApplied) == 2) {
-					sprintf(patchAppliedChar, "Master Write was loaded to game.");
+					sprintf(patchAppliedChar, getStringID(71));
 				}
-				else sprintf(patchAppliedChar, "Plugin didn't apply patch to game.");
+				else sprintf(patchAppliedChar, getStringID(72));
 				switch (Shared -> API) {
 					case 1: {
 						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
-							sprintf(&nvnBuffers[0], "Set/Active/Available buffers: %d/%d/%d", (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
+							sprintf(&nvnBuffers[0], getStringID(73), (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
 						}
 						break;
 					}
 					case 3: {
 						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
-							sprintf(&nvnBuffers[0], "Active buffers: %d", (Shared -> Buffers));
+							sprintf(&nvnBuffers[0], getStringID(74), (Shared -> Buffers));
 						}
 						break;
 					}
@@ -393,43 +393,43 @@ public:
 				error_code = UINT32_MAX;
 			}
 			if (rc == 0x316) {
-				sprintf(&patchChar[0], "Connection timeout!");
+				sprintf(&patchChar[0], getStringID(75));
 			}
 			else if (rc == 0x212 || rc == 0x312) {
-				sprintf(&patchChar[0], "Config is not available! RC: 0x%x", rc);
+				sprintf(&patchChar[0], getStringID(76), rc);
 			}
 			else if (rc == 0x404) {
-				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nExit not possible until finished!");
+				sprintf(&patchChar[0], getStringID(77));
 			}
 			else if (rc == 0x405) {
-				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nTimeout! It took too long to check.");
+				sprintf(&patchChar[0], getStringID(78));
 			}
 			else if (rc == 0x406) {
-				sprintf(&patchChar[0], "Config is not available!\nChecking Warehouse for more info...\nConnection error!");
+				sprintf(&patchChar[0], getStringID(79));
 			}
 			else if (rc == 0x104) {
-				sprintf(&patchChar[0], "No new config available.");
+				sprintf(&patchChar[0], getStringID(80));
 			}
 			else if (rc == 0x412) {
-				sprintf(&patchChar[0], "Internet connection not available!");
+				sprintf(&patchChar[0], getStringID(81));
 			}
 			else if (rc == 0x1001) {
-				sprintf(&patchChar[0], "Patch is not needed for this game!");
+				sprintf(&patchChar[0], getStringID(82));
 			}
 			else if (rc == 0x1002) {
-				sprintf(&patchChar[0], "This game is not listed in Warehouse!");
+				sprintf(&patchChar[0], getStringID(83));
 			}
 			else if (rc == 0x1003) {
-				sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version. Other\nversion doesn't need a patch, your\nversion maybe doesn't need it too!");
+				sprintf(&patchChar[0], getStringID(84));
 			}
 			else if (rc == 0x1004) {
-				sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version recommends patch,\nbut config is not available even for it!");
+				sprintf(&patchChar[0], getStringID(85));
 			}
 			else if (rc == 0x1005) {
-				sprintf(&patchChar[0], "This game is listed in Warehouse,\nbut with different version.\nOther version has config available!");
+				sprintf(&patchChar[0], getStringID(86));
 			}
 			else if (rc == 0x1006) {
-				sprintf(&patchChar[0], "This game is listed in Warehouse\nwith patch recommended for this\nversion, but config is not available!");
+				sprintf(&patchChar[0], getStringID(87));
 			}
 			else if (R_SUCCEEDED(rc)) {
 				FILE* fp = fopen(patchPath, "rb");
@@ -442,7 +442,7 @@ public:
 				return true;
 			}
 			else if (rc != UINT32_MAX) {
-				sprintf(&patchChar[0], "Connection error! RC: 0x%x", rc);
+				sprintf(&patchChar[0], getStringID(88), rc);
 			}
 		}
         return false;   // Return true here to signal the inputs have been consumed

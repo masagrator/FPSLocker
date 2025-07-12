@@ -36,6 +36,7 @@ struct DockedAdditionalSettings {
 	bool fpsTargetWithoutRRMatchLowest;
 };
 
+#include "Langs.hpp"
 
 NxFpsSharedBlock* Shared = 0;
 uint8_t* refreshRate_shared = 0;
@@ -51,10 +52,11 @@ bool plugin = true;
 uint8_t SetBuffers_save = 0;
 bool forceSuspend_save = false;
 char FPSMode_c[64];
-char FPSTarget_c[32];
+char FPSTarget_c[64];
 char PFPS_c[32];
 char nvnBuffers[96] = "";
 char SyncWait_c[32];
+uint64_t systemtickfrequency = 19200000;
 
 char configPath[128] = "";
 char patchPath[128] = "";
@@ -85,6 +87,9 @@ bool curl_timeout = false;
 uint8_t supportedHandheldRefreshRates[] = {40, 45, 50, 55, 60};
 uint8_t supportedHandheldRefreshRatesOLED[] = {45, 50, 55, 60};
 Mutex TitlesAccess;
+
+volatile const bool forceEnglishLanguage = false;
+std::string overlayName = "sdmc:/switch/.overlays/";
 
 struct Title
 {
@@ -256,8 +261,8 @@ void downloadPatch(void*) {
     };
 
 	uint64_t startTick = svcGetSystemTick();
-	uint64_t timeoutTick = startTick + (30 * 19'200'000); //30 seconds
-	long msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+	uint64_t timeoutTick = startTick + (30 * systemtickfrequency); //30 seconds
+	long msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 
 	smInitialize();
 
@@ -309,7 +314,7 @@ void downloadPatch(void*) {
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-		msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+		msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 
         CURLcode res = curl_easy_perform(curl);
@@ -399,7 +404,7 @@ void downloadPatch(void*) {
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
 						curl_easy_setopt(curl, CURLOPT_URL, download_path);
-						msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+						msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 						curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 						FILE* fp = fopen(file_path, "wb");
 						if (!fp) {
@@ -428,7 +433,7 @@ void downloadPatch(void*) {
 				return;
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-			msPeriod = (timeoutTick - svcGetSystemTick()) / 19200;
+			msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 			if (msPeriod < 1000) msPeriod = 1000;
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 			CURLcode res = curl_easy_perform(curl);
@@ -637,4 +642,20 @@ Result getTitles(int32_t count)
 
 void TitlesThread(void*) {
 	getTitles(32);
+}
+
+void setForceEnglishLanguage(bool set) {
+	uintptr_t ptr_func = (uintptr_t)&TitlesThread;
+	MemoryInfo mem = {0};
+	u32 pageinfo = 0;
+	svcQueryMemory(&mem, &pageinfo, ptr_func);
+	bool* ptrBool = (bool*)&forceEnglishLanguage;
+	uintptr_t ptrBool_integer = (uintptr_t)ptrBool;
+	ptrdiff_t ptrBool_offset = ptrBool_integer - mem.addr;
+	FILE* file = fopen(overlayName.c_str(), "rb+");
+	if (file) {
+		fseek(file, ptrBool_offset, 0);
+		fwrite(&set, 1, 1, file);
+		fclose(file);
+	}
 }

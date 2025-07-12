@@ -1,6 +1,7 @@
 #define TESLA_INIT_IMPL // If you have more than one file using the tesla header, only define this in the main one
 #include <tesla.hpp>    // The Tesla Header
 #include "MiniList.hpp"
+#include "MiniList2.hpp"
 #include "NoteHeader.hpp"
 #include "List.hpp"
 #include <sys/stat.h>
@@ -27,7 +28,7 @@ public:
 
 	NoGameSub(uint64_t titleID, std::string titleName) {
 		_titleid = titleID;
-		sprintf(&_titleidc[0], "%016lX", _titleid);
+		sprintf(&_titleidc[0], "%016lX", titleID);
 		_titleName = titleName;
 	}
 
@@ -41,7 +42,7 @@ public:
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
 
-		auto *clickableListItem = new tsl::elm::ListItem2("Delete settings");
+		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(0));
 		clickableListItem->setClickListener([this](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				char path[512] = "";
@@ -72,7 +73,7 @@ public:
 
 		list->addItem(clickableListItem);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem2("Delete patches");
+		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(1));
 		clickableListItem2->setClickListener([this](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				char folder[640] = "";
@@ -152,13 +153,13 @@ public:
 		if (oldSalty || !SaltySD) {
 			list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 				if (!SaltySD) {
-					renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
+					renderer->drawString(getStringID(2), false, x, y+20, 20, renderer->a(0xF33F));
 				}
 				else if (!plugin) {
-					renderer->drawString("Can't detect NX-FPS plugin on sdcard!", false, x, y+20, 20, renderer->a(0xF33F));
+					renderer->drawString(getStringID(3), false, x, y+20, 20, renderer->a(0xF33F));
 				}
 				else if (!check) {
-					renderer->drawString("Game is not running!", false, x, y+20, 19, renderer->a(0xF33F));
+					renderer->drawString(getStringID(4), false, x, y+20, 19, renderer->a(0xF33F));
 				}
 			}), 30);
 		}
@@ -177,10 +178,10 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		else {
-			auto *clickableListItem3 = new tsl::elm::ListItem2("All");
+			auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(5));
 			clickableListItem3->setClickListener([](u64 keys) { 
 				if (keys & HidNpadButton_A) {
-					tsl::changeTo<NoGameSub>(0x1234567890ABCDEF, "Everything");
+					tsl::changeTo<NoGameSub>(0x1234567890ABCDEF, getStringID(6));
 					return true;
 				}
 				return false;
@@ -231,17 +232,17 @@ public:
 
 		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 			if (!SaltySD) {
-				renderer->drawString("SaltyNX is not working!", false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(2), false, x, y+20, 20, renderer->a(0xF33F));
 			}
 			else if (!plugin) {
-				renderer->drawString("Can't detect NX-FPS plugin on sdcard!", false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(3), false, x, y+20, 20, renderer->a(0xF33F));
 			}
 			else if (!check) {
-				renderer->drawString("Game is not running!", false, x, y+20, 19, renderer->a(0xF33F));
+				renderer->drawString(getStringID(4), false, x, y+20, 19, renderer->a(0xF33F));
 			}
 		}), 30);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem2("Games list");
+		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(7));
 		clickableListItem2->setClickListener([this](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				tsl::changeTo<NoGame2>(this -> rc, 2, true);
@@ -252,7 +253,7 @@ public:
 
 		list->addItem(clickableListItem2);
 
-		auto *clickableListItem3 = new tsl::elm::ListItem2("Display settings", "\uE151");
+		auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(8), "\uE151");
 		clickableListItem3->setClickListener([](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				tsl::changeTo<WarningDisplayGui>();
@@ -262,6 +263,19 @@ public:
 		});
 
 		list->addItem(clickableListItem3);
+
+		auto *clickableListItem4 = new tsl::elm::ToggleListItem(getStringID(127), forceEnglishLanguage);
+		clickableListItem4->setClickListener([](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				setForceEnglishLanguage(!forceEnglishLanguage);
+				tsl::setNextOverlay(overlayName, "");
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem4);
 
 
 		frame->setContent(list);
@@ -325,7 +339,7 @@ public:
 	virtual tsl::elm::Element* createUI() override {
 		// A OverlayFrame is the base element every overlay consists of. This will draw the default Title and Subtitle.
 		// If you need more information in the header or want to change it's look, use a HeaderOverlayFrame.
-		auto frame = new tsl::elm::OverlayFrame("FPSLocker", "Change FPS Target");
+		auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(9));
 
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
@@ -375,27 +389,8 @@ public:
 		s32 width_impl = 0;
 		s32 height_impl = 0;
 		ommGetDefaultDisplayResolution(&width_impl, &height_impl);
-		if ((height_impl != height)) {
-			height = height_impl;
-			sizeofAllowedFPSTargets = 10;
-			if (height == 1080) {
-				LoadDockedModeAllowedSave(rr, as, nullptr);
-			}
-			else if (height == 720) {
-				for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-					if (DockedModeRefreshRateAllowedValues[i] <= (uint8_t)std::round(highestRefreshRate)) {
-						rr[i] = true;
-					}
-				}
-			}
-			else {
-				return true;
-			}
-			for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-				if (rr[i] == true) {
-					AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
-				}
-			}
+		if (height_impl != height) {
+			tsl::goBack();
 			return true;
 		}
 		counter += 0.1f;
@@ -511,41 +506,42 @@ public:
 		
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 			if (!SaltySD) {
-				renderer->drawString("SaltyNX is not working!", false, x, y+50, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(2), false, x, y+50, 20, renderer->a(0xF33F));
 			}
 			else if (!plugin) {
-				renderer->drawString("Can't detect NX-FPS plugin on sdcard!", false, x, y+50, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(3), false, x, y+50, 20, renderer->a(0xF33F));
 			}
 			else if (!check) {
 				if (closed) {
-					renderer->drawString("Game was closed! Overlay disabled!", false, x, y+20, 19, renderer->a(0xF33F));
+					renderer->drawString(getStringID(10), false, x, y+20, 19, renderer->a(0xF33F));
 				}
 				else {
-					renderer->drawString("Game is not running! Overlay disabled!", false, x, y+20, 19, renderer->a(0xF33F));
+					renderer->drawString(getStringID(11), false, x, y+20, 19, renderer->a(0xF33F));
 				}
 			}
 			else if (!PluginRunning) {
-				renderer->drawString("Game is running.", false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString("NX-FPS is not running!", false, x, y+40, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(12), false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(getStringID(13), false, x, y+70, 20, renderer->a(0xF33F));
 			}
 			else if (!(Shared -> pluginActive)) {
-				renderer->drawString("NX-FPS is running, but no frame was processed.", false, x, y+20, 20, renderer->a(0xF33F));
-				renderer->drawString("Restart overlay to check again.", false, x, y+50, 20, renderer->a(0xFFFF));
+				renderer->drawString(getStringID(14), false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(15), false, x, y+70, 20, renderer->a(0xFFFF));
 			}
 			else {
-				renderer->drawString("NX-FPS is running.", false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(getStringID(16), false, x, y+20, 20, renderer->a(0xFFFF));
 				if (((Shared -> API) > 0) && ((Shared -> API) <= 2))
-					renderer->drawString(FPSMode_c, false, x, y+40, 20, renderer->a(0xFFFF));
-				renderer->drawString(FPSTarget_c, false, x, y+60, 20, renderer->a(0xFFFF));
+					renderer->drawString(FPSMode_c, false, x, y+43, 20, renderer->a(0xFFFF));
+				renderer->drawString(FPSTarget_c, false, x, y+86, 20, renderer->a(0xFFFF));
 				if (render100Above) renderer->drawString(PFPS_c, false, x+265, y+48, 50, renderer->a(0xFFFF));
 				else renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
-				if (Shared -> forceOriginalRefreshRate) renderer->drawString("Patch is now forcing 60 Hz.", false, x, y+80, 20, renderer->a(0xF99F));
+				renderer->drawString("FPS", false, x+320, y+70, 20, renderer->a(0xFFFF));
+				if (Shared -> forceOriginalRefreshRate) renderer->drawString(getStringID(17), false, x, y+129, 20, renderer->a(0xF99F));
 			}
-		}), 90);
+		}), 170);
 
 		if (PluginRunning && (Shared -> pluginActive)) {
 			if (entry_mode == ApmPerformanceMode_Normal) {
-				auto *clickableListItem = new tsl::elm::ListItem2("Increase FPS target");
+				auto *clickableListItem = new tsl::elm::MiniListItem2(getStringID(18));
 				clickableListItem->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						if ((Shared -> FPSmode) == 2 && !(Shared -> FPSlocked)) {
@@ -594,7 +590,7 @@ public:
 
 				list->addItem(clickableListItem);
 				
-				auto *clickableListItem2 = new tsl::elm::ListItem2("Decrease FPS target");
+				auto *clickableListItem2 = new tsl::elm::MiniListItem2(getStringID(19));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						if ((Shared -> FPSmode) < 2 && !(Shared -> FPSlocked)) {
@@ -643,7 +639,7 @@ public:
 				list->addItem(clickableListItem2);
 			}
 			else if (entry_mode == ApmPerformanceMode_Boost) {
-				auto *clickableListItem2 = new tsl::elm::ListItem2("Change FPS target");
+				auto *clickableListItem2 = new tsl::elm::MiniListItem2(getStringID(20));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						tsl::changeTo<DockedFPSTargetGui>();
@@ -654,7 +650,7 @@ public:
 				list->addItem(clickableListItem2);			
 			}
 
-			auto *clickableListItem4 = new tsl::elm::ListItem2("Disable custom FPS target");
+			auto *clickableListItem4 = new tsl::elm::MiniListItem2(getStringID(21));
 			clickableListItem4->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if ((Shared -> FPSlocked)) {
@@ -673,17 +669,7 @@ public:
 			});
 			list->addItem(clickableListItem4);
 
-			auto *clickableListItem3 = new tsl::elm::ListItem2("Advanced settings");
-			clickableListItem3->setClickListener([](u64 keys) { 
-				if ((keys & HidNpadButton_A) && PluginRunning) {
-					tsl::changeTo<AdvancedGui>();
-					return true;
-				}
-				return false;
-			});
-			list->addItem(clickableListItem3);
-
-			auto *clickableListItem5 = new tsl::elm::ListItem2("Save settings");
+			auto *clickableListItem5 = new tsl::elm::MiniListItem2(getStringID(23));
 			clickableListItem5->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (!(Shared -> FPSlocked) && !(Shared -> ZeroSync) && !SetBuffers_save && !forceSuspend_save) {
@@ -719,8 +705,18 @@ public:
 			list->addItem(clickableListItem5);
 		}
 
+			auto *clickableListItem3 = new tsl::elm::MiniListItem2(getStringID(22));
+			clickableListItem3->setClickListener([](u64 keys) { 
+				if ((keys & HidNpadButton_A) && PluginRunning) {
+					tsl::changeTo<AdvancedGui>();
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem3);
+
 		if (SaltySD) {
-			auto *clickableListItem6 = new tsl::elm::ListItem2("Display settings", "\uE151");
+			auto *clickableListItem6 = new tsl::elm::MiniListItem2(getStringID(8), "\uE151");
 			clickableListItem6->setClickListener([](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					tsl::changeTo<WarningDisplayGui>();
@@ -747,21 +743,21 @@ public:
 				switch ((Shared -> FPSmode)) {
 					case 0:
 						//This is usually a sign that game doesn't use interval
-						sprintf(FPSMode_c, "Interval Mode: 0 (Unused)");
+						sprintf(FPSMode_c, getStringID(24));
 						break;
 					case 1 ... 5:
 						if (std::fmod((double)refreshRate_g, (double)(Shared -> FPSmode)) != 0.0) {
-							sprintf(FPSMode_c, "Interval Mode: %d (%.1f FPS)", (Shared -> FPSmode), (double)refreshRate_g / (Shared -> FPSmode));
+							sprintf(FPSMode_c, getStringID(25), (Shared -> FPSmode), (double)refreshRate_g / (Shared -> FPSmode));
 						}
-						else sprintf(FPSMode_c, "Interval Mode: %d (%d FPS)", (Shared -> FPSmode), refreshRate_g / (Shared -> FPSmode));
+						else sprintf(FPSMode_c, getStringID(26), (Shared -> FPSmode), refreshRate_g / (Shared -> FPSmode));
 						break;
 					default:
-						sprintf(FPSMode_c, "Interval Mode: %d (Wrong)", (Shared -> FPSmode));
+						sprintf(FPSMode_c, getStringID(27), (Shared -> FPSmode));
 				}
 				if (!(Shared -> FPSlocked)) {
-					sprintf(FPSTarget_c, "Custom FPS Target: Disabled");
+					sprintf(FPSTarget_c, getStringID(28));
 				}
-				else sprintf(FPSTarget_c, "Custom FPS Target: %d", (Shared -> FPSlocked));
+				else sprintf(FPSTarget_c, getStringID(29), (Shared -> FPSlocked));
 				uint8_t value = (Shared -> FPS);
 				sprintf(PFPS_c, "%d", value);
 				if (value >= 100) render100Above = true;
@@ -821,7 +817,8 @@ class OverlayTest : public tsl::Overlay {
 public:
 	// libtesla already initialized fs, hid, pl, pmdmnt, hid:sys and set:sys
 	virtual void initServices() override {
-
+		
+		systemtickfrequency = armGetSystemTickFreq();
 		tsl::hlp::doWithSmSession([]{
 			ommInitialize();
 			setsysInitialize();
@@ -834,6 +831,20 @@ public:
 					isLite = true;
 				}
 			}
+			if (!forceEnglishLanguage) {
+				u64 languageCode = 0;
+				setInitialize();
+				setGetSystemLanguage(&languageCode);
+				setMakeLanguage(languageCode, &language);
+				setExit();
+			}
+
+			
+			tsl::elm::buttons = "\uE0E1  ";
+			tsl::elm::buttons += getTeslaStringID(0);
+			tsl::elm::buttons += "    \uE0E0  ";
+			tsl::elm::buttons += getTeslaStringID(1);
+			
 			fsdevMountSdmc();
 			FILE* file = fopen("sdmc:/SaltySD/flags/displaysync.flag", "rb");
 			if (file) {
@@ -924,5 +935,6 @@ public:
 };
 
 int main(int argc, char **argv) {
+	overlayName += argv[0];
 	return tsl::loop<OverlayTest>(argc, argv);
 }
