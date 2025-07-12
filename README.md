@@ -16,6 +16,8 @@ How to setup everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad0924
 
 # Usage
 
+Supported languages: English, German, French, Russian, Brazilian Portuguese, Chinese Simplified and Traditional.
+
 Overlay runs in two modes:<br>
 > When game is running
 
@@ -73,6 +75,7 @@ You will have two submenus to choose from (if you are using OLED model, you will
   - `Delete settings` - it will delete file created by "Save settings" option
   - `Delete patches` - it will delete file created by "Convert config to patch file" option
 - `Display settings` - you can read about in previous section.
+- `Force English language` - If you prefer using English, this option will force overlay to use it. It is achieved by self-modifying executable, so after updating overlay to newer release it will be turned off.
 
 # Information about changing refresh rates in handheld mode
 
