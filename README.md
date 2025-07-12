@@ -105,7 +105,7 @@ Cap was set to 120 Hz as this is the max refresh rate supported by OG dock and n
 
 Many displays are locked to max 75Hz at 1080p because from what I understand something hinders connection between Switch and dock which ends in failed HBR2 training implemented in HOS, leaving connection in HBR mode. HBR mode with 2 lanes is where 180 MHz limit comes from that slightly above what 1080p 75 Hz expects. Issue may come from Switch and/or dock itself. Being in HBR mode also can result in audio not being passed to dock above 60 Hz at 1080p. Trying to manually do HBR2 training results in resetting signal which HOS tries to restore, so any attempt at manual training gets blocked.
 
-From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to confirm user choice, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
+From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to pop user selection applet, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
 
 # Thanks
 Thanks to:
