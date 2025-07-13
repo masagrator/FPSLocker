@@ -174,7 +174,7 @@ namespace GER {
 		"Erhöhe Wiederholungsrate",
 		"Senke Wiederholungsrate",
 		"Wiederholungsrate mit FPS-Ziel abgleichen.",
-		"Handheld Display Sync",
+		"Handheld-Displaysynchronisierung",
 		"Docked Einstellung",
 		"Retro Remake Modus",
 		"Display Wiederholungsrate: %d Hz",
@@ -191,7 +191,7 @@ namespace GER {
 		"Ablehnen",
 		"Akzeptieren",
 		"Erzwinge Englische Sprache",
-		"Docked Display Sync"
+		"Dock-Displaysynchronisierung"
 	};
 
 	const std::array teslaStrings = {
