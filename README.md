@@ -114,6 +114,13 @@ Thanks to:
 - ~CTCaer for info about Samsung OLED panels
 - ~NaGa for tests on Retro Remake SUPER5 display and providing me Switch OLED unit
   - and backers, including: Jorge Conceição, zany tofu, Lei Feng, brandon foster, AlM, Alex Haley, Stefano Bigio, Le Duc, Sylvixor x
+ 
+Translation:
+- German: ~Lightos_
+- French: ~ganonlebucher
+- Russian: ~usagi
+- Brazilian Portuguese: ~Fl4sh
+- Chinese Simplified: ~Soneoy, ~Tone Darkwell
 
 # Sync Wait
 In those games you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
