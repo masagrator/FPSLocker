@@ -1,7 +1,7 @@
 #include <array>
 
 namespace RUS {
-	std::array strings = {
+	const std::array strings = {
 		//Main Menu
 		"Удалить настройки",
 		"Удалить патчи",
@@ -174,7 +174,7 @@ namespace RUS {
 		"Увеличить Герцовку",
 		"Уменьшить Герцовку",
 		"Сопоставить герцовку с целевым FPS.",
-		"Синхр. экрана",
+		"Синхр. экрана в портативе",
 		"Настройки в доке",
 		"Retro Remake Mode",
 		"Герцовка экрана: %d Hz",
@@ -190,15 +190,16 @@ namespace RUS {
 		"Предупреждение о настройках экрана",
 		"Отказаться",
 		"Согласиться",
-		"Форсировать английский язык"
+		"Форсировать английский язык",
+		"Синхр. экрана в доке"
 	};
 
-	std::array teslaStrings = {
+	const std::array teslaStrings = {
 	   "Назад",
 	   "OK" 
 	};
 
 	static_assert(teslaStrings.size() == 2);
 
-	static_assert(strings.size() == 128);
+	static_assert(strings.size() == 129);
 }

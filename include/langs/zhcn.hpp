@@ -1,7 +1,7 @@
 #include <array>
 
 namespace ZHCN {
-	std::array strings = {
+	const std::array strings = {
 		//Main Menu
 		"删除设置",
 		"删除补丁",
@@ -164,7 +164,7 @@ namespace ZHCN {
 		"增大刷新率",
 		"减小刷新率",
 		"将刷新率与目标FPS同步.",
-		"刷新率同步",
+		"掌机模式同步刷新率",
 		"底座模式设置",
 		"Retro Remake模式",
 		"当前显示器刷新率: %dHz",
@@ -179,14 +179,15 @@ namespace ZHCN {
 		"显示器高级设置警告",
 		"拒绝",
 		"同意",
-		"强制使用英语作为显示语言"
+		"强制使用英语作为显示语言",
+		"底座模式同步刷新率"
 	};
 
-	std::array teslaStrings = {
+	const std::array teslaStrings = {
 	   "返回",
 	   "确定"
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 128);
+	static_assert(strings.size() == 129);
 }

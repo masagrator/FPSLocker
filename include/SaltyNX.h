@@ -515,3 +515,43 @@ Result SaltySD_isPossiblyRetroRemake(bool* isPossiblyRetroRemake)
 	
 	return ret;
 }
+
+Result SaltySD_SetDisplaySyncDocked(bool isTrue)
+{
+	Result ret = 0;
+
+	// Send a command
+	IpcCommand c;
+	ipcInitialize(&c);
+	ipcSendPid(&c);
+
+	struct input {
+		u64 magic;
+		u64 cmd_id;
+		u64 value;
+		u64 reserved;
+	} *raw;
+
+	raw = (input*)ipcPrepareHeader(&c, sizeof(*raw));
+
+	raw->magic = SFCI_MAGIC;
+	raw->cmd_id = 18;
+	raw->value = isTrue;
+
+	ret = ipcDispatch(saltysd_orig);
+
+	if (R_SUCCEEDED(ret)) {
+		IpcParsedCommand r;
+		ipcParse(&r);
+
+		struct output {
+			u64 magic;
+			u64 result;
+			u64 reserved[2];
+		} *resp = (output*)r.Raw;
+
+		ret = resp->result;
+	}
+	
+	return ret;
+}
