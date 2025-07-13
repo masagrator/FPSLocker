@@ -164,7 +164,7 @@ namespace ZHCN {
 		"增大刷新率",
 		"减小刷新率",
 		"将刷新率与目标FPS同步.",
-		"刷新率同步",
+		"掌机模式同步刷新率",
 		"底座模式设置",
 		"Retro Remake模式",
 		"当前显示器刷新率: %dHz",
@@ -180,7 +180,7 @@ namespace ZHCN {
 		"拒绝",
 		"同意",
 		"强制使用英语作为显示语言",
-		"Docked Display Sync"
+		"底座模式同步刷新率"
 	};
 
 	const std::array teslaStrings = {
