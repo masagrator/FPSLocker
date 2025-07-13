@@ -172,7 +172,7 @@ namespace PTBR {
 		"Aumentar taxa de atualização",
 		"Diminuir taxa de atualização",
 		"Combinar taxa de atualização com meta de FPS.",
-		"Sincronia de display Portátil",
+		"Sincronização de Tela Portátil",
 		"Configurações de Docked",
 		"Modo Retro Remake",
 		"Taxa de atualização da tela: %d Hz",
@@ -189,7 +189,7 @@ namespace PTBR {
 		"Recusar",
 		"Aceitar",
 		"Forçar língua Inglesa",
-		"Sincronia de display Docked"
+		"Sincronização de Tela em Dock"
 	};
 
 	const std::array teslaStrings = {
