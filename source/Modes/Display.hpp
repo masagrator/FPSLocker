@@ -791,88 +791,88 @@ public:
 
 		}), 90);
 
-		if (!displaySync) {
-			if (entry_mode == ApmPerformanceMode_Normal) {
-				auto *clickableListItem = new tsl::elm::ListItem2(getStringID(116));
-				clickableListItem->setClickListener([this](u64 keys) { 
-					if (keys & HidNpadButton_A) {
-						if ((refreshRate_g >= (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) && (refreshRate_g < (isOLED ? supportedHandheldRefreshRatesOLED[sizeof(supportedHandheldRefreshRatesOLED)-1] : supportedHandheldRefreshRates[sizeof(supportedHandheldRefreshRates)-1]))) {
-							if (R_SUCCEEDED(SaltySD_Connect())) {
-								refreshRate_g += 5;
-								SaltySD_SetDisplayRefreshRate(refreshRate_g);
-								SaltySD_Term();
-								if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
-							}
+		if (entry_mode == ApmPerformanceMode_Normal && ((displaySync & 1) == 0)) {
+			auto *clickableListItem = new tsl::elm::ListItem2(getStringID(116));
+			clickableListItem->setClickListener([this](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					if ((refreshRate_g >= (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) && (refreshRate_g < (isOLED ? supportedHandheldRefreshRatesOLED[sizeof(supportedHandheldRefreshRatesOLED)-1] : supportedHandheldRefreshRates[sizeof(supportedHandheldRefreshRates)-1]))) {
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							refreshRate_g += 5;
+							SaltySD_SetDisplayRefreshRate(refreshRate_g);
+							SaltySD_Term();
+							if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
 						}
-						return true;
 					}
-					return false;
-				});
+					return true;
+				}
+				return false;
+			});
 
-				list->addItem(clickableListItem);
+			list->addItem(clickableListItem);
 
-				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(117));
-				clickableListItem2->setClickListener([this](u64 keys) { 
-					if (keys & HidNpadButton_A) {
-						if (refreshRate_g > (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) {
-							if (R_SUCCEEDED(SaltySD_Connect())) {
-								refreshRate_g -= 5;
-								SaltySD_SetDisplayRefreshRate(refreshRate_g);
-								if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
-								SaltySD_Term();
-							}
+			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(117));
+			clickableListItem2->setClickListener([this](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					if (refreshRate_g > (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) {
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							refreshRate_g -= 5;
+							SaltySD_SetDisplayRefreshRate(refreshRate_g);
+							if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
+							SaltySD_Term();
 						}
-						return true;
 					}
-					return false;
-				});
+					return true;
+				}
+				return false;
+			});
 
-				list->addItem(clickableListItem2);
-			}
-			else if (entry_mode == ApmPerformanceMode_Boost) {
-				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(115));
-				clickableListItem2->setClickListener([](u64 keys) { 
-					if (keys & HidNpadButton_A) {
-						tsl::changeTo<DockedRefreshRateChangeGui>();
-						return true;
-					}
-					return false;
-				});	
-				list->addItem(clickableListItem2);	
-			}
+			list->addItem(clickableListItem2);
+		}
+		else if (entry_mode == ApmPerformanceMode_Boost && ((displaySync & 2) == 0)) {
+			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(115));
+			clickableListItem2->setClickListener([](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					tsl::changeTo<DockedRefreshRateChangeGui>();
+					return true;
+				}
+				return false;
+			});	
+			list->addItem(clickableListItem2);	
 		}
 
 		if (!oldSalty) {
-			list->addItem(new tsl::elm::CategoryHeader(getStringID(119), true));
-			auto *clickableListItem3 = new tsl::elm::ToggleListItem(getStringID(119), displaySync);
+			list->addItem(new tsl::elm::CategoryHeader(getStringID(118), true));
+			auto *clickableListItem3 = new tsl::elm::ToggleListItem(getStringID(119), displaySync & 1);
 			clickableListItem3->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					if (R_SUCCEEDED(SaltySD_Connect())) {
-						SaltySD_SetDisplaySync(!displaySync);
+						SaltySD_SetDisplaySync(!(bool)(displaySync & 1));
 						svcSleepThread(100'000);
 						u64 PID = 0;
 						Result rc = pmdmntGetApplicationProcessId(&PID);
 						if (R_SUCCEEDED(rc) && Shared) {
-							if (!displaySync == true && (Shared -> FPSlocked) < 40) {
-								SaltySD_SetDisplayRefreshRate(60);
-								(Shared -> displaySync) = false;
+							if (!(bool)(displaySync & 1) == true && (Shared -> FPSlocked) < 40) {
+								if (entry_mode == ApmPerformanceMode_Normal) SaltySD_SetDisplayRefreshRate(60);
+								(Shared -> displaySync) = (Shared -> displaySync) & 2;
 							}
 							else if (!displaySync == true) {
-								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
-								(Shared -> displaySync) = (Shared -> FPSlocked) ? true : false;
+								if (entry_mode == ApmPerformanceMode_Normal) SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
+								(Shared -> displaySync) = (Shared -> FPSlocked) ? (((Shared -> displaySync) & 2) | 1) : ((Shared -> displaySync) & 2);
 							}
 							else {
-								(Shared -> displaySync) = false;
+								(Shared -> displaySync) = (Shared -> displaySync) & 2;
 							}
 						}
-						else if (!displaySync == true && (R_FAILED(rc) || !PluginRunning)) {
-							SaltySD_SetDisplayRefreshRate(60);
+						else if (!(bool)(displaySync & 1) == true && (R_FAILED(rc) || !PluginRunning)) {
+							if (entry_mode == ApmPerformanceMode_Normal) SaltySD_SetDisplayRefreshRate(60);
 						}
 						SaltySD_Term();
-						displaySync = !displaySync;
+						displaySync = (displaySync & 2) | !(bool)(displaySync & 1);
 					}
-					tsl::goBack();
-					tsl::changeTo<DisplayGui>();
+					if (entry_mode == ApmPerformanceMode_Normal) {
+						tsl::goBack();
+						tsl::changeTo<DisplayGui>();
+					}
 					return true;
 				}
 				return false;
@@ -881,6 +881,45 @@ public:
 			list->addItem(clickableListItem3);
 
 			if (!isLite) {
+
+				auto *clickableListItem6 = new tsl::elm::ToggleListItem(getStringID(128), (bool)(displaySync & 2));
+				clickableListItem6->setClickListener([this](u64 keys) { 
+					if (keys & HidNpadButton_A) {
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							SaltySD_SetDisplaySyncDocked(!(bool)(displaySync & 2));
+							svcSleepThread(100'000);
+							u64 PID = 0;
+							Result rc = pmdmntGetApplicationProcessId(&PID);
+							if (R_SUCCEEDED(rc) && Shared) {
+								if (!(bool)(displaySync & 1) == true && (Shared -> FPSlocked) < 40) {
+									if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate(60);
+									(Shared -> displaySync) = (Shared -> displaySync) & 1;
+								}
+								else if (!(bool)(displaySync & 1)) {
+									if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
+									(Shared -> displaySync) = (Shared -> FPSlocked) ? (((Shared -> displaySync) & 1) | 2) : ((Shared -> displaySync) & 1);
+								}
+								else {
+									(Shared -> displaySync) = (Shared -> displaySync) & 1;
+								}
+							}
+							else if (!(bool)(displaySync & 1) == true && (R_FAILED(rc) || !PluginRunning)) {
+								if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate(60);
+							}
+							SaltySD_Term();
+							displaySync = (displaySync & 1) | ((displaySync & 2) ? 0 : 2);
+						}
+					if (entry_mode == ApmPerformanceMode_Boost) {
+						tsl::goBack();
+						tsl::changeTo<DisplayGui>();
+					}
+						return true;
+					}
+					return false;
+				});
+
+				list->addItem(clickableListItem6);
+			
 				auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(120));
 				clickableListItem4->setClickListener([this](u64 keys) { 
 					if ((keys & HidNpadButton_A)) {

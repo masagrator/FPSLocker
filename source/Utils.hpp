@@ -22,7 +22,7 @@ struct NxFpsSharedBlock {
 	uint8_t SetBuffers;
 	uint8_t ActiveBuffers;
 	uint8_t SetActiveBuffers;
-	bool displaySync;
+	uint8_t displaySync;
 	resolutionCalls renderCalls[8];
 	resolutionCalls viewportCalls[8];
 	bool forceOriginalRefreshRate;
@@ -593,6 +593,10 @@ bool CheckPort () {
 	return false;
 }
 
+extern "C" {
+	#include "nacp.h"
+}
+
 std::string getAppName(uint64_t Tid)
 {
 	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(sizeof(NsApplicationControlData));
@@ -605,7 +609,9 @@ std::string getAppName(uint64_t Tid)
 	}
 	
 	NacpLanguageEntry *languageEntry = nullptr;
-	Result rc = nsGetApplicationDesiredLanguage(&(appControlData -> nacp), &languageEntry);
+	smInitialize();
+	Result rc = nacpGetLanguageEntry2(&(appControlData -> nacp), &languageEntry);
+	smExit();
 	if (R_FAILED(rc)) {
 		free(appControlData);
 		char returnTID[18];
