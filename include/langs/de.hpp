@@ -1,7 +1,7 @@
 #include <array>
 
 namespace GER {
-	std::array strings = {
+	const std::array strings = {
 		//Main Menu
 		"Einstellungen löschen",
 		"Patches löschen",
@@ -174,7 +174,7 @@ namespace GER {
 		"Erhöhe Wiederholungsrate",
 		"Senke Wiederholungsrate",
 		"Wiederholungsrate mit FPS-Ziel abgleichen.",
-		"Display Sync",
+		"Handheld Display Sync",
 		"Docked Einstellung",
 		"Retro Remake Modus",
 		"Display Wiederholungsrate: %d Hz",
@@ -190,14 +190,15 @@ namespace GER {
 		"Display Einstellungen Warnung",
 		"Ablehnen",
 		"Akzeptieren",
-		"Erzwinge Englische Sprache"
+		"Erzwinge Englische Sprache",
+		"Docked Display Sync"
 	};
 
-	std::array teslaStrings = {
+	const std::array teslaStrings = {
 	   "Zurück",
 	   "OK" 
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 128);
+	static_assert(strings.size() == 129);
 }

@@ -1,7 +1,7 @@
 #include <array>
 
 namespace PTBR {
-	std::array strings = {
+	const std::array strings = {
 		//Main Menu
 		"Deletar configuração",
 		"Deletar patches",
@@ -172,7 +172,7 @@ namespace PTBR {
 		"Aumentar taxa de atualização",
 		"Diminuir taxa de atualização",
 		"Combinar taxa de atualização com meta de FPS.",
-		"Sincronia de display",
+		"Sincronia de display Portátil",
 		"Configurações de Docked",
 		"Modo Retro Remake",
 		"Taxa de atualização da tela: %d Hz",
@@ -188,14 +188,15 @@ namespace PTBR {
 		"Aviso de configurações de tela",
 		"Recusar",
 		"Aceitar",
-		"Forçar língua Inglesa"
+		"Forçar língua Inglesa",
+		"Sincronia de display Docked"
 	};
 
-	std::array teslaStrings = {
+	const std::array teslaStrings = {
 	   "Voltar",
 	   "OK" 
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 128);
+	static_assert(strings.size() == 129);
 }

@@ -1,7 +1,7 @@
 #include <array>
 
 namespace ENG {
-	std::array strings = {
+	const std::array strings = {
 		//Main Menu
 		"Delete settings",
 		"Delete patches",
@@ -172,7 +172,7 @@ namespace ENG {
 		"Increase Refresh Rate",
 		"Decrease Refresh Rate",
 		"Match refresh rate with FPS Target.",
-		"Display Sync",
+		"Handheld Display Sync",
 		"Docked Settings",
 		"Retro Remake Mode",
 		"Display Refresh Rate: %d Hz",
@@ -187,14 +187,15 @@ namespace ENG {
 		"Display settings warning",
 		"Decline",
 		"Accept",
-		"Force English language"
+		"Force English language",
+		"Docked Display Sync"
 	};
 
-	std::array teslaStrings = {
+	const std::array teslaStrings = {
 	   "Back",
 	   "OK" 
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 128);
+	static_assert(strings.size() == 129);
 }

@@ -1,7 +1,7 @@
 #include <array>
 
 namespace FRA {
-	std::array strings = {
+	const std::array strings = {
 		//Main Menu
 		"Supprimer les paramètres",
 		"Supprimer les patches",
@@ -174,7 +174,7 @@ namespace FRA {
 		"Augmenter Fréq. Écran",
 		"Réduire Fréq. Écran",
 		"Aligner Fréq. Écran sur les FPS.",
-		"Sync Affichage",
+		"Sync Affichage Portable",
 		"Paramètres Docké",
 		"Mode Retro Remake",
 		"Taux rafraîch.: %d Hz",
@@ -190,15 +190,16 @@ namespace FRA {
 		"Alerte sur les paramètres d'affichage",
 		"Refuser",
 		"Accepter",
-		"Forcer langue Anglais"
+		"Forcer langue Anglais",
+		"Sync Affichage Docké"
 	};
 
-	std::array teslaStrings = {
+	const std::array teslaStrings = {
 	   "Retour",
 	   "OK"
 	};
 
 	static_assert(teslaStrings.size() == 2);
 
-	static_assert(strings.size() == 128);
+	static_assert(strings.size() == 129);
 }

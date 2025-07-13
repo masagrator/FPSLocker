@@ -1,7 +1,7 @@
 #include <array>
 
 namespace ZHCN {
-	std::array strings = {
+	const std::array strings = {
 		//Main Menu
 		"删除设置",
 		"删除补丁",
@@ -179,14 +179,15 @@ namespace ZHCN {
 		"显示器高级设置警告",
 		"拒绝",
 		"同意",
-		"强制使用英语作为显示语言"
+		"强制使用英语作为显示语言",
+		"Docked Display Sync"
 	};
 
-	std::array teslaStrings = {
+	const std::array teslaStrings = {
 	   "返回",
 	   "确定"
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 128);
+	static_assert(strings.size() == 129);
 }
