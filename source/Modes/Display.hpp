@@ -569,8 +569,13 @@ private:
 	DockedAdditionalSettings as;
 	uint8_t highestRefreshRate;
 	uint8_t linkRate;
+	ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
+	bool block = false;
+	s32 height = 0;
 public:
     DockedGui() {
+		s32 width = 0;
+		ommGetDefaultDisplayResolution(&width, &height);
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/", 777);
 		int crc32 = 0;
@@ -587,7 +592,6 @@ public:
 	}
 
 	size_t base_height = 128;
-	bool block = false;
 
     virtual tsl::elm::Element* createUI() override {
         auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(110));
@@ -669,17 +673,33 @@ public:
     }
 
 	virtual void update() override {
-		if (!block) tsl::hlp::doWithSmSession([this]{
-			if (R_SUCCEEDED(apmInitialize())) {
-				ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
-				apmGetPerformanceMode(&mode);
-				if (mode != ApmPerformanceMode_Boost ) {
-					block = true;
-					strcpy(Docked_c, getStringID(114));
+		if (!block) {
+			tsl::hlp::doWithSmSession([this]{
+				if (R_SUCCEEDED(apmInitialize())) {
+					mode = ApmPerformanceMode_Invalid;
+					apmGetPerformanceMode(&mode);
+					if (mode != ApmPerformanceMode_Boost ) {
+						block = true;
+						strcpy(Docked_c, getStringID(114));
+					}
+					apmExit();
 				}
-				apmExit();
+			});
+		}
+	}
+
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		if (!block) {
+			s32 width = 0;
+			s32 height_impl = 0;
+			if (R_SUCCEEDED(ommGetDefaultDisplayResolution(&width, &height_impl))) {
+				if (height != height_impl) {
+					tsl::goBack();
+					return true;
+				}
 			}
-		});
+		}
+		return false;
 	}
 };
 
