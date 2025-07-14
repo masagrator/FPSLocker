@@ -29,6 +29,8 @@ struct NxFpsSharedBlock {
 	bool dontForce60InDocked;
 	bool forceSuspend;
 	uint8_t currentRefreshRate;
+	float readSpeedPerSecond;
+	uint8_t FPSlockedDocked;
 } NX_PACKED;
 
 struct DockedAdditionalSettings {
@@ -664,4 +666,36 @@ void setForceEnglishLanguage(bool set) {
 		fwrite(&set, 1, 1, file);
 		fclose(file);
 	}
+}
+
+bool saveSettings() {
+	if (!!(Shared -> FPSlocked) && !(Shared -> FPSlockedDocked) && !(Shared -> ZeroSync) && !SetBuffers_save && !forceSuspend_save) {
+		remove(savePath);
+	}
+	else {
+		DIR* dir = opendir("sdmc:/SaltySD/plugins/");
+		if (!dir) {
+			mkdir("sdmc:/SaltySD/plugins/", 777);
+		}
+		else closedir(dir);
+		dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/");
+		if (!dir) {
+			mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
+		}
+		else closedir(dir);
+		FILE* file = fopen(savePath, "wb");
+		if (file) {
+			fwrite(&(Shared->FPSlocked), 1, 1, file);
+			if (SetBuffers_save > 2 || (!SetBuffers_save && (Shared -> Buffers) > 2)) {
+				(Shared -> ZeroSync) = 0;
+			}
+			fwrite(&(Shared->ZeroSync), 1, 1, file);
+			fwrite(&SetBuffers_save, 1, 1, file);
+			fwrite(&forceSuspend_save, 1, 1, file);
+			fwrite(&(Shared->FPSlockedDocked), 1, 1, file);
+			fclose(file);
+		}
+		else return false;
+	}
+	return true;
 }

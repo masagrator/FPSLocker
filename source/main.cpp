@@ -1,7 +1,6 @@
 #define TESLA_INIT_IMPL // If you have more than one file using the tesla header, only define this in the main one
 #include <tesla.hpp>    // The Tesla Header
 #include "MiniList.hpp"
-#include "MiniList2.hpp"
 #include "NoteHeader.hpp"
 #include "List.hpp"
 #include <sys/stat.h>
@@ -321,9 +320,9 @@ public:
 				AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
 			}
 		}
-		if (Shared -> FPSlocked) {
+		if (Shared -> FPSlockedDocked) {
 			for (size_t i = 0; i < sizeofAllowedFPSTargets; i++) {
-				if (Shared->FPSlocked == AllowedFPSTargets[i]) {
+				if (Shared->FPSlockedDocked == AllowedFPSTargets[i]) {
 					selected = i;
 					break;
 				}
@@ -431,7 +430,7 @@ public:
 		}
 
 		if (keysDown & HidNpadButton_A) {
-			(Shared -> FPSlocked) = AllowedFPSTargets[selected];
+			(Shared -> FPSlockedDocked) = AllowedFPSTargets[selected];
 			if (!oldSalty && (displaySync & 2)) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
 					bool skip = false;
@@ -464,9 +463,10 @@ public:
 						}
 						refreshRate_g = target;
 					}
-					SaltySD_Term();
 					(Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & (1 << 0)) | (1 << 1)) : ((Shared -> displaySync) & (1 << 0));
 				}
+				SaltySD_Term();
+				saveSettings();
 			}
 			tsl::goBack();
 			return true;
@@ -540,7 +540,7 @@ public:
 
 		if (PluginRunning && (Shared -> pluginActive)) {
 			if (entry_mode == ApmPerformanceMode_Normal) {
-				auto *clickableListItem = new tsl::elm::MiniListItem2(getStringID(18));
+				auto *clickableListItem = new tsl::elm::ListItem2(getStringID(18));
 				clickableListItem->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						if ((Shared -> FPSmode) == 2 && !(Shared -> FPSlocked)) {
@@ -582,6 +582,7 @@ public:
 								SaltySD_Term();
 							}
 						}
+						saveSettings();
 						return true;
 					}
 					return false;
@@ -589,7 +590,7 @@ public:
 
 				list->addItem(clickableListItem);
 				
-				auto *clickableListItem2 = new tsl::elm::MiniListItem2(getStringID(19));
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(19));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						if ((Shared -> FPSmode) < 2 && !(Shared -> FPSlocked)) {
@@ -631,6 +632,7 @@ public:
 								(Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & 2) | 1) : ((Shared -> displaySync) & 2);
 							}
 						}
+						saveSettings();
 						return true;
 					}
 					return false;
@@ -638,7 +640,7 @@ public:
 				list->addItem(clickableListItem2);
 			}
 			else if (entry_mode == ApmPerformanceMode_Boost) {
-				auto *clickableListItem2 = new tsl::elm::MiniListItem2(getStringID(20));
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(20));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						tsl::changeTo<DockedFPSTargetGui>();
@@ -649,62 +651,32 @@ public:
 				list->addItem(clickableListItem2);			
 			}
 
-			auto *clickableListItem4 = new tsl::elm::MiniListItem2(getStringID(21));
-			clickableListItem4->setClickListener([](u64 keys) { 
+			auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(21));
+			clickableListItem4->setClickListener([this](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					if ((Shared -> FPSlocked)) {
+					if (entry_mode == ApmPerformanceMode_Normal && (Shared -> FPSlocked)) {
 						(Shared -> FPSlocked) = 0;
 					}
-					if (displaySync) {
+					else if (entry_mode == ApmPerformanceMode_Boost && (Shared -> FPSlockedDocked)) {
+						(Shared -> FPSlockedDocked) = 0;
+					}
+					if ((entry_mode == ApmPerformanceMode_Normal) ? (((Shared -> displaySync) & 1) == 1) : (((Shared -> displaySync) & 2) == 2)) {
 						if (!oldSalty && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(60);
-							(Shared -> displaySync) = 0;
 							SaltySD_Term();
+							if (entry_mode == ApmPerformanceMode_Normal) (Shared -> displaySync) &= 2;
+							else if (entry_mode == ApmPerformanceMode_Boost) (Shared -> displaySync) &= 1;
 						}
 					}
+					saveSettings();
 					return true;
 				}
 				return false;
 			});
 			list->addItem(clickableListItem4);
-
-			auto *clickableListItem5 = new tsl::elm::MiniListItem2(getStringID(23));
-			clickableListItem5->setClickListener([](u64 keys) { 
-				if ((keys & HidNpadButton_A) && PluginRunning) {
-					if (!(Shared -> FPSlocked) && !(Shared -> ZeroSync) && !SetBuffers_save && !forceSuspend_save) {
-						remove(savePath);
-					}
-					else {
-						DIR* dir = opendir("sdmc:/SaltySD/plugins/");
-						if (!dir) {
-							mkdir("sdmc:/SaltySD/plugins/", 777);
-						}
-						else closedir(dir);
-						dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/");
-						if (!dir) {
-							mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
-						}
-						else closedir(dir);
-						FILE* file = fopen(savePath, "wb");
-						if (file) {
-							fwrite(&(Shared->FPSlocked), 1, 1, file);
-							if (SetBuffers_save > 2 || (!SetBuffers_save && (Shared -> Buffers) > 2)) {
-								(Shared -> ZeroSync) = 0;
-							}
-							fwrite(&(Shared->ZeroSync), 1, 1, file);
-							fwrite(&SetBuffers_save, 1, 1, file);
-							fwrite(&forceSuspend_save, 1, 1, file);
-							fclose(file);
-						}
-					}
-					return true;
-				}
-				return false;
-			});
-			list->addItem(clickableListItem5);
 		}
 
-			auto *clickableListItem3 = new tsl::elm::MiniListItem2(getStringID(22));
+			auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(22));
 			clickableListItem3->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					tsl::changeTo<AdvancedGui>();
@@ -715,7 +687,7 @@ public:
 			list->addItem(clickableListItem3);
 
 		if (SaltySD) {
-			auto *clickableListItem6 = new tsl::elm::MiniListItem2(getStringID(8), "\uE151");
+			auto *clickableListItem6 = new tsl::elm::ListItem2(getStringID(8), "\uE151");
 			clickableListItem6->setClickListener([](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					tsl::changeTo<WarningDisplayGui>();
@@ -753,10 +725,10 @@ public:
 					default:
 						sprintf(FPSMode_c, getStringID(27), (Shared -> FPSmode));
 				}
-				if (!(Shared -> FPSlocked)) {
+				if ((entry_mode == ApmPerformanceMode_Normal) ? !(Shared -> FPSlocked) : !(Shared -> FPSlockedDocked)) {
 					sprintf(FPSTarget_c, getStringID(28));
 				}
-				else sprintf(FPSTarget_c, getStringID(29), (Shared -> FPSlocked));
+				else sprintf(FPSTarget_c, getStringID(29), (entry_mode == ApmPerformanceMode_Normal) ? (Shared -> FPSlocked) : (Shared -> FPSlockedDocked));
 				uint8_t value = (Shared -> FPS);
 				sprintf(PFPS_c, "%d", value);
 				if (value >= 100) render100Above = true;

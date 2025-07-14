@@ -734,6 +734,7 @@ public:
 							SaltySD_SetDisplayRefreshRate(DockedModeRefreshRateAllowedValues[i]);
 							SaltySD_Term();
 							refreshRate_g = DockedModeRefreshRateAllowedValues[i];
+							if (Shared) (Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & 1) | 2) : ((Shared -> displaySync) & 1);
 						}
 					}
 					tsl::goBack();
@@ -820,7 +821,7 @@ public:
 							refreshRate_g += 5;
 							SaltySD_SetDisplayRefreshRate(refreshRate_g);
 							SaltySD_Term();
-							if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
+							if (Shared) (Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & 2) | 1) : ((Shared -> displaySync) & 2);
 						}
 					}
 					return true;
@@ -837,7 +838,7 @@ public:
 						if (R_SUCCEEDED(SaltySD_Connect())) {
 							refreshRate_g -= 5;
 							SaltySD_SetDisplayRefreshRate(refreshRate_g);
-							if (Shared) (Shared -> displaySync) = refreshRate_g ? true : false;
+							if (Shared) (Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & 2) | 1) : ((Shared -> displaySync) & 2);
 							SaltySD_Term();
 						}
 					}
@@ -911,13 +912,13 @@ public:
 							u64 PID = 0;
 							Result rc = pmdmntGetApplicationProcessId(&PID);
 							if (R_SUCCEEDED(rc) && Shared) {
-								if (!(bool)(displaySync & 1) == true && (Shared -> FPSlocked) < 40) {
+								if (!(bool)(displaySync & 1) == true && (Shared -> FPSlockedDocked) < 40) {
 									if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate(60);
 									(Shared -> displaySync) = (Shared -> displaySync) & 1;
 								}
 								else if (!(bool)(displaySync & 1)) {
-									if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
-									(Shared -> displaySync) = (Shared -> FPSlocked) ? (((Shared -> displaySync) & 1) | 2) : ((Shared -> displaySync) & 1);
+									if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate((Shared -> FPSlockedDocked));
+									(Shared -> displaySync) = (Shared -> FPSlockedDocked) ? (((Shared -> displaySync) & 1) | 2) : ((Shared -> displaySync) & 1);
 								}
 								else {
 									(Shared -> displaySync) = (Shared -> displaySync) & 1;
