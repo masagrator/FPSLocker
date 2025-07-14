@@ -50,8 +50,8 @@ The best approach if you want to run 30 FPS games at higher FPS:
   - `Halt unfocused game` - Some games are not suspended when your Switch is in home menu. Enabling this option moves into infinite loop game's thread responsible for pushing frames to display when in home menu. Enabling this option can cause various issues depending on game, so be sure to not use it frivolously.
 - `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
 - `Display settings` - submenu related to display refresh rate. Consists of:
-  - `Increase refresh rate` - Shows up only in handheld mode. Change display refresh rate up to 60 Hz. In OLED units it's blocked.
-  - `Decrease refresh rate` - Shows up only in handheld mode. Change display refresh rate down to 40 Hz. In OLED units it's blocked.
+  - `Increase refresh rate` - Shows up only in handheld mode. Change display refresh rate up to 60 Hz.
+  - `Decrease refresh rate` - Shows up only in handheld mode. Change display refresh rate down to 40 Hz (for OLED to 45 Hz). 
   - `Change refresh rate` - Shows up only in docked mode. Choose display refresh rate from list.
   - `Handheld Display Sync`/`Docked Display Sync` - When turned on, all three options above are not available, display refresh rate is changed only when game is running, and matches refresh rate with FPS Target.
   - `Retro Remake Mode` - this option shows only for people that use Lite with screen `InnoLux 2J055IA-27A (Rev B1)` or `Retro Remake SUPER5` (first revision only). That is because Retro Remake displays require special approach to change refresh rate, and first version of SUPER5 is spoofing ID of already existing display, which makes it impossible to detect which one is in use, so user must manually enable it if they are using SUPER5 display. All other Retro Remake displays are detected automatically.
