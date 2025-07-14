@@ -174,7 +174,7 @@ namespace FRA {
 		"Augmenter Fréq. Écran",
 		"Réduire Fréq. Écran",
 		"Aligner Fréq. Écran sur les FPS.",
-		"Sync Affichage Portable",
+		"Sync Écran Portable",
 		"Paramètres Docké",
 		"Mode Retro Remake",
 		"Taux rafraîch.: %d Hz",
@@ -191,7 +191,7 @@ namespace FRA {
 		"Refuser",
 		"Accepter",
 		"Forcer langue Anglais",
-		"Sync Affichage Docké"
+		"Sync Écran Docké"
 	};
 
 	const std::array teslaStrings = {
