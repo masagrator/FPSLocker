@@ -68,9 +68,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
 > When the game is not running
 
 You will have two submenus to choose from (if you are using the OLED model, you will be redirected automatically to the Games list):
-- `Games list`<br>
-  It will list installed games (max 32), as the first option the "All" submenu  is available.<br>
-  Inside each one, you will find two options:
+- `Games list` - It will list installed games (max 32), as the first option the "All" submenu  is available.<br>Inside each one, you will find two options:
   - `Delete settings` - It will remove the file that stores settings for the chosen entry
   - `Delete patches` - It will delete the file created by the "Convert config to patch file" option for every game version of chosen entry
 - `Display settings` - You can read about in the previous section.
