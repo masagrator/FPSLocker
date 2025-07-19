@@ -23,7 +23,7 @@ Overlay runs in two modes:<br>
 
 If the game is supported by SaltyNX and you installed everything correctly, you will see a menu where the first line states `NX-FPS plugin is running`.
 
-**Short explanation:**
+**tl;dr**<br>
 The best approach if you want to run 30 FPS games at higher FPS: 
 1. Connect your Switch to the internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version are compatible with the FPSLocker Warehouse repository, the menu will be refreshed with the option `Convert config to patch` appearing. Press on it, restart the game, and now change the FPS target in FPSLocker.
 2. Go to Advanced Settings, if you see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, restart game.
