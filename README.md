@@ -26,12 +26,12 @@ If game is supported by SaltyNX and you installed everything correctly, you will
 **Short explanation:**
 The best approach if you want to run 30 FPS games at higher FPS: 
 1. Connect your Switch to internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version will be compatible with FPSLocker Warehouse repository, menu will be refreshed with option `Convert config to patch` appearing. Press on it, restart game and now change FPS target in FPSLocker.
-2. Go to Advanced Settings, if you will see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, go back to FPSLocker main menu, press `Save settings` and restart game.
+2. Go to Advanced Settings, if you will see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, restart game.
 
 **Explanation of each option and information**:
 - `Interval Mode` - it's used by NVN API to set limiter to either 30 FPS (2) or 60 FPS (1). 
 - `Custom FPS Target` - it's used to lock game to certain FPS. If game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
-- `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
+- `FPS` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
 - `Increase/Decrease FPS target` - Shows up only in handheld mode. Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS.
 - `Change FPS target` - Shows up only in docked mode. Shows up table with different FPS values, from 15 to 60 by default with possibility of expanding to 120 FPS.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
@@ -48,7 +48,6 @@ The best approach if you want to run 30 FPS games at higher FPS:
   - `Delete patch file` - if proper config file exists for this game and version, you will get an option to delete patch file so it won't be loaded when you will run this game next time.
   - `Check/download config file` - Checks in Warehouse repository if config for this game and version exists. If exists, it is downloaded and also checked if it's the same as the one on sdcard. If it's not, overlay will remove existing patch and config file, and user must manually convert new config to patch file. 0x312 error means we got unexpected file from github. Any other error code means that something is happening with your connection or github server.
   - `Halt unfocused game` - Some games are not suspended when your Switch is in home menu. Enabling this option moves into infinite loop game's thread responsible for pushing frames to display when in home menu. Enabling this option can cause various issues depending on game, so be sure to not use it frivolously.
-- `Save settings` - save profile for currently running game that will be loaded next time by plugin on boot automatically. Don't use it if you disabled Sync Wait and you didn't test it properly that it won't cause crash. Profile is saved in `SaltySD/plugins/FPSLocker/*titleid_uppercase*.dat`
 - `Display settings` - submenu related to display refresh rate. Consists of:
   - `Increase refresh rate` - Shows up only in handheld mode. Change display refresh rate up to 60 Hz. In OLED units it's blocked.
   - `Decrease refresh rate` - Shows up only in handheld mode. Change display refresh rate down to 40 Hz. In OLED units it's blocked.
