@@ -872,7 +872,7 @@ public:
 	}  // Called at the start to initialize all services necessary for this Overlay
 	
 	virtual void exitServices() override {
-		threadActive = false;
+		leventSignal(&threadexit);
 		threadWaitForExit(&t1);
 		threadClose(&t1);
 		threadWaitForExit(&t0);

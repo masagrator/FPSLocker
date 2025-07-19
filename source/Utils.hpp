@@ -78,7 +78,6 @@ char patchChar[192] = "";
 char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
 Thread t0;
-bool threadActive = true;
 std::string ZeroSyncMode = "";
 
 bool FileDownloaded = false;
@@ -92,6 +91,8 @@ Mutex TitlesAccess;
 
 volatile const bool forceEnglishLanguage = false;
 std::string overlayName = "sdmc:/switch/.overlays/";
+
+LEvent threadexit = {0};
 
 struct Title
 {
@@ -505,9 +506,8 @@ void downloadPatch(void*) {
 }
 
 void loopThread(void*) {
-	while(threadActive) {
+	while(!leventWait(&threadexit, 1'000'000'000)) {
 		if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) break;
-		svcSleepThread(1'000'000'000);
 	}
 	PluginRunning = false;
 	check = false;
