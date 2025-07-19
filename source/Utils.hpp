@@ -58,7 +58,11 @@ char FPSTarget_c[64];
 char PFPS_c[32];
 char nvnBuffers[96] = "";
 char SyncWait_c[32];
-uint64_t systemtickfrequency = 19200000;
+#ifndef __SWITCH__
+	uint64_t systemtickfrequency = 19200000;
+#else
+	#define systemtickfrequency 19200000
+#endif
 
 char configPath[128] = "";
 char patchPath[128] = "";
