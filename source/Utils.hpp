@@ -506,9 +506,9 @@ void downloadPatch(void*) {
 }
 
 void loopThread(void*) {
-	while(!leventWait(&threadexit, 1'000'000'000)) {
+	do {
 		if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) break;
-	}
+	} while(!leventWait(&threadexit, 1'000'000'000));
 	PluginRunning = false;
 	check = false;
 	closed = true;
