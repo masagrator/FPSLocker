@@ -479,6 +479,8 @@ class GuiTest : public tsl::Gui {
 public:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 	bool render100Above = false;
+	bool pluginRanAtBoot = false;
+	bool blocked = false;
 	GuiTest(u8 arg1, u8 arg2, bool arg3) { 
 		
 		if (isLite) entry_mode = ApmPerformanceMode_Normal;
@@ -513,6 +515,7 @@ public:
 			else if (!check) {
 				if (closed) {
 					renderer->drawString(getStringID(10), false, x, y+20, 19, renderer->a(0xF33F));
+					renderer->drawString(getStringID(15), false, x, y+70, 20, renderer->a(0xFFFF));
 				}
 				else {
 					renderer->drawString(getStringID(11), false, x, y+20, 19, renderer->a(0xF33F));
@@ -524,7 +527,6 @@ public:
 			}
 			else if (!(Shared -> pluginActive)) {
 				renderer->drawString(getStringID(14), false, x, y+20, 20, renderer->a(0xF33F));
-				renderer->drawString(getStringID(15), false, x, y+70, 20, renderer->a(0xFFFF));
 			}
 			else {
 				renderer->drawString(getStringID(16), false, x, y+20, 20, renderer->a(0xFFFF));
@@ -539,6 +541,7 @@ public:
 		}), 170);
 
 		if (PluginRunning && (Shared -> pluginActive)) {
+			pluginRanAtBoot = true;
 			if (entry_mode == ApmPerformanceMode_Normal) {
 				auto *clickableListItem = new tsl::elm::ListItem2(getStringID(18));
 				clickableListItem->setClickListener([](u64 keys) { 
@@ -674,7 +677,6 @@ public:
 				return false;
 			});
 			list->addItem(clickableListItem4);
-		}
 
 			auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(22));
 			clickableListItem3->setClickListener([](u64 keys) { 
@@ -685,6 +687,7 @@ public:
 				return false;
 			});
 			list->addItem(clickableListItem3);
+		}
 
 		if (SaltySD) {
 			auto *clickableListItem6 = new tsl::elm::ListItem2(getStringID(8), "\uE151");
@@ -756,6 +759,17 @@ public:
 				}
 			}
 			smExit();
+		}
+		if (PluginRunning && (Shared -> pluginActive) && !pluginRanAtBoot) {
+			tsl::goBack();
+			tsl::changeTo<GuiTest>(0, 1, true);
+			return true;
+		}
+		if (SaltySD && plugin && closed && !blocked) {
+			blocked = true;
+			tsl::goBack();
+			tsl::changeTo<GuiTest>(0, 1, true);
+			return true;
 		}
 		if (keysDown & HidNpadButton_B) {
 			tsl::goBack();
