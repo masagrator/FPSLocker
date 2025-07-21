@@ -475,12 +475,13 @@ public:
 	}
 };
 
+bool blocked = false;
+
 class GuiTest : public tsl::Gui {
 public:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 	bool render100Above = false;
 	bool pluginRanAtBoot = false;
-	bool blocked = false;
 	GuiTest(u8 arg1, u8 arg2, bool arg3) { 
 		
 		if (isLite) entry_mode = ApmPerformanceMode_Normal;
