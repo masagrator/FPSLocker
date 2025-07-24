@@ -804,7 +804,7 @@ public:
 	// libtesla already initialized fs, hid, pl, pmdmnt, hid:sys and set:sys
 	virtual void initServices() override {
 		
-		#ifndef __SWITCH__
+		#if !defined(__SWITCH__) && !defined(__OUNCE__)
 			systemtickfrequency = armGetSystemTickFreq();
 		#endif
 		tsl::hlp::doWithSmSession([]{
