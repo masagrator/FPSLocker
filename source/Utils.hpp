@@ -185,7 +185,7 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
     return;
 }
 
-void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as, int* displayCRC) {
+void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as, int* displayCRC, bool is720p) {
 	for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
 		if (DockedModeRefreshRateAllowedValues[i] == 60 || DockedModeRefreshRateAllowedValues[i] == 50) rr[i] = true;
 		else rr[i] = false;
@@ -219,23 +219,47 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		if (iniData["Common"].contains("tvName") == true) {
 			TV_name = iniData["Common"]["tvName"];
 		}
-		if (iniData["Common"].contains("refreshRateAllowed") == false) {
-			return;
+		if (!is720p) {
+			if (iniData["Common"].contains("refreshRateAllowed") == false) {
+				return;
+			}
+			if (iniData["Common"]["refreshRateAllowed"].begin()[0] != '{')
+				return;
+			if ((iniData["Common"]["refreshRateAllowed"].end()-1)[0] != '}')
+				return;
+			std::string rrAllowed = std::string(iniData["Common"]["refreshRateAllowed"].begin()+1, iniData["Common"]["refreshRateAllowed"].end()-1);
+			for (const auto& word_view : std::views::split(rrAllowed, ',')) {
+				std::string temp_string(word_view.begin(), word_view.end());
+				int value = 0;
+				auto [ptr, ec] = std::from_chars(temp_string.c_str(), &temp_string.c_str()[temp_string.length()], value);
+				if (ec != std::errc{}) return;
+				for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+					if (value == DockedModeRefreshRateAllowedValues[i]) {
+						rr[i] = true;
+						break;
+					}
+				}
+			}
 		}
-		if (iniData["Common"]["refreshRateAllowed"].begin()[0] != '{')
-			return;
-		if ((iniData["Common"]["refreshRateAllowed"].end()-1)[0] != '}')
-			return;
-		std::string rrAllowed = std::string(iniData["Common"]["refreshRateAllowed"].begin()+1, iniData["Common"]["refreshRateAllowed"].end()-1);
-		for (const auto& word_view : std::views::split(rrAllowed, ',')) {
-			std::string temp_string(word_view.begin(), word_view.end());
-			int value = 0;
-			auto [ptr, ec] = std::from_chars(temp_string.c_str(), &temp_string.c_str()[temp_string.length()], value);
-			if (ec != std::errc{}) return;
-			for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
-				if (value == DockedModeRefreshRateAllowedValues[i]) {
-					rr[i] = true;
-					break;
+		else {
+			if (iniData["Common"].contains("refreshRateAllowed720p") == false) {
+				return;
+			}
+			if (iniData["Common"]["refreshRateAllowed720p"].begin()[0] != '{')
+				return;
+			if ((iniData["Common"]["refreshRateAllowed720p"].end()-1)[0] != '}')
+				return;
+			std::string rrAllowed = std::string(iniData["Common"]["refreshRateAllowed720p"].begin()+1, iniData["Common"]["refreshRateAllowed720p"].end()-1);
+			for (const auto& word_view : std::views::split(rrAllowed, ',')) {
+				std::string temp_string(word_view.begin(), word_view.end());
+				int value = 0;
+				auto [ptr, ec] = std::from_chars(temp_string.c_str(), &temp_string.c_str()[temp_string.length()], value);
+				if (ec != std::errc{}) return;
+				for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+					if (value == DockedModeRefreshRateAllowedValues[i]) {
+						rr[i] = true;
+						break;
+					}
 				}
 			}
 		}

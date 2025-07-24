@@ -80,10 +80,13 @@ public:
 	DockedModeRefreshRateAllowed rr_default;
 	DockedAdditionalSettings as;
 	uint8_t highestRefreshRate = 60;
+	s32 height = 1080;
     DockedWizardGui(uint8_t highestRefreshRate_impl) {
 		snprintf(PressButton, sizeof(PressButton), getStringID(94), 40);
 		if (highestRefreshRate_impl >= 70) highestRefreshRate = highestRefreshRate_impl;
-		LoadDockedModeAllowedSave(rr_default, as, nullptr);
+		s32 width = 0;
+		ommGetDefaultDisplayResolution(&width, &height);
+		LoadDockedModeAllowedSave(rr_default, as, nullptr, (height == 720) ? true : false);
 		memcpy(&rr, &rr_default, sizeof(rr));
 		memset(&rr, 1, 5);
 		tick = 0;
@@ -115,7 +118,10 @@ public:
 			ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
 			apmGetPerformanceMode(&mode);
 			apmExit();
-			if (mode != ApmPerformanceMode_Boost) {
+			s32 width = 0;
+			s32 height_now = height;
+			ommGetDefaultDisplayResolution(&width, &height_now);
+			if (mode != ApmPerformanceMode_Boost || height != height_now) {
 				smExit();
 				tsl::goBack();
 				return true;
@@ -124,7 +130,7 @@ public:
 		smExit();
 		if (keysHeld & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
-				SaltySD_SetAllowedDockedRefreshRates(rr_default);
+				SaltySD_SetAllowedDockedRefreshRates(rr_default, height == 720);
 				remove("sdmc:/SaltySD/test.flag");
 				svcSleepThread(100'000);
 				if (tick) {
@@ -152,7 +158,7 @@ public:
 		if ((keysHeld & HidNpadButton_X) && !tick) {
 			tick = svcGetSystemTick();
 			if (R_SUCCEEDED(SaltySD_Connect())) {
-				SaltySD_SetAllowedDockedRefreshRates(rr);
+				SaltySD_SetAllowedDockedRefreshRates(rr, height == 720);
 				FILE* file = fopen("sdmc:/SaltySD/test.flag", "wb");
 				if (file) fclose(file);
 				svcSleepThread(100'000);
@@ -166,7 +172,7 @@ public:
 		if (tick) {
 			if (i > 3) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
-					SaltySD_SetAllowedDockedRefreshRates(rr);
+					SaltySD_SetAllowedDockedRefreshRates(rr, height == 720);
 					remove("sdmc:/SaltySD/test.flag");
 					svcSleepThread(100'000);
 					SaltySD_Term();
@@ -242,12 +248,15 @@ public:
 	uint8_t m_maxRefreshRate;
 	uint16_t delay_s = 10;
 	bool block = false;
+	s32 height = 1080;
     DockedOverWizardGui(uint8_t maxRefreshRate) {
 		snprintf(PressButton, sizeof(PressButton), getStringID(94), 70);
 		if (maxRefreshRate > DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1])
 			maxRefreshRate = DockedModeRefreshRateAllowedValues[sizeof(DockedModeRefreshRateAllowedValues) - 1];
 		m_maxRefreshRate = maxRefreshRate;
-		LoadDockedModeAllowedSave(rr_default, as, nullptr);
+		s32 width = 0;
+		ommGetDefaultDisplayResolution(&width, &height);
+		LoadDockedModeAllowedSave(rr_default, as, nullptr, (height == 720) ? true : false);
 		memcpy(&rr, &rr_default, sizeof(rr));
 		tick = 0;
         i = 5;
@@ -289,9 +298,9 @@ public:
 			apmGetPerformanceMode(&mode);
 			apmExit();
 			s32 width = 0;
-			s32 height = 1080;
-			if (tick) ommGetDefaultDisplayResolution(&width, &height);
-			if (height != 1080 || mode != ApmPerformanceMode_Boost) {
+			s32 height_now = 1080;
+			if (tick) ommGetDefaultDisplayResolution(&width, &height_now);
+			if (height != height_now || mode != ApmPerformanceMode_Boost) {
 				smExit();
 				tsl::goBack();
 				return true;
@@ -300,7 +309,7 @@ public:
 		smExit();
 		if (keysHeld & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
-				SaltySD_SetAllowedDockedRefreshRates(rr_default);
+				SaltySD_SetAllowedDockedRefreshRates(rr_default, height == 720);
 				remove("sdmc:/SaltySD/test.flag");
 				svcSleepThread(100'000);
 				if (tick) {
@@ -328,7 +337,7 @@ public:
 		if ((keysHeld & HidNpadButton_X) && !tick) {
 			tick = svcGetSystemTick();
 			if (R_SUCCEEDED(SaltySD_Connect())) {
-				SaltySD_SetAllowedDockedRefreshRates(rr);
+				SaltySD_SetAllowedDockedRefreshRates(rr, height == 720);
 				FILE* file = fopen("sdmc:/SaltySD/test.flag", "wb");
 				if (file) fclose(file);
 				svcSleepThread(100'000);
@@ -342,7 +351,7 @@ public:
 		if (tick) {
 			if (i > sizeof(DockedModeRefreshRateAllowedValues)) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
-					SaltySD_SetAllowedDockedRefreshRates(rr);
+					SaltySD_SetAllowedDockedRefreshRates(rr, height == 720);
 					remove("sdmc:/SaltySD/test.flag");
 					svcSleepThread(100'000);
 					SaltySD_SetDisplayRefreshRate(60);
@@ -424,13 +433,18 @@ public:
 	DockedModeRefreshRateAllowed rr = {0};
 	DockedAdditionalSettings as;
 	uint8_t maxRefreshRate = 60;
+	s32 height = 1080;
     DockedManualGui(uint8_t maxRefreshRate_impl) {
 		if (maxRefreshRate_impl >= 70) maxRefreshRate = maxRefreshRate_impl;
-		LoadDockedModeAllowedSave(rr, as, nullptr);
+		s32 width = 0;
+		ommGetDefaultDisplayResolution(&width, &height);
+		LoadDockedModeAllowedSave(rr, as, nullptr, (height == 720) ? true : false);
 	}
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(104));
+		char string_temp[128];
+		snprintf(string_temp, sizeof(string_temp), getStringID(104), height);
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", string_temp);
 
 		auto list = new tsl::elm::List();
 
@@ -474,7 +488,10 @@ public:
 			ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
 			apmGetPerformanceMode(&mode);
 			apmExit();
-			if (mode != ApmPerformanceMode_Boost) {
+			s32 width = 0;
+			s32 height_now = height;
+			ommGetDefaultDisplayResolution(&width, &height_now);
+			if (mode != ApmPerformanceMode_Boost || height != height_now) {
 				tsl::goBack();
 				return true;
 			}
@@ -483,7 +500,7 @@ public:
 		if (keysHeld & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaveDockedModeAllowedSave(rr, as);
-				SaltySD_SetAllowedDockedRefreshRates(rr);
+				SaltySD_SetAllowedDockedRefreshRates(rr, height == 720);
 				svcSleepThread(100'000);
 				SaltySD_Term();
 			}
@@ -500,7 +517,10 @@ public:
 	DockedModeRefreshRateAllowed rr = {0};
 	DockedAdditionalSettings as;
     DockedAdditionalGui() {
-		LoadDockedModeAllowedSave(rr, as, nullptr);
+		s32 width = 0;
+		s32 height = 1080;
+		ommGetDefaultDisplayResolution(&width, &height);
+		LoadDockedModeAllowedSave(rr, as, nullptr, (height == 720) ? true : false);
 	}
 
     virtual tsl::elm::Element* createUI() override {
@@ -579,7 +599,7 @@ public:
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
 		mkdir("sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/", 777);
 		int crc32 = 0;
-		LoadDockedModeAllowedSave(rr, as, &crc32);
+		LoadDockedModeAllowedSave(rr, as, &crc32, (height == 720) ? true : false);
 		highestRefreshRate = 60;
 		linkRate = 10;
 		getDockedHighestRefreshRate(&highestRefreshRate, &linkRate);
@@ -609,39 +629,56 @@ public:
 			
 		}), 85);
 
-		auto *clickableListItem1 = new tsl::elm::ListItem2(getStringID(111));
-		clickableListItem1->setClickListener([this](u64 keys) { 
-			if ((keys & HidNpadButton_A) && !block) {
-				tsl::changeTo<DockedManualGui>(highestRefreshRate);
-				return true;
-			}
-			return false;
-		});
-
-		list->addItem(clickableListItem1);
-
-		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(95));
-		clickableListItem2->setClickListener([this](u64 keys) { 
-			if ((keys & HidNpadButton_A) && !block) {
-				tsl::changeTo<DockedWizardGui>(highestRefreshRate);
-				return true;
-			}
-			return false;
-		});
-
-		list->addItem(clickableListItem2);
-
-		if (highestRefreshRate >= 70.f) {
-			auto *clickableListItem22 = new tsl::elm::ListItem2(getStringID(112));
-			clickableListItem22->setClickListener([this](u64 keys) { 
+		if (mode == ApmPerformanceMode_Boost && (height == 720 || height == 1080)) {
+			char string_temp[128];
+			snprintf(string_temp, sizeof(string_temp), getStringID(111), height);
+			auto *clickableListItem1 = new tsl::elm::ListItem2(string_temp);
+			clickableListItem1->setClickListener([this](u64 keys) { 
 				if ((keys & HidNpadButton_A) && !block) {
-					tsl::changeTo<DockedOverWizardGui>((uint8_t)std::round(highestRefreshRate));
+					tsl::changeTo<DockedManualGui>(highestRefreshRate);
 					return true;
 				}
 				return false;
 			});
 
-			list->addItem(clickableListItem22);
+			list->addItem(clickableListItem1);
+
+			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(95));
+			clickableListItem2->setClickListener([this](u64 keys) { 
+				if ((keys & HidNpadButton_A) && !block) {
+					tsl::changeTo<DockedWizardGui>(highestRefreshRate);
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem2);
+
+			if (highestRefreshRate >= 70.f) {
+				char string_temp[128];
+				snprintf(string_temp, sizeof(string_temp), getStringID(112), height);
+				auto *clickableListItem22 = new tsl::elm::ListItem2(string_temp);
+				clickableListItem22->setClickListener([this](u64 keys) {
+					if ((keys & HidNpadButton_A) && !block) {
+						tsl::changeTo<DockedOverWizardGui>((uint8_t)std::round(highestRefreshRate));
+						return true;
+					}
+					return false;
+				});
+
+				list->addItem(clickableListItem22);
+			}
+
+			auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(113));
+			clickableListItem4->setClickListener([this](u64 keys) { 
+				if ((keys & HidNpadButton_A) && !block) {
+					tsl::changeTo<DockedAdditionalGui>();
+					return true;
+				}
+				return false;
+			});
+
+			list->addItem(clickableListItem4);
 		}
 
 		auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(89));
@@ -654,18 +691,6 @@ public:
 		});
 
 		list->addItem(clickableListItem3);
-
-
-		auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(113));
-		clickableListItem4->setClickListener([this](u64 keys) { 
-			if ((keys & HidNpadButton_A) && !block) {
-				tsl::changeTo<DockedAdditionalGui>();
-				return true;
-			}
-			return false;
-		});
-
-		list->addItem(clickableListItem4);
 		
 		frame->setContent(list);
 
@@ -708,7 +733,10 @@ public:
 	DockedModeRefreshRateAllowed rr;
 	DockedAdditionalSettings as;
 	DockedRefreshRateChangeGui () {
-		LoadDockedModeAllowedSave(rr, as, nullptr);
+		s32 width = 0;
+		s32 height = 1080;
+		ommGetDefaultDisplayResolution(&width, &height);
+		LoadDockedModeAllowedSave(rr, as, nullptr, (height == 720) ? true : false);
 	}
 
 	// Called when this Gui gets loaded to create the UI
