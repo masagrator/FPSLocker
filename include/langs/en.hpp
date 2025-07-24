@@ -142,9 +142,7 @@ namespace ENG {
 
 		"This menu will go through all\n"
 		"supported refresh rates above 60 Hz\n"
-		"up to %d Hz. It's needed only\n"
-		"for 1080p output, for 720p\n"
-		"everything should work fine.\n\n"
+		"up to %d Hz.\n\n"
 		"Press button you are asked for\n"
 		"to confirm that it works.\n"
 		"If nothing is pressed in 10 seconds,\n"
@@ -152,7 +150,7 @@ namespace ENG {
 		"This can take up to %d seconds.",
 
 		"Display overclock wizard",
-		"Docked 1080p display manual settings",
+		"Docked %dp display manual settings",
 		"Docked display additional settings",
 		"Allow patches to force 60 Hz",
 		"Use lowest refresh rate for unmatched FPS targets",
@@ -160,8 +158,8 @@ namespace ENG {
 		"Max refresh rate available: %u Hz\nmyDP link rate: %s\nConfig ID: %08X",
 		"Docked display settings",
 
-		"Allowed 1080p refresh rates",
-		"1080p overclock wizard",
+		"Allowed %dp refresh rates",
+		"%dp overclock wizard",
 		"Additional settings",
 
 		"You are not in docked mode.\n"

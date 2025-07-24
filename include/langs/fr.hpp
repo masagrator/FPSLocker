@@ -142,18 +142,17 @@ namespace FRA {
 		"Appuyer sur ZR pour confirmer que %d Hz fonctionne.",
 
 		"Ce menu passera en revue toutes\n"
-		"les fréq. d'écran pris en charge au-dessus de 60 Hz\n"
-		"jusqu'a %d Hz. C'est nécessaire seulement\n"
-		"pour la sortie en 1080p, pour 720p\n"
-		"tout devrait fonctionner correctement.\n\n"
+		"les fréq. d'écran pris en charge\n"
+		"au-dessus de 60 Hz jusqu'a %d Hz.\n\n"
 		"Appuyez sur le button demandé\n"
 		"pour confirmer si ça fonctionne.\n"
-		"Si aucun button n'ai pressé dans les 10 secondes,\n"
-		"il passera à la prochaine fréq. d'écran.\n"
+		"Si aucun button n'ai pressé dans les\n"
+		"10 secondes, il passera à la prochaine\n"
+		"fréq. d'écran.\n"
 		"Cela peut prendre jusqu'a %d secondes.",
 
 		"Assistant d'overclock de l'écran",
-		"Paramètres manuels en 1080p docké",
+		"Paramètres manuels en %dp docké",
 		"Réglages suppl. écran docké",
 		"Authoriser les patches à forcer 60 Hz",
 		"Fréq. minimum pour les réglages FPS non sync.",
@@ -161,8 +160,8 @@ namespace FRA {
 		"Fréq. d'écran Max disponible: %u Hz\nTaux de transfert myDP: %s\nConfig ID: %08X",
 		"Réglages écran docké",
 
-		"Fréq. d'écran authorisée en 1080p",
-		"Assistant d'overclock 1080p",
+		"Fréq. d'écran authorisée en %dp",
+		"Assistant d'overclock %dp",
 		"Paramètres additionnels",
 
 		"La console n’est pas dockée.\n"

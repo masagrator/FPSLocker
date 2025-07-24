@@ -144,9 +144,7 @@ namespace GER {
 
 		"Dieses Menü geht durch alle\n"
 		"unterstützten Wiederholungsraten über 60 Hz:\n"
-		"bis zu %d Hz. Nur benötigt\n"
-		"für 1080p output, für 720p\n"
-		"alles sollte funktionieren.\n\n"
+		"bis zu %d Hz.\n\n"
 		"Drücke Knöpfe die du gefragt wirst\n"
 		"um zu bestätigen, dass es funktioniert.\n"
 		"Falls für 10 Sekunden nichts gedrückt wird,\n"
@@ -154,7 +152,7 @@ namespace GER {
 		"Das kann bis zu %d Sekunden benötigen.",
 
 		"Display-Overclock-Assistent",
-		"Docked 1080p Display manuelle Einstellungen",
+		"Docked %dp Display manuelle Einstellungen",
 		"Docked Display weitere Einstellungen",
 		"Erlaube Patches um 60 Hz zu erwzingen",
 		"Nutze niedrigste Wiederholungsrate für nicht übereinstimmende FPS-Ziele",
@@ -162,8 +160,8 @@ namespace GER {
 		"Maximale Wiederholungsrate verfügbar: %u Hz\nmyDP Link Rate: %s\nConfig ID: %08X",
 		"Docked Display Einstellungen",
 
-		"Erlaube 1080p Wiederholungsraten",
-		"1080p Overclock-Assistent",
+		"Erlaube %dp Wiederholungsraten",
+		"%dp Overclock-Assistent",
 		"Weitere Einstellungen",
 
 		"Du bist nicht in docked Modus.\n"

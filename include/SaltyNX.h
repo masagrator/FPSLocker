@@ -270,13 +270,13 @@ Result SaltySD_SetDisplaySync(bool isTrue)
 	return ret;
 }
 
-typedef bool DockedModeRefreshRateAllowed[14];
 
 uint8_t DockedModeRefreshRateAllowedValues[] = {40, 45, 50, 55, 60, 70, 72, 75, 80, 90, 95, 100, 110, 120};
+typedef bool DockedModeRefreshRateAllowed[14];
 
 static_assert(sizeof(DockedModeRefreshRateAllowedValues) == sizeof(DockedModeRefreshRateAllowed));
 
-Result SaltySD_SetAllowedDockedRefreshRates(DockedModeRefreshRateAllowed refreshRates)
+Result SaltySD_SetAllowedDockedRefreshRates(DockedModeRefreshRateAllowed refreshRates, bool is720p)
 {
 	Result ret = 0;
 
@@ -315,7 +315,8 @@ Result SaltySD_SetAllowedDockedRefreshRates(DockedModeRefreshRateAllowed refresh
 		u64 magic;
 		u64 cmd_id;
 		u32 refreshRates;
-		u32 reserved[3];
+		u32 is720p;
+		u32 reserved[2];
 	} *raw;
 
 	raw = (input*)ipcPrepareHeader(&c, sizeof(*raw));
@@ -323,6 +324,7 @@ Result SaltySD_SetAllowedDockedRefreshRates(DockedModeRefreshRateAllowed refresh
 	raw->magic = SFCI_MAGIC;
 	raw->cmd_id = 13;
 	memcpy(&raw->refreshRates, &DockedRefreshRates, 4);
+	raw->is720p = is720p;
 
 	ret = ipcDispatch(saltysd_orig);
 
