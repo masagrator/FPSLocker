@@ -29,7 +29,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
 2. Go to Advanced Settings, if you see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, restart game.
 
 **Explanation of each option and information**:
-- `Interval Mode` - It's used by NVN API to set the limiter to either 30 FPS (2) or 60 FPS (1). 
+- `Interval Mode` - It's used by NVN API to set the limiter to either 30 FPS (2) or 60 FPS (1) (sporadically to 20 FPS (3) and 15 FPS (4)). 
 - `Custom FPS Target` - It's used to lock the game to a certain FPS. If the game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `FPS` - It shows how many frames have passed in the last second for the currently running game. This is to confirm that the lock is working as expected.
 - `Increase/Decrease FPS target` - Shows up only in handheld mode. Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS.
