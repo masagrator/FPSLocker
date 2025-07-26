@@ -51,7 +51,7 @@ NO_ICON		:=  1
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH		:= -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE -flto
+ARCH		:= -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE -flto=auto
 
 CFLAGS		:= -g -Wall -O2 -ffunction-sections -fdata-sections \
 			$(ARCH) $(DEFINES)
