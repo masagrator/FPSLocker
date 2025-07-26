@@ -727,7 +727,7 @@ void setForceEnglishLanguage(bool set) {
 }
 
 bool saveSettings() {
-	if (!!(Shared -> FPSlocked) && !(Shared -> FPSlockedDocked) && !(Shared -> ZeroSync) && !SetBuffers_save && !forceSuspend_save) {
+	if (!(Shared -> FPSlocked) && !(Shared -> FPSlockedDocked) && !(Shared -> ZeroSync) && !SetBuffers_save && !forceSuspend_save) {
 		remove(savePath);
 	}
 	else {
