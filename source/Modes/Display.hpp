@@ -128,7 +128,7 @@ public:
 			}
 		}
 		smExit();
-		if ((keysDown & HidNpadButton_B) || (keysHeld & HidNpadButton_B)) {
+		if (keysDown & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr_default, height == 720);
 				remove("sdmc:/SaltySD/test.flag");
@@ -307,7 +307,7 @@ public:
 			}
 		}
 		smExit();
-		if ((keysDown & HidNpadButton_B) || (keysHeld & HidNpadButton_B)) {
+		if (keysDown & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaltySD_SetAllowedDockedRefreshRates(rr_default, height == 720);
 				remove("sdmc:/SaltySD/test.flag");
@@ -497,7 +497,7 @@ public:
 			}
 		}
 		smExit();
-		if (keysHeld & HidNpadButton_B) {
+		if (keysDown & HidNpadButton_B) {
 			if (R_SUCCEEDED(SaltySD_Connect())) {
 				SaveDockedModeAllowedSave(rr, as, height == 720);
 				SaltySD_SetAllowedDockedRefreshRates(rr, height == 720);

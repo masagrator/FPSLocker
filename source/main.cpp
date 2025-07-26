@@ -458,8 +458,8 @@ public:
 					(Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & (1 << 0)) | (1 << 1)) : ((Shared -> displaySync) & (1 << 0));
 				}
 				SaltySD_Term();
-				saveSettings();
 			}
+			saveSettings();
 			tsl::goBack();
 			return true;
 		}			
