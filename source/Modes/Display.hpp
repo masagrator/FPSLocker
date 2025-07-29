@@ -850,7 +850,7 @@ public:
 		}), 90);
 
 		if (entry_mode == ApmPerformanceMode_Normal && ((displaySync & 1) == 0)) {
-			auto *clickableListItem = new tsl::elm::ListItem2(getStringID(116));
+			auto *clickableListItem = new tsl::elm::ListItem2(getStringID(116)); //Increase refresh rate
 			clickableListItem->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					if ((refreshRate_g >= (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) && (refreshRate_g < (isOLED ? supportedHandheldRefreshRatesOLED[sizeof(supportedHandheldRefreshRatesOLED)-1] : supportedHandheldRefreshRates[sizeof(supportedHandheldRefreshRates)-1]))) {
@@ -868,7 +868,7 @@ public:
 
 			list->addItem(clickableListItem);
 
-			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(117));
+			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(117)); //Decrease refresh rate
 			clickableListItem2->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					if (refreshRate_g > (isOLED ? supportedHandheldRefreshRatesOLED[0] : supportedHandheldRefreshRates[0])) {
@@ -887,7 +887,7 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		else if (entry_mode == ApmPerformanceMode_Boost && ((displaySync & 2) == 0)) {
-			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(115));
+			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(115)); //Change refresh rate
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					tsl::changeTo<DockedRefreshRateChangeGui>();
@@ -900,7 +900,7 @@ public:
 
 		if (!oldSalty) {
 			list->addItem(new tsl::elm::CategoryHeader(getStringID(118), true));
-			auto *clickableListItem3 = new tsl::elm::ToggleListItem(getStringID(119), displaySync & 1);
+			auto *clickableListItem3 = new tsl::elm::ToggleListItem(getStringID(119), displaySync & 1); //Handheld Display Sync toggle
 			clickableListItem3->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					if (R_SUCCEEDED(SaltySD_Connect())) {
@@ -940,7 +940,7 @@ public:
 
 			if (!isLite) {
 
-				auto *clickableListItem6 = new tsl::elm::ToggleListItem(getStringID(128), (bool)(displaySync & 2));
+				auto *clickableListItem6 = new tsl::elm::ToggleListItem(getStringID(128), (bool)(displaySync & 2)); //Docked Display Sync toggle
 				clickableListItem6->setClickListener([this](u64 keys) { 
 					if (keys & HidNpadButton_A) {
 						if (R_SUCCEEDED(SaltySD_Connect())) {
@@ -949,11 +949,11 @@ public:
 							u64 PID = 0;
 							Result rc = pmdmntGetApplicationProcessId(&PID);
 							if (R_SUCCEEDED(rc) && Shared) {
-								if (!(bool)(displaySync & 1) == true && (Shared -> FPSlockedDocked) < 40) {
+								if (!(bool)(displaySync & 2) == true && (Shared -> FPSlockedDocked) < 40) {
 									if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate(60);
 									(Shared -> displaySync) = (Shared -> displaySync) & 1;
 								}
-								else if (!(bool)(displaySync & 1)) {
+								else if (!(bool)(displaySync & 2)) {
 									if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate((Shared -> FPSlockedDocked));
 									(Shared -> displaySync) = (Shared -> FPSlockedDocked) ? (((Shared -> displaySync) & 1) | 2) : ((Shared -> displaySync) & 1);
 								}
@@ -961,7 +961,7 @@ public:
 									(Shared -> displaySync) = (Shared -> displaySync) & 1;
 								}
 							}
-							else if (!(bool)(displaySync & 1) == true && (R_FAILED(rc) || !PluginRunning)) {
+							else if (!(bool)(displaySync & 2) == true && (R_FAILED(rc) || !PluginRunning)) {
 								if (entry_mode == ApmPerformanceMode_Boost) SaltySD_SetDisplayRefreshRate(60);
 							}
 							SaltySD_Term();
@@ -978,7 +978,7 @@ public:
 
 				list->addItem(clickableListItem6);
 			
-				auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(120));
+				auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(120)); //Docked settings
 				clickableListItem4->setClickListener([this](u64 keys) { 
 					if ((keys & HidNpadButton_A)) {
 						tsl::changeTo<DockedGui>();
@@ -991,7 +991,7 @@ public:
 			}
 
 			if (isPossiblyRetroRemake) {
-				auto *clickableListItem5 = new tsl::elm::ToggleListItem(getStringID(121), RetroRemakeMode);
+				auto *clickableListItem5 = new tsl::elm::ToggleListItem(getStringID(121), RetroRemakeMode); //Retro Remake Mode toogle
 				clickableListItem5->setClickListener([this](u64 keys) { 
 					if (keys & HidNpadButton_A) {
 						if (!RetroRemakeMode) {
