@@ -144,15 +144,14 @@ namespace PTBR {
 		"Pressione ZR para confirmar %d Hz.",
 
 		"Este menu testará taxas acima de 60 Hz\n"
-		"até %d Hz. Necessário apenas para\n"
-		"1080p; em 720p tudo deve funcionar.\n\n"
+		"até %d Hz.\n\n"
 		"Pressione o botão solicitado para\n"
 		"confirmar. Se nada for pressionado\n"
 		"em 10 s, testará a próxima taxa.\n"
 		"Isso pode levar até %d s.",
 
 		"Assistente de overclock de display",
-		"Configurações manuais 1080p Docked",
+		"Configurações manuais %dp Docked",
 		"Configurações adicionais Docked",
 		"Permitir patches forçarem 60 Hz",
 		"Usar menor taxa para metas de FPS não correspondentes",
@@ -160,8 +159,8 @@ namespace PTBR {
 		"Máx. taxa de atualização disponível: %u Hz\nmyDP link rate: %s\nConfig ID: %08X",
 		"Configurações de display Docked",
 
-		"Taxas 1080p permitidas",
-		"Assistente de overclock 1080p",
+		"Taxas %dp permitidas",
+		"Assistente de overclock %dp",
 		"Configurações adicionais",
 
 		"Você não está no modo docked.\n"

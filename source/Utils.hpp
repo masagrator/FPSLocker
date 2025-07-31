@@ -29,6 +29,8 @@ struct NxFpsSharedBlock {
 	bool dontForce60InDocked;
 	bool forceSuspend;
 	uint8_t currentRefreshRate;
+	float readSpeedPerSecond;
+	uint8_t FPSlockedDocked;
 } NX_PACKED;
 
 struct DockedAdditionalSettings {
@@ -56,7 +58,13 @@ char FPSTarget_c[64];
 char PFPS_c[32];
 char nvnBuffers[96] = "";
 char SyncWait_c[32];
-uint64_t systemtickfrequency = 19200000;
+#ifdef __SWITCH__
+	#define systemtickfrequency 19200000
+#elif __OUNCE__
+	#define systemtickfrequency 31250000
+#else
+	uint64_t systemtickfrequency = 19200000;
+#endif
 
 char configPath[128] = "";
 char patchPath[128] = "";
@@ -76,7 +84,6 @@ char patchChar[192] = "";
 char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
 Thread t0;
-bool threadActive = true;
 std::string ZeroSyncMode = "";
 
 bool FileDownloaded = false;
@@ -90,6 +97,8 @@ Mutex TitlesAccess;
 
 volatile const bool forceEnglishLanguage = false;
 std::string overlayName = "sdmc:/switch/.overlays/";
+
+LEvent threadexit = {0};
 
 struct Title
 {
@@ -134,49 +143,7 @@ void getDockedHighestRefreshRate(uint8_t* highestRefreshRate, uint8_t* setLinkRa
 
 }
 
-void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditionalSettings &as) {
-	tsl::hlp::doWithSmSession([]{
-		setsysInitialize();
-	});
-    SetSysEdid edid = {0};
-    if (R_FAILED(setsysGetEdid(&edid))) {
-		return;
-    }
-    char path[128] = "";
-    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.ini", crc32Calculate(&edid, sizeof(edid)));
-    FILE* file = fopen(path, "w");
-    if (file) {
-		std::string allowedRR = "{";
-        for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-			if (rr[i]) {
-				allowedRR += std::to_string(DockedModeRefreshRateAllowedValues[i]);
-				allowedRR += ",";
-			}
-        }
-		allowedRR.erase(allowedRR.end()-1);
-		allowedRR += "}";
-		fwrite("[Common]\n", 9, 1, file);
-		fwrite("tvName=", 7, 1, file);
-		fwrite(TV_name.c_str(), TV_name.length(), 1, file);
-		fwrite("\n", 1, 1, file);
-		fwrite("refreshRateAllowed=", 19, 1, file);
-		fwrite(allowedRR.c_str(), allowedRR.length(), 1, file);
-		fwrite("\n", 1, 1, file);
-		std::string df60 = (as.dontForce60InDocked ? "False" : "True");
-		std::string fpst = (as.fpsTargetWithoutRRMatchLowest ? "True" : "False");
-		fwrite("allowPatchesToForce60InDocked=", 30, 1, file);
-		fwrite(df60.c_str(), df60.length(), 1, file);
-		fwrite("\n", 1, 1, file);
-		fwrite("matchLowestRefreshRate=", 23, 1, file);
-		fwrite(fpst.c_str(), fpst.length(), 1, file);
-		fwrite("\n", 1, 1, file);
-        fclose(file);
-
-    }
-    return;
-}
-
-void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as, int* displayCRC) {
+void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditionalSettings &as, int* displayCRC, bool is720p) {
 	for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
 		if (DockedModeRefreshRateAllowedValues[i] == 60 || DockedModeRefreshRateAllowedValues[i] == 50) rr[i] = true;
 		else rr[i] = false;
@@ -203,6 +170,7 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		std::string string_data(size, 0);
 		fread(string_data.data(), size, 1, file);
 		fclose(file);
+		if (size == 0) return;
 		tsl::hlp::ini::IniData iniData = tsl::hlp::ini::parseIni(string_data);
 		if (iniData.contains("Common") == false) {
 			return;
@@ -210,23 +178,47 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		if (iniData["Common"].contains("tvName") == true) {
 			TV_name = iniData["Common"]["tvName"];
 		}
-		if (iniData["Common"].contains("refreshRateAllowed") == false) {
-			return;
+		if (!is720p) {
+			if (iniData["Common"].contains("refreshRateAllowed") == false) {
+				return;
+			}
+			if (iniData["Common"]["refreshRateAllowed"].begin()[0] != '{')
+				return;
+			if ((iniData["Common"]["refreshRateAllowed"].end()-1)[0] != '}')
+				return;
+			std::string rrAllowed = std::string(iniData["Common"]["refreshRateAllowed"].begin()+1, iniData["Common"]["refreshRateAllowed"].end()-1);
+			for (const auto& word_view : std::views::split(rrAllowed, ',')) {
+				std::string temp_string(word_view.begin(), word_view.end());
+				int value = 0;
+				auto [ptr, ec] = std::from_chars(temp_string.c_str(), &temp_string.c_str()[temp_string.length()], value);
+				if (ec != std::errc{}) return;
+				for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+					if (value == DockedModeRefreshRateAllowedValues[i]) {
+						rr[i] = true;
+						break;
+					}
+				}
+			}
 		}
-		if (iniData["Common"]["refreshRateAllowed"].begin()[0] != '{')
-			return;
-		if ((iniData["Common"]["refreshRateAllowed"].end()-1)[0] != '}')
-			return;
-		std::string rrAllowed = std::string(iniData["Common"]["refreshRateAllowed"].begin()+1, iniData["Common"]["refreshRateAllowed"].end()-1);
-		for (const auto& word_view : std::views::split(rrAllowed, ',')) {
-			std::string temp_string(word_view.begin(), word_view.end());
-			int value = 0;
-			auto [ptr, ec] = std::from_chars(temp_string.c_str(), &temp_string.c_str()[temp_string.length()], value);
-			if (ec != std::errc{}) return;
-			for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
-				if (value == DockedModeRefreshRateAllowedValues[i]) {
-					rr[i] = true;
-					break;
+		else {
+			if (iniData["Common"].contains("refreshRateAllowed720p") == false) {
+				return;
+			}
+			if (iniData["Common"]["refreshRateAllowed720p"].begin()[0] != '{')
+				return;
+			if ((iniData["Common"]["refreshRateAllowed720p"].end()-1)[0] != '}')
+				return;
+			std::string rrAllowed = std::string(iniData["Common"]["refreshRateAllowed720p"].begin()+1, iniData["Common"]["refreshRateAllowed720p"].end()-1);
+			for (const auto& word_view : std::views::split(rrAllowed, ',')) {
+				std::string temp_string(word_view.begin(), word_view.end());
+				int value = 0;
+				auto [ptr, ec] = std::from_chars(temp_string.c_str(), &temp_string.c_str()[temp_string.length()], value);
+				if (ec != std::errc{}) return;
+				for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+					if (value == DockedModeRefreshRateAllowedValues[i]) {
+						rr[i] = true;
+						break;
+					}
 				}
 			}
 		}
@@ -236,6 +228,75 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		if (iniData["Common"].contains("matchLowestRefreshRate") == true) {
 			as.fpsTargetWithoutRRMatchLowest = (bool)!strncasecmp(iniData["Common"]["matchLowestRefreshRate"].c_str(), "True", 4);
 		}
+    }
+    return;
+}
+
+void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditionalSettings &as, bool is720p) {
+	tsl::hlp::doWithSmSession([]{
+		setsysInitialize();
+	});
+    SetSysEdid edid = {0};
+    if (R_FAILED(setsysGetEdid(&edid))) {
+		return;
+    }
+    char path[128] = "";
+	DockedModeRefreshRateAllowed rr_impl = {0};
+	DockedAdditionalSettings as_impl = {0};
+	LoadDockedModeAllowedSave(rr_impl, as_impl, nullptr, !is720p);
+    snprintf(path, sizeof(path), "sdmc:/SaltySD/plugins/FPSLocker/ExtDisplays/%08X.ini", crc32Calculate(&edid, sizeof(edid)));
+    FILE* file = fopen(path, "w");
+    if (file) {
+		std::string allowedRR = "{";
+		std::string allowedRR720p = "{";
+		if (!is720p) {
+			for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+				if (rr[i]) {
+					allowedRR += std::to_string(DockedModeRefreshRateAllowedValues[i]);
+					allowedRR += ",";
+				}
+				if (rr_impl[i]) {
+					allowedRR720p += std::to_string(DockedModeRefreshRateAllowedValues[i]);
+					allowedRR720p += ",";
+				}
+			}		
+		}
+		else {
+			for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowed); i++) {
+				if (rr[i]) {
+					allowedRR720p += std::to_string(DockedModeRefreshRateAllowedValues[i]);
+					allowedRR720p += ",";
+				}
+				if (rr_impl[i]) {
+					allowedRR += std::to_string(DockedModeRefreshRateAllowedValues[i]);
+					allowedRR += ",";
+				}
+			}
+		}
+		allowedRR.erase(allowedRR.end()-1);
+		allowedRR += "}";
+		allowedRR720p.erase(allowedRR720p.end()-1);
+		allowedRR720p += "}";
+		fwrite("[Common]\n", 9, 1, file);
+		fwrite("tvName=", 7, 1, file);
+		fwrite(TV_name.c_str(), TV_name.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		fwrite("refreshRateAllowed=", 19, 1, file);
+		fwrite(allowedRR.c_str(), allowedRR.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		std::string df60 = (as.dontForce60InDocked ? "False" : "True");
+		std::string fpst = (as.fpsTargetWithoutRRMatchLowest ? "True" : "False");
+		fwrite("allowPatchesToForce60InDocked=", 30, 1, file);
+		fwrite(df60.c_str(), df60.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		fwrite("matchLowestRefreshRate=", 23, 1, file);
+		fwrite(fpst.c_str(), fpst.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		fwrite("refreshRateAllowed720p=", 23, 1, file);
+		fwrite(allowedRR720p.c_str(), allowedRR720p.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+        fclose(file);
+
     }
     return;
 }
@@ -503,10 +564,9 @@ void downloadPatch(void*) {
 }
 
 void loopThread(void*) {
-	while(threadActive) {
+	do {
 		if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) break;
-		svcSleepThread(1'000'000'000);
-	}
+	} while(!leventWait(&threadexit, 1'000'000'000));
 	PluginRunning = false;
 	check = false;
 	closed = true;
@@ -664,4 +724,36 @@ void setForceEnglishLanguage(bool set) {
 		fwrite(&set, 1, 1, file);
 		fclose(file);
 	}
+}
+
+bool saveSettings() {
+	if (!(Shared -> FPSlocked) && !(Shared -> FPSlockedDocked) && !(Shared -> ZeroSync) && !SetBuffers_save && !forceSuspend_save) {
+		remove(savePath);
+	}
+	else {
+		DIR* dir = opendir("sdmc:/SaltySD/plugins/");
+		if (!dir) {
+			mkdir("sdmc:/SaltySD/plugins/", 777);
+		}
+		else closedir(dir);
+		dir = opendir("sdmc:/SaltySD/plugins/FPSLocker/");
+		if (!dir) {
+			mkdir("sdmc:/SaltySD/plugins/FPSLocker/", 777);
+		}
+		else closedir(dir);
+		FILE* file = fopen(savePath, "wb");
+		if (file) {
+			fwrite(&(Shared->FPSlocked), 1, 1, file);
+			if (SetBuffers_save > 2 || (!SetBuffers_save && (Shared -> Buffers) > 2)) {
+				(Shared -> ZeroSync) = 0;
+			}
+			fwrite(&(Shared->ZeroSync), 1, 1, file);
+			fwrite(&SetBuffers_save, 1, 1, file);
+			fwrite(&forceSuspend_save, 1, 1, file);
+			fwrite(&(Shared->FPSlockedDocked), 1, 1, file);
+			fclose(file);
+		}
+		else return false;
+	}
+	return true;
 }

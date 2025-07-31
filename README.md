@@ -1,37 +1,37 @@
 # FPSLocker
 
-An overlay that with SaltyNX allows to set custom display refresh rate and FPS in Nintendo Switch retail games.
+An overlay that, with SaltyNX, allows you to set custom display refresh rate and FPS in Nintendo Switch retail games.
 
-Disclaimer: Tool is utilizing detection of graphics API to manipulate FPS and in special cases it requires using patches made per game for each version to get more than 30 FPS. You can find those patches [HERE](https://github.com/masagrator/FPSLocker-Warehouse)<br>
-Max supported yaml size is 32kB, though it can be expanded in next updates.
+Disclaimer: The tool utilizes detection of the graphics API to manipulate FPS, and in special cases, it requires using patches made specifically for each game version to achieve more than 30 FPS. Overlay has a built-in option to download configs used to make patches. Repository storing those configs can be found [HERE](https://github.com/masagrator/FPSLocker-Warehouse)<br>
+Max supported YAML size is 32kB, though it can be expanded in the next updates.
 
 **DON'T USE 60 FPS CHEATS SIMULTANEOUSLY WITH THIS TOOL, EITHER YOU NEED A CHEAT OR FPSLOCKER, YOU DON'T NEED BOTH AT ONCE! THIS CAN CREATE COMPATIBILITY ISSUES LEADING TO CRASHES!**
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 1.3.0+](https://github.com/masagrator/SaltyNX/releases)
+- [My fork of SaltyNX, version 1.4.0+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 
-How to setup everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
+How to set up everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
 
 # Usage
 
 Supported languages: English, German, French, Russian, Brazilian Portuguese, Chinese Simplified.
 
 Overlay runs in two modes:<br>
-> When game is running
+> When the game is running
 
-If game is supported by SaltyNX and you installed everything correctly, you will see menu where first line states `NX-FPS plugin is running`.
+If the game is supported by SaltyNX and you installed everything correctly, you will see a menu where the first line states `NX-FPS plugin is running`.
 
-**Short explanation:**
+**tl;dr**<br>
 The best approach if you want to run 30 FPS games at higher FPS: 
-1. Connect your Switch to internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version will be compatible with FPSLocker Warehouse repository, menu will be refreshed with option `Convert config to patch` appearing. Press on it, restart game and now change FPS target in FPSLocker.
-2. Go to Advanced Settings, if you will see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, go back to FPSLocker main menu, press `Save settings` and restart game.
+1. Connect your Switch to the internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version are compatible with the FPSLocker Warehouse repository, the menu will be refreshed with the option `Convert config to patch` appearing. Press on it, restart the game, and now change the FPS target in FPSLocker.
+2. Go to Advanced Settings, if you see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`, restart game.
 
 **Explanation of each option and information**:
-- `Interval Mode` - it's used by NVN API to set limiter to either 30 FPS (2) or 60 FPS (1). 
-- `Custom FPS Target` - it's used to lock game to certain FPS. If game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
-- `Big number on the right` - it shows how many frames have passed in last second for currently running game. This is to confirm that lock is working as expected.
+- `Interval Mode` - It's used by NVN API to set the limiter to either 30 FPS (2) or 60 FPS (1) (sporadically to 20 FPS (3) and 15 FPS (4)). 
+- `Custom FPS Target` - It's used to lock the game to a certain FPS. If the game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
+- `FPS` - It shows how many frames have passed in the last second for the currently running game. This is to confirm that the lock is working as expected.
 - `Increase/Decrease FPS target` - Shows up only in handheld mode. Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS.
 - `Change FPS target` - Shows up only in docked mode. Shows up table with different FPS values, from 15 to 60 by default with possibility of expanding to 120 FPS.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
@@ -79,40 +79,40 @@ You will have two submenus to choose from (if you are using OLED model, you will
 
 # Information about changing refresh rates in handheld mode
 
-I want to use this space to clarify few things.<br>
+I want to use this space to clarify a few things.<br>
 
-Switch OLED displays require gamma color correction after changing refresh rate. I am modifying OLED panel registers to adjust gamma curve to be as close to original experience as possible. But because those registers have very big steps, it's not possible to do it perfectly, so there are small discrepancies in colors (The worst case I found is 60% brightness at 45 Hz), additionally the lower refresh rate the lower max brightness, that's how register responsible for tweaking gamma at max brightness works for some reason.<br>
+Switch OLED displays require gamma color correction after changing the refresh rate. I am modifying OLED panel registers to adjust the gamma curve to be as close to the original experience as possible. But because those registers have very big steps, it's not possible to do it perfectly, so there are small discrepancies in colors (The worst case I found is 60% brightness at 45 Hz), additionally the lower refresh rate the lower max brightness, that's how register responsible for tweaking gamma at max brightness works for some reason.<br>
 
-From all reports I got, only one LCD screen was getting issue with small flickering in left bottom corner when running at 40 Hz (they were using `InnoLux P062CCA-AZ2`, but there were other users who also got this display and had no issues at 40 Hz - me included). No other issues were found.<br>
+From all reports I got, only one LCD screen was getting an issue with small flickering in the left bottom corner when running at 40 Hz (they were using `InnoLux P062CCA-AZ2`, but there were other users who also got this display and had no issues at 40 Hz - me included). No other issues were found.<br>
 
-Retro Remake displays require time to adjust itself to new signal, that's why refresh rate is applied with delay on those displays. Too short delay between attempts in changing refresh rate results in black screen which can be fixed by going to sleep mode/turning off/restarting Switch. If you are affected, write your case in Issues so I can increase delay in SaltyNX.
+Retro Remake displays require time to adjust themselves to a new signal, which is why refresh rate is applied with a delay on those displays. Too short a delay between attempts in changing refresh rate results in a black screen, which can be fixed by going to sleep mode/turning off/restarting the Switch. If you are affected, write your case in Issues so I can increase the delay in SaltyNX.
 
-I have decided to limit LCDs and Retro Remake displays down to 40 Hz since lower refresh rates not only were not beneficial to user, also this allows avoid certain risks with underclocking display too much. For Switch OLED that limit is 45 Hz because at 40 Hz it misbehaves.<br>
+I have decided to limit LCDs and Retro Remake displays down to 40 Hz since lower refresh rates are not only not beneficial to the user, but this choice also allows for avoiding certain risks with underclocking the display too much. For Switch OLED, that limit is 45 Hz because at 40 Hz it misbehaves.<br>
 
-LCD can be overclocked up to 70 Hz without immediately visible issues but I have leaved max at 60 Hz for now. From 75 Hz all users using original display panels were reporting issues with glitchy image. OLED above 60 Hz is misbehaving.
+LCD can be overclocked up to 70 Hz without immediately visible issues, but I have left max at 60 Hz for now. From 75 Hz, all users using original display panels were reporting issues with a glitchy image. OLED above 60 Hz is misbehaving.
 
-If Display Sync is turned off, custom refresh rate is not restored after sleep mode.
+If Display Sync is turned off, the custom refresh rate is not restored after sleep mode.
 
-Changing refresh rate affects animations speed of OS and Tesla overlays, making them more sluggish at lower refresh rates.
+Changing the refresh rate affects the animations' speed of OS and Tesla overlays, making them more sluggish at lower refresh rates.
 
 Adding support for custom display refresh rate required changing how game configs are written, so you are advised to redownload all FPSLocker Warehouse configs if you want them to properly support custom refresh rates.
 
-I am not taking any responsibility for damages occuring from changing refresh rate. Each time you will go to `Display settings`, you will be welcomed by prompt with warning that you - user - are taking full responsibility. You must choose `Accept` to go further.
+I am not taking any responsibility for damages occurring from changing the refresh rate. Each time you go to `Display settings`, you will be welcomed by a prompt with a warning that you - the user - are taking full responsibility. You must choose `Accept` to go further.
 
 # Information about changing refresh rates in docked mode
 
-Cap was set to 120 Hz as this is the max refresh rate supported by OG dock and non-OLED switches, which makes it the most universal.
+Cap was set to 120 Hz as this is the max refresh rate supported by the OG dock and non-OLED switches, which makes it the most universal.
 
-Many displays are locked to max 75Hz at 1080p because from what I understand something hinders connection between Switch and dock which ends in failed HBR2 training implemented in HOS, leaving connection in HBR mode. HBR mode with 2 lanes is where 180 MHz limit comes from that slightly above what 1080p 75 Hz expects. Issue may come from Switch and/or dock itself. Being in HBR mode also can result in audio not being passed to dock above 60 Hz at 1080p. Trying to manually do HBR2 training results in resetting signal which HOS tries to restore, so any attempt at manual training gets blocked.
+Many displays are locked to max 75Hz at 1080p because, from what I understand, something hinders the connection between the Switch and dock, which ends in failed HBR2 training implemented in HOS, leaving the connection in HBR mode. HBR mode with 2 lanes is where the 180 MHz limit, which is slightly above what 1080p 75 Hz expects, comes from. The issue may come from the Switch and/or the dock itself. Being in HBR mode can also result in audio not being passed to the dock above 60 Hz at 1080p. Trying to manually do HBR2 training results in resetting the signal, which HOS tries to restore, so any attempt at manual training gets blocked.
 
-From tests HOS applets can get unstable from 100 Hz and higher. That means f.e. if currently running game would want to pop user selection applet, this may result in game's crash. Some games can get unstable on their own, as an example above certain refresh rate when closing Batman: The Enemy Within it will crash.
+From tests, HOS applets can get unstable at 100 Hz and higher. That means, e.g., if a currently running game wants to pop the user selection applet, this may result in the game's crash. Some games can get unstable on their own. As an example, "Batman: The Enemy Within", when being closed above a certain refresh rate, will crash.
 
 # Thanks
 Thanks to:
 - ~WerWolv for creating Tesla environment
 - ~cucholix + ~Monked for tests
 - ~CTCaer for info about Samsung OLED panels
-- ~NaGa for tests on Retro Remake SUPER5 display and providing me Switch OLED unit
+- ~NaGa for tests on Retro Remake SUPER5 display and providing me with a Switch OLED unit
   - and backers, including: Jorge Conceição, zany tofu, Lei Feng, brandon foster, AlM, Alex Haley, Stefano Bigio, Le Duc, Sylvixor x
  
 Translation:
@@ -123,11 +123,11 @@ Translation:
 - Chinese Simplified: ~Soneoy, ~Tone Darkwell
 
 # Sync Wait
-In those games you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
+In those games, you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
 - Batman - The Telltale Series (Warehouse patch enables triple buffer, so there is no need to use this option)
-- Pokemon Legends: Arceus
-- Pokemon Scarlet
-- Pokemon Violet
+- Pokémon Legends: Arceus
+- Pokémon Scarlet
+- Pokémon Violet
 - Sonic Frontier
 - The Legend of Zelda: Tears of the Kingdom  (Warehouse patch enables triple buffer, so there is no need to use this option)
 - Xenoblade Chronicles: Definitive Edition
