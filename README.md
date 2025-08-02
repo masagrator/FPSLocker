@@ -71,7 +71,7 @@ You will have two submenus to choose from (if you are using OLED model, you will
 - `Games list`<br>
   It will list installed games (max 32) and as first option it's available "All" submenu.<br>
   Inside each one you will find two options:
-  - `Delete settings` - it will delete file created by "Save settings" option
+  - `Delete settings` - as name implies
   - `Delete patches` - it will delete file created by "Convert config to patch file" option
 - `Display settings` - you can read about in previous section.
 - `Force English language` - If you prefer using English, this option will force overlay to use it. It is achieved by self-modifying executable, so after updating overlay to newer release it will be turned off.
