@@ -118,7 +118,7 @@ Thanks to:
 Translation:
 - German: ~Lightos_
 - French: ~ganonlebucher
-- Russian: ~usagi
+- Russian: ~usagi, ~redraz
 - Brazilian Portuguese: ~Fl4sh
 - Chinese Simplified: ~Soneoy, ~Tone Darkwell
 
