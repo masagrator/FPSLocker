@@ -11,7 +11,14 @@
 #include <cstdlib>
 #include "omm.h"
 
-uint8_t displaySync = 0;
+union {
+	struct {
+		bool handheld: 1;
+		bool docked: 1;
+		unsigned int reserved: 6;
+	} NX_PACKED ds;
+	uint8_t general;
+} displaySync;
 bool isOLED = false;
 bool isLite = false;
 uint8_t refreshRate_g = 60;
@@ -423,7 +430,7 @@ public:
 
 		if (keysDown & HidNpadButton_A) {
 			(Shared -> FPSlockedDocked) = AllowedFPSTargets[selected];
-			if (!oldSalty && (displaySync & 2)) {
+			if (!oldSalty && displaySync.ds.docked) {
 				if (R_SUCCEEDED(SaltySD_Connect())) {
 					bool skip = false;
 					SaltySD_SetDisplayRefreshRate(AllowedFPSTargets[selected]);
@@ -455,7 +462,7 @@ public:
 						}
 						refreshRate_g = target;
 					}
-					(Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & (1 << 0)) | (1 << 1)) : ((Shared -> displaySync) & (1 << 0));
+					Shared->displaySync.ds.docked = refreshRate_g > 0;
 				}
 				SaltySD_Term();
 			}
@@ -548,7 +555,7 @@ public:
 						else if ((Shared -> FPSlocked) < isOLED ? supportedHandheldRefreshRatesOLED[sizeof(supportedHandheldRefreshRatesOLED)-1] : supportedHandheldRefreshRates[sizeof(supportedHandheldRefreshRates)-1]) {
 							(Shared -> FPSlocked) += 5;
 						}
-						if (!oldSalty && (displaySync & 1)) {
+						if (!oldSalty && displaySync.ds.handheld) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
@@ -574,7 +581,7 @@ public:
 								if (!skip) {
 									refreshRate_g = 60;
 								}
-								(Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & 2) | 1) : ((Shared -> displaySync) & 2);
+								Shared->displaySync.ds.handheld = refreshRate_g > 0;
 								SaltySD_Term();
 							}
 						}
@@ -598,7 +605,7 @@ public:
 						else if ((Shared -> FPSlocked) > 15) {
 							(Shared -> FPSlocked) -= 5;
 						}
-						if (!oldSalty && (displaySync & 1)) {
+						if (!oldSalty && displaySync.ds.handheld) {
 							if (R_SUCCEEDED(SaltySD_Connect())) {
 								bool skip = false;
 								SaltySD_SetDisplayRefreshRate((Shared -> FPSlocked));
@@ -625,7 +632,7 @@ public:
 									refreshRate_g = 60;
 								}
 								SaltySD_Term();
-								(Shared -> displaySync) = refreshRate_g ? (((Shared -> displaySync) & 2) | 1) : ((Shared -> displaySync) & 2);
+								Shared->displaySync.ds.handheld = refreshRate_g > 0;
 							}
 						}
 						saveSettings();
@@ -656,12 +663,12 @@ public:
 					else if (entry_mode == ApmPerformanceMode_Boost && (Shared -> FPSlockedDocked)) {
 						(Shared -> FPSlockedDocked) = 0;
 					}
-					if ((entry_mode == ApmPerformanceMode_Normal) ? (((Shared -> displaySync) & 1) == 1) : (((Shared -> displaySync) & 2) == 2)) {
+					if ((entry_mode == ApmPerformanceMode_Normal) ? displaySync.ds.handheld : displaySync.ds.docked) {
 						if (!oldSalty && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(60);
 							SaltySD_Term();
-							if (entry_mode == ApmPerformanceMode_Normal) (Shared -> displaySync) &= 2;
-							else if (entry_mode == ApmPerformanceMode_Boost) (Shared -> displaySync) &= 1;
+							if (entry_mode == ApmPerformanceMode_Normal) displaySync.ds.handheld = false;
+							else if (entry_mode == ApmPerformanceMode_Boost) displaySync.ds.docked = false;
 						}
 					}
 					saveSettings();
@@ -827,10 +834,10 @@ public:
 			
 			fsdevMountSdmc();
 			if (file_exists("sdmc:/SaltySD/flags/displaysync.flag")) {
-				displaySync = 1;
+				displaySync.ds.handheld = true;
 			}
 			if (file_exists("sdmc:/SaltySD/flags/displaysyncdocked.flag")) {
-				displaySync |= 2;
+				displaySync.ds.docked = true;
 			}
 			SaltySD = CheckPort();
 			if (!SaltySD) return;
