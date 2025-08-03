@@ -559,6 +559,22 @@ public:
 		});
 
 		list->addItem(clickableListItem5);
+
+		auto *clickableListItem6 = new tsl::elm::ToggleListItem("60 Hz when not in game", as.displaySyncDockedOutOfFocus60);
+		clickableListItem6->setClickListener([this](u64 keys) { 
+			if (keys & HidNpadButton_A) {
+				as.displaySyncDockedOutOfFocus60 = !as.displaySyncDockedOutOfFocus60;
+				if (R_SUCCEEDED(SaltySD_Connect())) {
+					SaltySD_SetDisplaySyncRefreshRate60WhenOutOfFocus(true, as.displaySyncDockedOutOfFocus60);
+					SaltySD_Term();
+				}
+				SaveDockedModeAllowedSave(rr, as, height == 720);
+				return true;
+			}
+			return false;
+		});
+
+		list->addItem(clickableListItem6);
 		
 		frame->setContent(list);
 
