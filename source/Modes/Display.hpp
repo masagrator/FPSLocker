@@ -954,23 +954,6 @@ public:
 
 			list->addItem(clickableListItem3);
 
-			if (displaySync.ds.handheld) {
-				auto *clickableListItem6 = new tsl::elm::ToggleListItem(getStringID(129), displaySyncOutOfFocus60);
-				clickableListItem6->setClickListener([this](u64 keys) { 
-					if (keys & HidNpadButton_A) {
-						if (R_SUCCEEDED(SaltySD_Connect())) {
-							SaltySD_SetDisplaySyncRefreshRate60WhenOutOfFocus(false, !displaySyncOutOfFocus60);
-							displaySyncOutOfFocus60 = !displaySyncOutOfFocus60;
-							svcSleepThread(100'000);
-							SaltySD_Term();
-						}
-						return true;
-					}
-					return false;
-				});
-				list->addItem(clickableListItem6);
-			}
-
 			if (!isLite) {
 
 				auto *clickableListItem6 = new tsl::elm::ToggleListItem(getStringID(128), displaySync.ds.docked); //Docked Display Sync toggle
@@ -1045,6 +1028,24 @@ public:
 				});
 
 				list->addItem(clickableListItem5);
+			}
+
+			if (displaySync.ds.handheld) {
+				list->addItem(new tsl::elm::CategoryHeader(getStringID(129), true));
+				auto *clickableListItem6 = new tsl::elm::ToggleListItem(getStringID(130), displaySyncOutOfFocus60); //HH 60Hz in Home Menu
+				clickableListItem6->setClickListener([this](u64 keys) { 
+					if (keys & HidNpadButton_A) {
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							SaltySD_SetDisplaySyncRefreshRate60WhenOutOfFocus(false, !displaySyncOutOfFocus60);
+							displaySyncOutOfFocus60 = !displaySyncOutOfFocus60;
+							svcSleepThread(100'000);
+							SaltySD_Term();
+						}
+						return true;
+					}
+					return false;
+				});
+				list->addItem(clickableListItem6);
 			}
 		}
 		
