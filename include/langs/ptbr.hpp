@@ -189,8 +189,8 @@ namespace PTBR {
 		"Aceitar",
 		"Forçar língua Inglesa",
 		"Sincronização de Tela em Dock",
-		"HH 60 Hz when game hidden",
-		"60 Hz when game is hidden"
+		"Apenas no modo portátil",
+		"60 Hz no menu HOME"
 	};
 
 	const std::array teslaStrings = {

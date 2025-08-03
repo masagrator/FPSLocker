@@ -191,8 +191,8 @@ namespace FRA {
 		"Accepter",
 		"Forcer langue Anglais",
 		"Sync Écran Docké",
-		"HH 60 Hz when game hidden",
-		"60 Hz when game is hidden"
+		"Seulement en mode portable",
+		"HOME Menu à 60Hz"
 	};
 
 	const std::array teslaStrings = {
