@@ -161,6 +161,7 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 	}
 	as.dontForce60InDocked = false;
 	as.fpsTargetWithoutRRMatchLowest = false;
+	as.displaySyncDockedOutOfFocus60 = false;
 	TV_name = "Unknown";
 	tsl::hlp::doWithSmSession([]{
 		setsysInitialize();
