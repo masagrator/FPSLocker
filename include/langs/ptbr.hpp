@@ -188,7 +188,9 @@ namespace PTBR {
 		"Recusar",
 		"Aceitar",
 		"Forçar língua Inglesa",
-		"Sincronização de Tela em Dock"
+		"Sincronização de Tela em Dock",
+		"HH 60 Hz when game hidden",
+		"60 Hz when game is hidden"
 	};
 
 	const std::array teslaStrings = {
@@ -197,5 +199,5 @@ namespace PTBR {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }

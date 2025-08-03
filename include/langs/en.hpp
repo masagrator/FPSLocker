@@ -186,7 +186,9 @@ namespace ENG {
 		"Decline",
 		"Accept",
 		"Force English language",
-		"Docked Display Sync"
+		"Docked Display Sync",
+		"HH 60 Hz when game hidden",
+		"60 Hz when game is hidden"
 	};
 
 	const std::array teslaStrings = {
@@ -195,5 +197,5 @@ namespace ENG {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }

@@ -190,7 +190,9 @@ namespace FRA {
 		"Refuser",
 		"Accepter",
 		"Forcer langue Anglais",
-		"Sync Écran Docké"
+		"Sync Écran Docké",
+		"HH 60 Hz when game hidden",
+		"60 Hz when game is hidden"
 	};
 
 	const std::array teslaStrings = {
@@ -199,6 +201,5 @@ namespace FRA {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }

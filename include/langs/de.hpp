@@ -189,7 +189,9 @@ namespace GER {
 		"Ablehnen",
 		"Akzeptieren",
 		"Erzwinge Englische Sprache",
-		"Dock-Displaysynchronisierung"
+		"Dock-Displaysynchronisierung",
+		"HH 60 Hz when game hidden",
+		"60 Hz when game is hidden"
 	};
 
 	const std::array teslaStrings = {
@@ -198,5 +200,5 @@ namespace GER {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }

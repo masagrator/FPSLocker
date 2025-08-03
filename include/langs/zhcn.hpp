@@ -177,7 +177,9 @@ namespace ZHCN {
 		"拒绝",
 		"同意",
 		"强制使用英语作为显示语言",
-		"底座模式同步刷新率"
+		"底座模式同步刷新率",
+		"HH 60 Hz when game hidden",
+		"60 Hz when game is hidden"
 	};
 
 	const std::array teslaStrings = {
@@ -186,5 +188,5 @@ namespace ZHCN {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }

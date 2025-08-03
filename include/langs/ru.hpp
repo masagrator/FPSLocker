@@ -188,7 +188,9 @@ namespace RUS {
 		"Назад",
 		"Согласен",
 		"Форсировать EN",
-		"Синхр. в доке"
+		"Синхр. в доке",
+		"HH 60 Hz when game hidden",
+		"60 Hz when game is hidden"
 	};
 
 	const std::array teslaStrings = {
@@ -197,6 +199,5 @@ namespace RUS {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }
