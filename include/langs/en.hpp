@@ -187,8 +187,8 @@ namespace ENG {
 		"Accept",
 		"Force English language",
 		"Docked Display Sync",
-		"HH 60 Hz in Home Menu",
-		"60 Hz in Home Menu"
+		"Handheld only",
+		"60 Hz in HOME Menu"
 	};
 
 	const std::array teslaStrings = {
