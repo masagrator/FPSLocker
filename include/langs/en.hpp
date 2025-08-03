@@ -186,7 +186,9 @@ namespace ENG {
 		"Decline",
 		"Accept",
 		"Force English language",
-		"Docked Display Sync"
+		"Docked Display Sync",
+		"Handheld only",
+		"60 Hz in HOME Menu"
 	};
 
 	const std::array teslaStrings = {
@@ -195,5 +197,5 @@ namespace ENG {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }

@@ -190,7 +190,9 @@ namespace FRA {
 		"Refuser",
 		"Accepter",
 		"Forcer langue Anglais",
-		"Sync Écran Docké"
+		"Sync Écran Docké",
+		"Seulement en mode portable",
+		"HOME Menu à 60Hz"
 	};
 
 	const std::array teslaStrings = {
@@ -199,6 +201,5 @@ namespace FRA {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-
-	static_assert(strings.size() == 129);
+	static_assert(strings.size() == 131);
 }
