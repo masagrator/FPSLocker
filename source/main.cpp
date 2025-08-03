@@ -839,6 +839,9 @@ public:
 			if (file_exists("sdmc:/SaltySD/flags/displaysyncdocked.flag")) {
 				displaySync.ds.docked = true;
 			}
+			if (file_exists("sdmc:/SaltySD/flags/displaysync_outoffocus.flag")) {
+				displaySyncOutOfFocus60 = true;
+			}
 			SaltySD = CheckPort();
 			if (!SaltySD) return;
 

@@ -45,6 +45,7 @@ static_assert(sizeof(NxFpsSharedBlock) == 165);
 struct DockedAdditionalSettings {
 	bool dontForce60InDocked;
 	bool fpsTargetWithoutRRMatchLowest;
+	bool displaySyncDockedOutOfFocus60;
 };
 
 #include "Langs.hpp"
@@ -67,6 +68,7 @@ char FPSTarget_c[64];
 char PFPS_c[32];
 char nvnBuffers[96] = "";
 char SyncWait_c[32];
+bool displaySyncOutOfFocus60 = false;
 #ifdef __SWITCH__
 	#define systemtickfrequency 19200000
 #elif __OUNCE__
@@ -236,6 +238,9 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		}
 		if (iniData["Common"].contains("matchLowestRefreshRate") == true) {
 			as.fpsTargetWithoutRRMatchLowest = (bool)!strncasecmp(iniData["Common"]["matchLowestRefreshRate"].c_str(), "True", 4);
+		}
+		if (iniData["Common"].contains("BringDefaultRefreshRateWhenOutOfFocus") == true) {
+			as.displaySyncDockedOutOfFocus60 = (bool)!strncasecmp(iniData["Common"]["BringDefaultRefreshRateWhenOutOfFocus"].c_str(), "True", 4);
 		}
     }
     return;

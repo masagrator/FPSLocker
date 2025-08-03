@@ -938,6 +938,23 @@ public:
 
 			list->addItem(clickableListItem3);
 
+			if (displaySync.ds.handheld) {
+				auto *clickableListItem6 = new tsl::elm::ToggleListItem("Handheld 60 Hz when not in game", displaySyncOutOfFocus60);
+				clickableListItem6->setClickListener([this](u64 keys) { 
+					if (keys & HidNpadButton_A) {
+						if (R_SUCCEEDED(SaltySD_Connect())) {
+							SaltySD_SetDisplaySyncRefreshRate60WhenOutOfFocus(false, !displaySyncOutOfFocus60);
+							displaySyncOutOfFocus60 = !displaySyncOutOfFocus60;
+							svcSleepThread(100'000);
+							SaltySD_Term();
+						}
+						return true;
+					}
+					return false;
+				});
+				list->addItem(clickableListItem6);
+			}
+
 			if (!isLite) {
 
 				auto *clickableListItem6 = new tsl::elm::ToggleListItem(getStringID(128), displaySync.ds.docked); //Docked Display Sync toggle
