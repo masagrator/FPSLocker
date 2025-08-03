@@ -190,8 +190,8 @@ namespace GER {
 		"Akzeptieren",
 		"Erzwinge Englische Sprache",
 		"Dock-Displaysynchronisierung",
-		"HH 60 Hz when game hidden",
-		"60 Hz when game is hidden"
+		"60 Hz im Homemenü HH",
+		"60 Hz im Homemenü"
 	};
 
 	const std::array teslaStrings = {
