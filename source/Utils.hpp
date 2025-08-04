@@ -240,8 +240,8 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		if (iniData["Common"].contains("matchLowestRefreshRate") == true) {
 			as.fpsTargetWithoutRRMatchLowest = (bool)!strncasecmp(iniData["Common"]["matchLowestRefreshRate"].c_str(), "True", 4);
 		}
-		if (iniData["Common"].contains("BringDefaultRefreshRateWhenOutOfFocus") == true) {
-			as.displaySyncDockedOutOfFocus60 = (bool)!strncasecmp(iniData["Common"]["BringDefaultRefreshRateWhenOutOfFocus"].c_str(), "True", 4);
+		if (iniData["Common"].contains("bringDefaultRefreshRateWhenOutOfFocus") == true) {
+			as.displaySyncDockedOutOfFocus60 = (bool)!strncasecmp(iniData["Common"]["bringDefaultRefreshRateWhenOutOfFocus"].c_str(), "True", 4);
 		}
     }
     return;
@@ -308,7 +308,7 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
 		fwrite("matchLowestRefreshRate=", strlen("matchLowestRefreshRate="), 1, file);
 		fwrite(fpst.c_str(), fpst.length(), 1, file);
 		fwrite("\n", 1, 1, file);
-		fwrite("bringDefaultRefreshRateWhenOutOfFocus=", strlen("BringDefaultRefreshRateWhenOutOfFocus="), 1, file);
+		fwrite("bringDefaultRefreshRateWhenOutOfFocus=", strlen("bringDefaultRefreshRateWhenOutOfFocus="), 1, file);
 		fwrite(dsdo.c_str(), dsdo.length(), 1, file);
 		fwrite("\n", 1, 1, file);
 		fwrite("refreshRateAllowed720p=", 23, 1, file);
