@@ -45,6 +45,7 @@ static_assert(sizeof(NxFpsSharedBlock) == 165);
 struct DockedAdditionalSettings {
 	bool dontForce60InDocked;
 	bool fpsTargetWithoutRRMatchLowest;
+	bool displaySyncDockedOutOfFocus60;
 };
 
 #include "Langs.hpp"
@@ -67,6 +68,7 @@ char FPSTarget_c[64];
 char PFPS_c[32];
 char nvnBuffers[96] = "";
 char SyncWait_c[32];
+bool displaySyncOutOfFocus60 = false;
 #ifdef __SWITCH__
 	#define systemtickfrequency 19200000
 #elif __OUNCE__
@@ -159,6 +161,7 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 	}
 	as.dontForce60InDocked = false;
 	as.fpsTargetWithoutRRMatchLowest = false;
+	as.displaySyncDockedOutOfFocus60 = false;
 	TV_name = "Unknown";
 	tsl::hlp::doWithSmSession([]{
 		setsysInitialize();
@@ -237,6 +240,9 @@ void LoadDockedModeAllowedSave(DockedModeRefreshRateAllowed &rr, DockedAdditiona
 		if (iniData["Common"].contains("matchLowestRefreshRate") == true) {
 			as.fpsTargetWithoutRRMatchLowest = (bool)!strncasecmp(iniData["Common"]["matchLowestRefreshRate"].c_str(), "True", 4);
 		}
+		if (iniData["Common"].contains("bringDefaultRefreshRateWhenOutOfFocus") == true) {
+			as.displaySyncDockedOutOfFocus60 = (bool)!strncasecmp(iniData["Common"]["bringDefaultRefreshRateWhenOutOfFocus"].c_str(), "True", 4);
+		}
     }
     return;
 }
@@ -286,20 +292,24 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
 		allowedRR += "}";
 		allowedRR720p.erase(allowedRR720p.end()-1);
 		allowedRR720p += "}";
-		fwrite("[Common]\n", 9, 1, file);
-		fwrite("tvName=", 7, 1, file);
+		fwrite("[Common]\n", strlen("[Common]\n"), 1, file);
+		fwrite("tvName=", strlen("tvName="), 1, file);
 		fwrite(TV_name.c_str(), TV_name.length(), 1, file);
 		fwrite("\n", 1, 1, file);
-		fwrite("refreshRateAllowed=", 19, 1, file);
+		fwrite("refreshRateAllowed=", strlen("refreshRateAllowed="), 1, file);
 		fwrite(allowedRR.c_str(), allowedRR.length(), 1, file);
 		fwrite("\n", 1, 1, file);
 		std::string df60 = (as.dontForce60InDocked ? "False" : "True");
 		std::string fpst = (as.fpsTargetWithoutRRMatchLowest ? "True" : "False");
-		fwrite("allowPatchesToForce60InDocked=", 30, 1, file);
+		std::string dsdo = (as.displaySyncDockedOutOfFocus60 ? "True" : "False");
+		fwrite("allowPatchesToForce60InDocked=", strlen("allowPatchesToForce60InDocked="), 1, file);
 		fwrite(df60.c_str(), df60.length(), 1, file);
 		fwrite("\n", 1, 1, file);
-		fwrite("matchLowestRefreshRate=", 23, 1, file);
+		fwrite("matchLowestRefreshRate=", strlen("matchLowestRefreshRate="), 1, file);
 		fwrite(fpst.c_str(), fpst.length(), 1, file);
+		fwrite("\n", 1, 1, file);
+		fwrite("bringDefaultRefreshRateWhenOutOfFocus=", strlen("bringDefaultRefreshRateWhenOutOfFocus="), 1, file);
+		fwrite(dsdo.c_str(), dsdo.length(), 1, file);
 		fwrite("\n", 1, 1, file);
 		fwrite("refreshRateAllowed720p=", 23, 1, file);
 		fwrite(allowedRR720p.c_str(), allowedRR720p.length(), 1, file);

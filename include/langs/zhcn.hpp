@@ -178,8 +178,8 @@ namespace ZHCN {
 		"同意",
 		"强制使用英语作为显示语言",
 		"底座模式同步刷新率",
-		"HH 60 Hz when game hidden",
-		"60 Hz when game is hidden"
+		"仅掌机模式",
+		"限制HOME菜单到60Hz"
 	};
 
 	const std::array teslaStrings = {

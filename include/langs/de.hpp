@@ -190,7 +190,7 @@ namespace GER {
 		"Akzeptieren",
 		"Erzwinge Englische Sprache",
 		"Dock-Displaysynchronisierung",
-		"60 Hz im Homemenü HH",
+		"Nur Handheld",
 		"60 Hz im Homemenü"
 	};
 
