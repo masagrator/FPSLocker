@@ -1009,7 +1009,22 @@ namespace ASM {
 		if (!passed) return 0xFF0151;
 		a.svc(value);
 		return 0;
-	}	
+	}
+
+	template <typename T> Result FMINNM(T entry_impl, uint8_t type = 0) {
+		asmjit::a64::Assembler a(&code);
+		std::string inst;
+		if (entry_impl.num_children() != 4)
+			return 0xFF0160;
+		asmjit::a64::Vec regs[3];
+		for (size_t i = 1; i < 4; i++) {
+			entry_impl[i] >> inst;
+			regs[i-1] = getFpRegister(inst, false, true, true, true, false);
+			if (regs[i-1] == FP_REG_ERROR) return 0xFF0160 + i;
+		}
+		a.fminnm(regs[0], regs[1], regs[2]);
+		return 0;
+	}
 
 	constexpr uint32_t hashes[] = {
 		hash32("ADRP"),
@@ -1066,7 +1081,8 @@ namespace ASM {
 		hash32("STP"),
 		hash32("FSUB"),
 		hash32("LSL"),
-		hash32("SVC")
+		hash32("SVC"),
+		hash32("FMINNM")
 	};
 
 	template <typename T> constexpr bool has_duplicates(const T *array, std::size_t size)
@@ -1144,6 +1160,7 @@ namespace ASM {
 			case hash32("STP"): {rc = LDP(entry, 1); break;}
 			case hash32("LSL"): {rc = LSL(entry); break;}
 			case hash32("SVC"): {rc = SVC(entry); break;}
+			case hash32("FMINNM"): {rc = FMINNM(entry); break;}
 			default: return 0xFFFFFE;
 		}
 		if (R_FAILED(rc)) {
@@ -1151,13 +1168,7 @@ namespace ASM {
 		}
 		size_t codeSize = code.codeSize();
 		if (codeSize != 4) {
-			printf("Instruction %s failed!\n", inst.c_str());
 			return 0xFFFFFD;
-		}
-		else {
-			printf("Instruction %s passed!\n", inst.c_str());
-			consoleUpdate(NULL);
-			//svcSleepThread(500000000);
 		}
 		code.copyFlattenedData(out, 4);
 		code.reset();
