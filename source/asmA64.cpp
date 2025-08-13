@@ -621,10 +621,11 @@ namespace ASM {
 
 			}
 		}
-		else if (type == 2) {
+		else if (type == 2 || type == 3) {
 			auto reg = getGenRegister(inst);
 			if (reg == GP_REG_ERROR) return 0xFF0061;
-			a.blr(reg);
+			if (type == 2) a.blr(reg);
+			else if (type == 3) a.br(reg);
 		}
 		return 0;
 	}
@@ -1055,6 +1056,7 @@ namespace ASM {
 		hash32("B.LT"),
 		hash32("BL"),
 		hash32("BLR"),
+		hash32("BR"),
 		hash32("SUB"),
 		hash32("CMP"),
 		hash32("FCMP"),
@@ -1133,6 +1135,7 @@ namespace ASM {
 			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT")); break;}
 			case hash32("BL"): {rc = B(entry, 1); break;}
 			case hash32("BLR"): {rc = B(entry, 2); break;}
+			case hash32("BR"): {rc = B(entry, 3); break;}
 			case hash32("SUB"): {rc = ADD(entry, 2); break;}
 			case hash32("FSUB"): {rc = ADD(entry, 3); break;}
 			case hash32("CMP"): {rc = CMP(entry); break;}
