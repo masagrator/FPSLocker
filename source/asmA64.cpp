@@ -845,6 +845,25 @@ namespace ASM {
 		return 0;
 	}
 
+	template <typename T> Result LSL(T entry_impl, uint8_t type = 0) {
+		if (entry_impl.num_children() != 4)
+			return 0xFF0140;
+		asmjit::a64::Assembler a(&code);
+		std::string inst;
+		entry_impl[1] >> inst;
+		auto reg0 = getGenRegister(inst, true, false, true);
+		if (reg0 == GP_REG_ERROR) return 0xFF0141;
+		entry_impl[2] >> inst;
+		auto reg1 = getGenRegister(inst, true, false, true);
+		if (reg1 == GP_REG_ERROR) return 0xFF0142;
+		entry_impl[3] >> inst;
+		uint8_t shift = 0;
+		bool passed = getInteger(inst, &shift);
+		if (!passed) return 0xFF0143;
+		if (type == 0) a.lsl(reg0, reg1, shift);
+		return 0;
+	}
+
 	constexpr uint32_t hashes[] = {
 		hash32("ADRP"),
 		hash32("ADD"),
@@ -897,7 +916,8 @@ namespace ASM {
 		hash32("FNEG"),
 		hash32("FSQRT"),
 		hash32("STP"),
-		hash32("FSUB")
+		hash32("FSUB"),
+		hash32("LSL")
 	};
 
 	template <typename T> constexpr bool has_duplicates(const T *array, std::size_t size)
@@ -972,6 +992,7 @@ namespace ASM {
 			case hash32("FNEG"): {rc = FNEG(entry); break;}
 			case hash32("FSQRT"): {rc = FSQRT(entry); break;}
 			case hash32("STP"): {rc = LDP(entry, 1); break;}
+			case hash32("LSL"): {rc = LSL(entry); break;}
 			default: return 0xFFFFFE;
 		}
 		if (R_FAILED(rc)) {
