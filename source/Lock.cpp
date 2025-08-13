@@ -535,7 +535,7 @@ namespace LOCK {
 		return 0;
 	}
 
-	Result readConfig(char* path) {
+	Result readConfig(const char* path) {
 		FILE* config = fopen(path, "r");
 		if (!config)
 			return 0x202;
