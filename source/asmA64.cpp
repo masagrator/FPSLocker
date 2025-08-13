@@ -11,8 +11,8 @@ namespace ASM {
 	asmjit::Environment customEnv(asmjit::Arch::kAArch64);
 	asmjit::CodeHolder code;
 
-	auto GP_REG_ERROR = asmjit::a64::Gp::make_r32(asmjit::a64::Gp::Id::kIdSp); //Not used at all on Switch
-	auto FP_REG_ERROR = asmjit::a64::Vec::make_v128(31); //Practically never seen on Switch
+	auto GP_REG_ERROR = asmjit::a64::Gp::make_r32(asmjit::a64::Gp::Id::kIdSp);
+	auto FP_REG_ERROR = asmjit::a64::Vec::make_v128(31);
 
 	uintptr_t m_pc_address = 0;
 
@@ -109,6 +109,22 @@ namespace ASM {
 		return 0xFE;
 	}
 
+	template <typename T> bool getInteger(std::string var, T* out) {
+		char* end = 0;
+		int64_t value = std::strtol(var.c_str(), &end, 0);
+		if (end == var.c_str()) return false;
+		*out = (T)value;
+		return true;
+	}
+
+	template <typename T> bool getFloat(std::string var, T* out) {
+		char* end = 0;
+		double value = std::strtod(var.c_str(), &end);
+		if (end == var.c_str()) return false;
+		*out = (T)value;
+		return true;
+	}
+
 	template <typename T> Result ADRP(T entry_impl) {
 		if (entry_impl.num_children() != 3)
 			return 0xFF0000;
@@ -116,7 +132,10 @@ namespace ASM {
 		std::string inst;
 		entry_impl[1] >> inst;
 		uint32_t address = 0;
-		entry_impl[2] >> address;
+		std::string var;
+		entry_impl[2] >> var;
+		bool passed = getInteger(var, &address);
+		if (!passed) return 0xFF0002;
 		asmjit::a64::Gp reg = getGenRegister(inst);
 		if (reg == GP_REG_ERROR) return 0xFF0001;
 		a.adrp(reg, address);
@@ -169,9 +188,10 @@ namespace ASM {
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
 				auto reg2 = getGenRegister(inst, false, false, true);
-				int32_t value = 0;
 				if (reg2 == GP_REG_ERROR) {
-					entry_impl[2][1] >> value;
+					int32_t value = 0;
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0025;
 					if (type == 0)
 						a.ldr(regfp, asmjit::a64::Mem(reg1, value));
 					else if (type == 3) {
@@ -193,9 +213,10 @@ namespace ASM {
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
 				auto reg2 = getGenRegister(inst);
-				int32_t value = 0;
 				if (reg2 == GP_REG_ERROR) {
-					entry_impl[2][1] >> value;
+					int32_t value = 0;
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0025;
 					if (type == 0)
 						a.ldr(reg0, asmjit::a64::Mem(reg1, value));
 					else if (type == 1)
@@ -244,7 +265,8 @@ namespace ASM {
 			auto reg1 = getGenRegister(inst, true);
 			if (reg1 == GP_REG_ERROR) {
 				int64_t value = 0;
-				entry_impl[2] >> value;
+				bool passed = getInteger(inst, &value);
+				if (!passed) return 0xFF0035;
 				a.mov(reg0, value);
 			}
 			else a.mov(reg0, reg1);
@@ -267,7 +289,8 @@ namespace ASM {
 					auto regfp2 = getFpRegister(inst, false, true, true, true, false);
 					if (regfp2 == FP_REG_ERROR) {
 						double value = 0.d;
-						entry_impl[2] >> value;
+						bool passed = getFloat(inst, &value);
+						if (!passed) return 0xFF0035;
 						a.fmov(regfp, value);
 					}
 					else a.fmov(regfp, regfp2);
@@ -326,9 +349,10 @@ namespace ASM {
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
 				auto reg2 = getGenRegister(inst, false, false, true);
-				int32_t value = 0;
 				if (reg2 == GP_REG_ERROR) {
-					entry_impl[2][1] >> value;
+					int32_t value = 0.d;
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0055;
 					if (type == 0)
 						a.str(regfp, asmjit::a64::Mem(reg1, value));
 					else if (type == 3)
@@ -355,9 +379,10 @@ namespace ASM {
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
 				auto reg2 = getGenRegister(inst);
-				int32_t value = 0;
 				if (reg2 == GP_REG_ERROR) {
-					entry_impl[2][1] >> value;
+					int32_t value = 0.d;
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0055;
 					if (type == 0)
 						a.str(reg0, asmjit::a64::Mem(reg1, value));
 					else if (type == 1)
@@ -401,11 +426,14 @@ namespace ASM {
 		std::string inst;
 		entry_impl[1] >> inst;
 		if (type <= 1) {
-			bool relative = false;
-			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') relative = true;
 			int64_t address = 0;
-			entry_impl[1] >> address;
-			if (relative) address += m_pc_address;
+			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+				char* end = 0;
+				address = std::strtol(inst.c_str(), &end, 0);
+				if (!end) return 0xFF0063;
+				address += m_pc_address;
+			}
+			else entry_impl[1] >> address;
 			if (type == 0) {
 				switch(subtype) {
 					case 0xFF: {a.b(address); break;}
@@ -470,7 +498,8 @@ namespace ASM {
 			auto regfp2 = getFpRegister(inst, false, true, true, true, false);
 			if (regfp2 == FP_REG_ERROR) {
 				float value = 0;
-				entry_impl[2] >> value;
+				bool passed = getFloat(inst, &value);
+				if (!passed) return 0xFF0083;
 				a.fcmp(regfp, value);
 			}
 			else a.fcmp(regfp, regfp2);
@@ -513,7 +542,7 @@ namespace ASM {
 		entry_impl[1] >> inst;
 		auto regfp = getFpRegister(inst, false, true, true, true, false);
 		if (regfp == FP_REG_ERROR) return 0xFF00A1;
-		entry_impl[1] >> inst;
+		entry_impl[2] >> inst;
 		auto regfp2 = getFpRegister(inst, false, true, true, true, false);
 		if (regfp2 == FP_REG_ERROR) return 0xFF00A2;
 		else a.fcvt(regfp, regfp2);
@@ -530,9 +559,12 @@ namespace ASM {
 		if (reg0 == GP_REG_ERROR) return 0xFF00B1;
 		entry_impl[2] >> inst;
 		bool relative = false;
-		if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') relative = true;
+		if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+			relative = true;
+		}
 		int64_t address = 0;
-		entry_impl[2] >> address;
+		bool passed = getInteger(inst, &address);
+		if (!passed) return 0xFF00B2;
 		if (relative) address += m_pc_address;
 		if (type == 0) a.cbz(reg0, address);
 		if (type == 1) a.cbnz(reg0, address);
@@ -547,15 +579,18 @@ namespace ASM {
 		entry_impl[1] >> inst;
 		auto reg0 = getGenRegister(inst, true, false, true);
 		if (reg0 == GP_REG_ERROR) return 0xFF00C1;
+		entry_impl[2] >> inst;
 		uint8_t shift = 0;
-		entry_impl[2] >> shift;
+		bool passed = getInteger(inst, &shift);
+		if (!passed) return 0xFF00C3;
 		entry_impl[3] >> inst;
-		auto reg1 = getGenRegister(inst, true, false, true);
-		if (reg1 == GP_REG_ERROR) return 0xFF00C2;
 		bool relative = false;
-		if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') relative = true;
+		if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+			relative = true;
+		}
 		int64_t address = 0;
-		entry_impl[3] >> address;
+		passed = getInteger(inst, &address);
+		if (!passed) return 0xFF00C2;
 		if (relative) address += m_pc_address;
 		if (type == 0) a.tbz(reg0, shift, address);
 		if (type == 1) a.tbnz(reg0, shift, address);
@@ -603,7 +638,7 @@ namespace ASM {
 		entry_impl[1] >> inst;
 		auto reg0 = getGenRegister(inst, true, false, true);
 		if (reg0 == GP_REG_ERROR) return 0xFF00D1;
-		entry_impl[1] >> inst;
+		entry_impl[2] >> inst;
 		auto regfp = getFpRegister(inst, false, true, true, true, false);
 		if (regfp == FP_REG_ERROR) return 0xFF00D2;
 		else a.fcvtzu(reg0, regfp);
@@ -624,7 +659,7 @@ namespace ASM {
 			}
 			a.madd(regs[0], regs[1], regs[2], regs[3]);
 		}
-		else if (type == 0) {
+		else if (type == 1) {
 			asmjit::a64::Vec regs[4];
 			for (size_t i = 1; i < 5; i++) {
 				entry_impl[i] >> inst;
@@ -644,7 +679,7 @@ namespace ASM {
 		entry_impl[1] >> inst;
 		auto regfp = getFpRegister(inst, false, true, true, true, false);
 		if (regfp == FP_REG_ERROR) return 0xFF00F1;
-		entry_impl[1] >> inst;
+		entry_impl[2] >> inst;
 		auto regfp2 = getFpRegister(inst, false, true, true, true, false);
 		if (regfp2 == FP_REG_ERROR) return 0xFF00F2;
 		else a.fneg(regfp, regfp2);
@@ -659,7 +694,7 @@ namespace ASM {
 		entry_impl[1] >> inst;
 		auto regfp = getFpRegister(inst, false, true, true, true, false);
 		if (regfp == FP_REG_ERROR) return 0xFF0101;
-		entry_impl[1] >> inst;
+		entry_impl[2] >> inst;
 		auto regfp2 = getFpRegister(inst, false, true, true, true, false);
 		if (regfp2 == FP_REG_ERROR) return 0xFF0102;
 		else a.fsqrt(regfp, regfp2);
@@ -687,6 +722,81 @@ namespace ASM {
 				return 0xFF0112;
 		}
 		a.mrs(reg0, value);
+		return 0;
+	}
+
+	template <typename T> Result MUL(T entry_impl, uint8_t type = 0) {
+		asmjit::a64::Assembler a(&code);
+		std::string inst;
+		if (entry_impl.num_children() != 4)
+			return 0xFF0120;
+		asmjit::a64::Gp regs[3];
+		for (size_t i = 1; i < 4; i++) {
+			entry_impl[i] >> inst;
+			regs[i-1] = getGenRegister(inst, true, false, true);
+			if (regs[i-1] == GP_REG_ERROR) return 0xFF0120 + i;
+		}
+		if (type == 0)
+			a.mul(regs[0], regs[1], regs[2]);
+		else if (type == 1)
+			a.sdiv(regs[0], regs[1], regs[2]);
+		else if (type == 2)
+			a.udiv(regs[0], regs[1], regs[2]);
+		return 0;
+	}
+
+	template <typename T> Result LDP (T entry_impl, uint8_t type = 0) {
+		asmjit::a64::Assembler a(&code);
+		std::string inst;
+		if (entry_impl.num_children() != 4)
+			return 0xFF0130;
+		if (!entry_impl[3].is_seq()) return 0xFF0021;
+		if (entry_impl[3].num_children() == 0 || entry_impl[3].num_children() > 2) return 0xFF0132;
+
+		entry_impl[1] >> inst;
+		auto reg0 = getGenRegister(inst, true, false, true);
+		if (reg0 == GP_REG_ERROR) {
+			auto regfp = getFpRegister(inst, false, false, true, true, true);
+			if (regfp == FP_REG_ERROR) return 0xFF0133;
+			entry_impl[2] >> inst;
+			auto regfp2 = getFpRegister(inst, false, false, true, true, true);
+			if (regfp2 == FP_REG_ERROR) return 0xFF0134;
+			entry_impl[3][0] >> inst;
+			auto reg1 = getGenRegister(inst);
+			if (reg1 == GP_REG_ERROR) return 0xFF0135;
+			if (entry_impl[3].num_children() == 2) {
+				int32_t value = 0;
+				entry_impl[3][1] >> inst;
+				bool passed = getInteger(inst, &value);
+				if (!passed) return 0xFF0138;
+				if (type == 0)
+					a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+			}
+			else {
+				if (type == 0)
+					a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1));
+			}
+		}
+		else {
+			entry_impl[2] >> inst;
+			auto reg1 = getGenRegister(inst, true, false, true);
+			if (reg1 == GP_REG_ERROR) return 0xFF0136;
+			entry_impl[3][0] >> inst;
+			auto reg2 = getGenRegister(inst);
+			if (reg2 == GP_REG_ERROR) return 0xFF0137;
+			if (entry_impl[3].num_children() == 2) {
+				int32_t value = 0;
+				entry_impl[3][1] >> inst;
+				bool passed = getInteger(inst, &value);
+				if (!passed) return 0xFF0138;
+				if (type == 0)
+					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+			}
+			else {
+				if (type == 0)
+					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
+			}
+		}
 		return 0;
 	}
 
@@ -735,6 +845,12 @@ namespace ASM {
 		hash32("MADD"),
 		hash32("FMADD"),
 		hash32("MRS"),
+		hash32("MUL"),
+		hash32("UDIV"),
+		hash32("SDIV"),
+		hash32("LDP"),
+		hash32("FNEG"),
+		hash32("FSQRT")
 	};
 
 	template <typename T> constexpr bool has_duplicates(const T *array, std::size_t size)
@@ -800,6 +916,12 @@ namespace ASM {
 			case hash32("MADD"): {rc = MADD(entry); break;}
 			case hash32("FMADD"): {rc = MADD(entry, 1); break;}
 			case hash32("MRS"): {rc = MRS(entry); break;}
+			case hash32("MUL"): {rc = MUL(entry); break;}
+			case hash32("SDIV"): {rc = MUL(entry, 1); break;}
+			case hash32("UDIV"): {rc = MUL(entry, 2); break;}
+			case hash32("LDP"): {rc = LDP(entry); break;}
+			case hash32("FNEG"): {rc = FNEG(entry); break;}
+			case hash32("FSQRT"): {rc = FSQRT(entry); break;}
 			default: return 0xFFFFFE;
 		}
 		if (R_FAILED(rc)) {
