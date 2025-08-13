@@ -4,7 +4,6 @@
 #include <array>
 #include "c4/yml/node.hpp"
 #include "c4/std/string.hpp"
-#include <array>
 
 namespace ASM {
 
@@ -231,6 +230,12 @@ namespace ASM {
 						a.ldur(regfp, asmjit::a64::Mem(reg1, reg2));
 				}
 			}
+			else {
+				if (type == 0)
+					a.ldr(regfp, asmjit::a64::Mem(reg1));
+				else if (type == 3)
+					a.ldur(regfp, asmjit::a64::Mem(reg1));
+			}
 		}
 		else {
 			entry_impl[2][0] >> inst;
@@ -264,6 +269,18 @@ namespace ASM {
 					else if (type == 3)
 						a.ldur(reg0, asmjit::a64::Mem(reg1, reg2));
 				}
+			}
+			else {
+				if (type == 0)
+					a.ldr(reg0, asmjit::a64::Mem(reg1));
+				else if (type == 1)
+					a.ldrb(reg0, asmjit::a64::Mem(reg1));
+				else if (type == 2)
+					a.ldrh(reg0, asmjit::a64::Mem(reg1));
+				else if (type == 3)
+					a.ldur(reg0, asmjit::a64::Mem(reg1));
+				else if (type == 4)
+					a.ldurh(reg0, asmjit::a64::Mem(reg1));
 			}
 		}
 		return 0;
@@ -419,7 +436,7 @@ namespace ASM {
 					else if (type == 3)
 						a.stur(reg0, asmjit::a64::Mem(reg1, value));
 					else if (type == 4)
-						a.stur(reg0, asmjit::a64::Mem(reg1, value));
+						a.sturh(reg0, asmjit::a64::Mem(reg1, value));
 				}
 				else {
 					if (type == 0)
@@ -441,6 +458,8 @@ namespace ASM {
 					a.strh(reg0, asmjit::a64::Mem(reg1));
 				else if (type == 3)
 					a.stur(reg0, asmjit::a64::Mem(reg1));
+				else if (type == 4)
+					a.sturh(reg0, asmjit::a64::Mem(reg1));
 			}
 		}
 		return 0;
