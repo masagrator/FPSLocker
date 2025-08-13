@@ -11,8 +11,9 @@ namespace ASM {
 	asmjit::Environment customEnv(asmjit::Arch::kAArch64);
 	asmjit::CodeHolder code;
 
-	auto GP_REG_ERROR = asmjit::a64::Gp::make_r32(asmjit::a64::Gp::Id::kIdSp);
-	auto FP_REG_ERROR = asmjit::a64::Vec::make_v128(31);
+	#define GP_REG_ERROR asmjit::a64::Gp::make_r32(asmjit::a64::Gp::Id::kIdSp)
+	#define FP_REG_ERROR asmjit::a64::Vec::make_v128(31)
+	#define COND_ERROR (asmjit::a64::CondCode)0xFF
 
 	uintptr_t m_pc_address = 0;
 
@@ -85,32 +86,55 @@ namespace ASM {
 		}
 	}
 
-	uint8_t getConditionValue(std::string cond) {
+	constexpr uint32_t hashes2[] = {
+		hash32("EQ"),
+		hash32("NE"),
+		hash32("CS"),
+		hash32("HS"),
+		hash32("CC"),
+		hash32("LO"),
+		hash32("MI"),
+		hash32("PL"),
+		hash32("VS"),
+		hash32("VC"),
+		hash32("HI"),
+		hash32("LS"),
+		hash32("GE"),
+		hash32("LT"),
+		hash32("GT"),
+		hash32("LE"),
+		hash32("AL"),
+		hash32("NV")
+	};
+
+	asmjit::a64::CondCode getConditionValue(std::string cond) {
 		switch(hash32(cond.c_str())) {
-			case hash32("EQ"): return 0;
-			case hash32("NE"): return 1;
-			case hash32("CS"):
-			case hash32("HS"): return 2;
-			case hash32("CC"):
-			case hash32("LO"): return 3;
-			case hash32("MI"): return 4;
-			case hash32("PL"): return 5;
-			case hash32("VS"): return 6;
-			case hash32("VC"): return 7;
-			case hash32("HI"): return 8;
-			case hash32("LS"): return 9;
-			case hash32("GE"): return 10;
-			case hash32("LT"): return 11;
-			case hash32("GT"): return 12;
-			case hash32("LE"): return 13;
-			case hash32("AL"): return 14;
-			case hash32("NV"): return 15;
+			case hash32("EQ"): return asmjit::a64::CondCode::kEQ;
+			case hash32("NE"): return asmjit::a64::CondCode::kNE;
+			case hash32("CS"): return asmjit::a64::CondCode::kCS;
+			case hash32("HS"): return asmjit::a64::CondCode::kHS;
+			case hash32("CC"): return asmjit::a64::CondCode::kCC;
+			case hash32("LO"): return asmjit::a64::CondCode::kLO;
+			case hash32("MI"): return asmjit::a64::CondCode::kMI;
+			case hash32("PL"): return asmjit::a64::CondCode::kPL;
+			case hash32("VS"): return asmjit::a64::CondCode::kVS;
+			case hash32("VC"): return asmjit::a64::CondCode::kVC;
+			case hash32("HI"): return asmjit::a64::CondCode::kHI;
+			case hash32("LS"): return asmjit::a64::CondCode::kLS;
+			case hash32("GE"): return asmjit::a64::CondCode::kGE;
+			case hash32("LT"): return asmjit::a64::CondCode::kLT;
+			case hash32("GT"): return asmjit::a64::CondCode::kGT;
+			case hash32("LE"): return asmjit::a64::CondCode::kLE;
+			case hash32("AL"): return asmjit::a64::CondCode::kAL;
+			case hash32("NV"): return asmjit::a64::CondCode::kNA;
 		}
-		return 0xFE;
+		return COND_ERROR;
 	}
 
 	template <typename T> bool getInteger(std::string var, T* out) {
 		char* end = 0;
+		if (var.c_str()[0] == '#')
+			var = var.substr(1, std::string::npos);
 		int64_t value = std::strtol(var.c_str(), &end, 0);
 		if (end == var.c_str()) return false;
 		*out = (T)value;
@@ -119,6 +143,8 @@ namespace ASM {
 
 	template <typename T> bool getFloat(std::string var, T* out) {
 		char* end = 0;
+		if (var.c_str()[0] == '#')
+			var = var.substr(1, std::string::npos);
 		double value = std::strtod(var.c_str(), &end);
 		if (end == var.c_str()) return false;
 		*out = (T)value;
@@ -277,6 +303,7 @@ namespace ASM {
 			entry_impl[2] >> value;
 			uint8_t shift = 0;
 			entry_impl[3] >> shift;
+			if ((shift > 64) || (shift % 16 != 0)) return 0xFF0036;
 			a.movk(reg0, value, shift);
 		}
 		else if (type == 2) {
@@ -611,8 +638,8 @@ namespace ASM {
 				if (regs[i-1] == GP_REG_ERROR) return 0xFF00C0 + i;
 			}
 			entry_impl[4] >> inst;
-			uint8_t cond = getConditionValue(inst);
-			if (cond == 0xFF) return 0xFF00C4;
+			auto cond = getConditionValue(inst);
+			if (cond == COND_ERROR) return 0xFF00C4;
 			a.csel(regs[0], regs[1], regs[2], cond);
 		}
 		else if (type == 1) {
@@ -623,8 +650,8 @@ namespace ASM {
 				if (regs[i-1] == FP_REG_ERROR) return 0xFF00C4 + i;
 			}
 			entry_impl[4] >> inst;
-			uint8_t cond = getConditionValue(inst);
-			if (cond == 0xFF) return 0xFF00C4;
+			auto cond = getConditionValue(inst);
+			if (cond == COND_ERROR) return 0xFF00C4;
 			a.fcsel(regs[0], regs[1], regs[2], cond);
 		}
 		return 0;
@@ -864,6 +891,7 @@ namespace ASM {
 	}
 
 	static_assert(!has_duplicates(hashes, std::size(hashes)), "Detected repeated hash!");
+	static_assert(!has_duplicates(hashes2, std::size(hashes2)), "Detected repeated hash!");
 
 	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uintptr_t pc_address) {
 		std::string inst;
