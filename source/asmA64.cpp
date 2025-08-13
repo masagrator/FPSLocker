@@ -368,11 +368,11 @@ namespace ASM {
 		else if (entry_impl.num_children() != 3)
 			return 0xFF0030;
 		entry_impl[1] >> inst;
-		auto reg0 = getGenRegister(inst, true, false, true);
+		auto reg0 = getGenRegister(inst, true, true, true);
 		if (type == 0) {
 			if (reg0 == GP_REG_ERROR) return 0xFF0031;
 			entry_impl[2] >> inst;
-			auto reg1 = getGenRegister(inst, true, false, true);
+			auto reg1 = getGenRegister(inst, true, true, true);
 			if (reg1 == GP_REG_ERROR) {
 				int64_t value = 0;
 				bool passed = getInteger(inst, &value);
@@ -613,6 +613,7 @@ namespace ASM {
 					case hash32("NE"): {a.b_ne(address); break;}
 					case hash32("GT"): {a.b_gt(address); break;}
 					case hash32("LT"): {a.b_lt(address); break;}
+					case hash32("HI"): {a.b_hi(address); break;}
 					default: return 0xFF0062;
 				}
 			}
@@ -975,6 +976,10 @@ namespace ASM {
 					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
 				else if (type == 1)
 					a.stp(reg0, reg1, asmjit::a64::Mem(reg2));
+				else if (type == 2)
+					a.stxr(reg0, reg1, asmjit::a64::Mem(reg2));
+				else if (type == 3)
+					a.stxrb(reg0, reg1, asmjit::a64::Mem(reg2));
 			}
 		}
 		return 0;
@@ -1054,6 +1059,7 @@ namespace ASM {
 		hash32("B.NE"),
 		hash32("B.GT"),
 		hash32("B.LT"),
+		hash32("B.HI"),
 		hash32("BL"),
 		hash32("BLR"),
 		hash32("BR"),
@@ -1084,7 +1090,9 @@ namespace ASM {
 		hash32("FSUB"),
 		hash32("LSL"),
 		hash32("SVC"),
-		hash32("FMINNM")
+		hash32("FMINNM"),
+		hash32("STXR"),
+		hash32("STXRB")
 	};
 
 	template <typename T> constexpr bool has_duplicates(const T *array, std::size_t size)
@@ -1133,6 +1141,7 @@ namespace ASM {
 			case hash32("B.NE"): {rc = B(entry, 0, hash32("NE")); break;}
 			case hash32("B.GT"): {rc = B(entry, 0, hash32("GT")); break;}
 			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT")); break;}
+			case hash32("B.HI"): {rc = B(entry, 0, hash32("HI")); break;}
 			case hash32("BL"): {rc = B(entry, 1); break;}
 			case hash32("BLR"): {rc = B(entry, 2); break;}
 			case hash32("BR"): {rc = B(entry, 3); break;}
@@ -1161,6 +1170,8 @@ namespace ASM {
 			case hash32("FNEG"): {rc = FNEG(entry); break;}
 			case hash32("FSQRT"): {rc = FSQRT(entry); break;}
 			case hash32("STP"): {rc = LDP(entry, 1); break;}
+			case hash32("STXR"): {rc = LDP(entry, 2); break;}
+			case hash32("STXRB"): {rc = LDP(entry, 3); break;}
 			case hash32("LSL"): {rc = LSL(entry); break;}
 			case hash32("SVC"): {rc = SVC(entry); break;}
 			case hash32("FMINNM"): {rc = FMINNM(entry); break;}
