@@ -647,7 +647,7 @@ namespace ASM {
 			}
 			else a.cmp(reg0, reg1);
 		}
-		else if (type == 1) {
+		else if (type == 1 || type == 2) {
 			auto regfp = getFpRegister(inst, false, true, true, true, false);
 			if (regfp == FP_REG_ERROR) return 0xFF0082;
 			entry_impl[2] >> inst;
@@ -656,9 +656,25 @@ namespace ASM {
 				float value = 0;
 				bool passed = getFloat(inst, &value);
 				if (!passed) return 0xFF0083;
-				a.fcmp(regfp, value);
+				switch(type) {
+					case 1:
+						a.fcmp(regfp, value);
+						break;
+					case 2:
+						a.fcmpe(regfp, value);
+						break;
+				}
 			}
-			else a.fcmp(regfp, regfp2);
+			else {
+				switch(type) {
+					case 1:
+						a.fcmp(regfp, regfp2);
+						break;
+					case 2:
+						a.fcmpe(regfp, regfp2);
+						break;
+				}
+			}
 		}
 		return 0;
 	}
@@ -1027,6 +1043,7 @@ namespace ASM {
 		hash32("SUB"),
 		hash32("CMP"),
 		hash32("FCMP"),
+		hash32("FCMPE"),
 		hash32("UCVTF"),
 		hash32("SCVTF"),
 		hash32("FCVT"),
@@ -1104,6 +1121,7 @@ namespace ASM {
 			case hash32("FSUB"): {rc = ADD(entry, 3); break;}
 			case hash32("CMP"): {rc = CMP(entry); break;}
 			case hash32("FCMP"): {rc = CMP(entry, 1); break;}
+			case hash32("FCMPE"): {rc = CMP(entry, 2); break;}
 			case hash32("UCVTF"): {rc = UCVTF(entry); break;}
 			case hash32("SCVTF"): {rc = UCVTF(entry, 1); break;}
 			case hash32("FCVT"): {rc = FCVT(entry); break;}
@@ -1133,7 +1151,13 @@ namespace ASM {
 		}
 		size_t codeSize = code.codeSize();
 		if (codeSize != 4) {
+			printf("Instruction %s failed!\n", inst.c_str());
 			return 0xFFFFFD;
+		}
+		else {
+			printf("Instruction %s passed!\n", inst.c_str());
+			consoleUpdate(NULL);
+			//svcSleepThread(500000000);
 		}
 		code.copyFlattenedData(out, 4);
 		code.reset();
