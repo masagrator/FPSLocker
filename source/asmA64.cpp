@@ -30,26 +30,20 @@ namespace ASM {
 
 	asmjit::a64::Gp getGenRegister(std::string register_name, bool includeW = false, bool includeSP = false, bool includeZR = false, bool includeX = true) {
 		bool isW = false;
-		bool isSP = false;
 		if (includeW && (register_name.c_str()[0] == 'W' || register_name.c_str()[0] == 'w'))
 			isW = true;
-		else if (includeSP && hash32("SP") == hash32(register_name.c_str())) {
-			isSP = true;
+		else if (includeSP && (hash32("SP") == hash32(register_name.c_str()))) {
+			return asmjit::a64::Gp::make_r64(asmjit::a64::Gp::Id::kIdSp);
 		}
 		else if (!includeX || (register_name.c_str()[0] != 'X' && register_name.c_str()[0] != 'x'))
 			return GP_REG_ERROR; //Error code WSP
 		uint8_t reg_value = 0;
-		if (isSP) {
-			reg_value = asmjit::a64::Gp::Id::kIdSp;
+		register_name = register_name.substr(1, std::string::npos);
+		if (hash32("ZR") == hash32(register_name.c_str())) {
+			if (!includeZR) return GP_REG_ERROR;
+			reg_value = asmjit::a64::Gp::Id::kIdZr;
 		}
-		else {
-			register_name = register_name.substr(1, std::string::npos);
-			if (hash32("ZR") == hash32(register_name.c_str())) {
-				if (!includeZR) return GP_REG_ERROR;
-				reg_value = asmjit::a64::Gp::Id::kIdZr;
-			}
-			else reg_value = std::stoi(register_name);
-		}
+		else reg_value = std::stoi(register_name);
 		return isW ? asmjit::a64::Gp::make_r32(reg_value) : asmjit::a64::Gp::make_r64(reg_value);
 	}
 
@@ -172,23 +166,36 @@ namespace ASM {
 			return 0xFF0010;
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
-		if (type == 0) {
+		if (type == 0 || type == 2) {
 			asmjit::a64::Gp regs[3];
-			for (size_t i = 1; i < 4; i++) {
+			for (size_t i = 1; i < 3; i++) {
 				entry_impl[i] >> inst;
 				regs[i-1] = getGenRegister(inst, true, true, true);
 				if (regs[i-1] == GP_REG_ERROR) return 0xFF0010 + i;
 			}
-			a.add(regs[0], regs[1], regs[2]);
+			entry_impl[3] >> inst;
+			regs[2] = getGenRegister(inst, true, true, true);
+			if (regs[2] == GP_REG_ERROR) {
+				int64_t value = 0;
+				bool passed = getInteger(inst, &value);
+				if (!passed) return 0xFF0013;
+				if (type == 0) a.add(regs[0], regs[1], value);
+				else if (type == 2) a.sub(regs[0], regs[1], value);
+			}
+			else {
+				if (type == 0) a.add(regs[0], regs[1], regs[2]);
+				else if (type == 2) a.sub(regs[0], regs[1], regs[2]);
+			}
 		}
-		else if (type == 1) {
+		else if (type == 1 || type == 3) {
 			asmjit::a64::Vec regs[3];
 			for (size_t i = 1; i < 4; i++) {
 				entry_impl[i] >> inst;
 				regs[i-1] = getFpRegister(inst, false, true, true, true, false);
 				if (regs[i-1] == FP_REG_ERROR) return 0xFF0010 + i;
 			}
-			a.fadd(regs[0], regs[1], regs[2]);			
+			if (type == 1) a.fadd(regs[0], regs[1], regs[2]);
+			else if (type == 3) a.fsub(regs[0], regs[1], regs[2]);
 		}
 		return 0;
 	}
@@ -208,7 +215,7 @@ namespace ASM {
 			auto regfp = getFpRegister(inst);
 			if (regfp == FP_REG_ERROR) return 0xFF0023;
 			entry_impl[2][0] >> inst;
-			auto reg1 = getGenRegister(inst, false, true, false);
+			auto reg1 = getGenRegister(inst, false, true);
 			if (reg1 == GP_REG_ERROR) return 0xFF0024;
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
@@ -239,7 +246,7 @@ namespace ASM {
 		}
 		else {
 			entry_impl[2][0] >> inst;
-			auto reg1 = getGenRegister(inst);
+			auto reg1 = getGenRegister(inst, false, true);
 			if (reg1 == GP_REG_ERROR) return 0xFF0024;
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
@@ -388,13 +395,13 @@ namespace ASM {
 			auto regfp = getFpRegister(inst);
 			if (regfp == FP_REG_ERROR) return 0xFF0053;
 			entry_impl[2][0] >> inst;
-			auto reg1 = getGenRegister(inst, false, true, false);
+			auto reg1 = getGenRegister(inst, false, true);
 			if (reg1 == GP_REG_ERROR) return 0xFF0054;
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
 				auto reg2 = getGenRegister(inst, false, false, true);
 				if (reg2 == GP_REG_ERROR) {
-					int32_t value = 0.d;
+					int32_t value = 0;
 					bool passed = getInteger(inst, &value);
 					if (!passed) return 0xFF0055;
 					if (type == 0)
@@ -418,13 +425,13 @@ namespace ASM {
 		}
 		else {
 			entry_impl[2][0] >> inst;
-			auto reg1 = getGenRegister(inst);
+			auto reg1 = getGenRegister(inst, false, true);
 			if (reg1 == GP_REG_ERROR) return 0xFF0054;
 			if (entry_impl[2].num_children() == 2) {
 				entry_impl[2][1] >> inst;
 				auto reg2 = getGenRegister(inst);
 				if (reg2 == GP_REG_ERROR) {
-					int32_t value = 0.d;
+					int32_t value = 0;
 					bool passed = getInteger(inst, &value);
 					if (!passed) return 0xFF0055;
 					if (type == 0)
@@ -501,21 +508,6 @@ namespace ASM {
 			if (reg == GP_REG_ERROR) return 0xFF0061;
 			a.blr(reg);
 		}
-		return 0;
-	}
-
-	template <typename T> Result SUB(T entry_impl) {
-		if (entry_impl.num_children() != 4)
-			return 0xFF0070;
-		asmjit::a64::Assembler a(&code);
-		std::string inst;
-		asmjit::a64::Gp regs[3];
-		for (size_t i = 1; i < 4; i++) {
-			entry_impl[i] >> inst;
-			regs[i-1] = getGenRegister(inst, true, true, true);
-			if (regs[i-1] == GP_REG_ERROR) return 0xFF0070 + i;
-		}
-		a.sub(regs[0], regs[1], regs[2]);
 		return 0;
 	}
 
@@ -798,7 +790,6 @@ namespace ASM {
 			return 0xFF0130;
 		if (!entry_impl[3].is_seq()) return 0xFF0021;
 		if (entry_impl[3].num_children() == 0 || entry_impl[3].num_children() > 2) return 0xFF0132;
-
 		entry_impl[1] >> inst;
 		auto reg0 = getGenRegister(inst, true, false, true);
 		if (reg0 == GP_REG_ERROR) {
@@ -808,7 +799,7 @@ namespace ASM {
 			auto regfp2 = getFpRegister(inst, false, false, true, true, true);
 			if (regfp2 == FP_REG_ERROR) return 0xFF0134;
 			entry_impl[3][0] >> inst;
-			auto reg1 = getGenRegister(inst);
+			auto reg1 = getGenRegister(inst, false, true);
 			if (reg1 == GP_REG_ERROR) return 0xFF0135;
 			if (entry_impl[3].num_children() == 2) {
 				int32_t value = 0;
@@ -817,10 +808,14 @@ namespace ASM {
 				if (!passed) return 0xFF0138;
 				if (type == 0)
 					a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+				else if (type == 1)
+					a.stp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
 			}
 			else {
 				if (type == 0)
 					a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1));
+				else if (type == 1)
+					a.stp(regfp, regfp2, asmjit::a64::Mem(reg1));
 			}
 		}
 		else {
@@ -828,7 +823,7 @@ namespace ASM {
 			auto reg1 = getGenRegister(inst, true, false, true);
 			if (reg1 == GP_REG_ERROR) return 0xFF0136;
 			entry_impl[3][0] >> inst;
-			auto reg2 = getGenRegister(inst);
+			auto reg2 = getGenRegister(inst, false, true);
 			if (reg2 == GP_REG_ERROR) return 0xFF0137;
 			if (entry_impl[3].num_children() == 2) {
 				int32_t value = 0;
@@ -837,10 +832,14 @@ namespace ASM {
 				if (!passed) return 0xFF0138;
 				if (type == 0)
 					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+				else if (type == 1)
+					a.stp(reg0, reg1, asmjit::a64::Mem(reg2, value));
 			}
 			else {
 				if (type == 0)
 					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
+				else if (type == 1)
+					a.stp(reg0, reg1, asmjit::a64::Mem(reg2));
 			}
 		}
 		return 0;
@@ -896,7 +895,9 @@ namespace ASM {
 		hash32("SDIV"),
 		hash32("LDP"),
 		hash32("FNEG"),
-		hash32("FSQRT")
+		hash32("FSQRT"),
+		hash32("STP"),
+		hash32("FSUB")
 	};
 
 	template <typename T> constexpr bool has_duplicates(const T *array, std::size_t size)
@@ -947,7 +948,8 @@ namespace ASM {
 			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT")); break;}
 			case hash32("BL"): {rc = B(entry, 1); break;}
 			case hash32("BLR"): {rc = B(entry, 2); break;}
-			case hash32("SUB"): {rc = SUB(entry); break;}
+			case hash32("SUB"): {rc = ADD(entry, 2); break;}
+			case hash32("FSUB"): {rc = ADD(entry, 3); break;}
 			case hash32("CMP"): {rc = CMP(entry); break;}
 			case hash32("FCMP"): {rc = CMP(entry, 1); break;}
 			case hash32("UCVTF"): {rc = UCVTF(entry); break;}
@@ -969,6 +971,7 @@ namespace ASM {
 			case hash32("LDP"): {rc = LDP(entry); break;}
 			case hash32("FNEG"): {rc = FNEG(entry); break;}
 			case hash32("FSQRT"): {rc = FSQRT(entry); break;}
+			case hash32("STP"): {rc = LDP(entry, 1); break;}
 			default: return 0xFFFFFE;
 		}
 		if (R_FAILED(rc)) {
