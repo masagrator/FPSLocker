@@ -2,6 +2,7 @@
 
 #include "Lock.hpp"
 #include "c4/std/string.hpp"
+#include "asmA64.hpp"
 #include <cmath>
 #include <vector>
 
@@ -146,6 +147,15 @@ namespace LOCK {
 					}
 					else temp_size += getTypeSize(string_check);
 				}
+				else if (!string_check.compare("asmA64")) {
+					temp_size += 4; // main_offset
+					temp_size++; // value_type
+					temp_size++; // value count
+					if (entry[i]["value"].is_seq()) {
+						temp_size += (getTypeSize("uint32") * entry[i]["value"].num_children());
+					}
+					else temp_size += getTypeSize("uint32");
+				}
 				else return 2;
 			}
 			temp_size++;
@@ -253,6 +263,44 @@ namespace LOCK {
 						Result rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
 						if (R_FAILED(rc)) return rc;
 					}					
+				}
+				else if (!string_check.compare("asmA64")) {
+					buffer[temp_size++] = 1; // type
+					uint32_t main_offset = 0;
+					entry[i]["main_offset"] >> main_offset;
+					*(uint32_t*)(&buffer[temp_size]) = main_offset;
+					temp_size += 4;
+					buffer[temp_size++] = getValueType("uint32");
+					if (entry[i]["instructions"].is_seq()) {
+						buffer[temp_size++] = entry[i]["instructions"].num_children(); //value_count
+						for (size_t x = 0; x < entry[i]["instructions"].num_children(); x++) {
+							uint32_t inst = 0;
+							Result rc = 1;
+							if (entry[i]["instructions"][x].is_seq()) {
+								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, main_offset);
+								if (R_FAILED(rc)) return rc;
+							}
+							else entry[i]["instructions"][x] >> inst;
+							main_offset += 4;
+							*(uint32_t*)(&buffer[temp_size]) = inst;
+							temp_size += 4;
+						}
+					}
+					else if (entry[i]["instructions"].is_seq()) {
+						buffer[temp_size++] = 1;
+						uint32_t inst = 0;
+						Result rc = ASM::processArm64(entry[i]["instructions"], &inst, main_offset);
+						if (R_FAILED(rc)) return rc;
+						*(uint32_t*)(&buffer[temp_size]) = inst;
+						temp_size += 4;
+					}
+					else {
+						buffer[temp_size++] = 1;
+						uint32_t inst = 0;
+						entry[i]["instructions"] >> inst;
+						*(uint32_t*)(&buffer[temp_size]) = inst;
+						temp_size += 4;
+					}
 				}
 				else return 2;
 			}
