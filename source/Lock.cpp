@@ -2,6 +2,7 @@
 
 #include "Lock.hpp"
 #include "c4/std/string.hpp"
+#include "asmA64.hpp"
 #include <cmath>
 #include <vector>
 
@@ -44,7 +45,7 @@ namespace LOCK {
 		return 0;		
 	}
 
-	uint8_t NOINLINE getValueType(std::string value_type) {
+	constexpr uint8_t NOINLINE getValueType(std::string value_type) {
 		if (!value_type.compare("uint8"))
 			return 0x1;
 		else if (!value_type.compare("uint16"))
@@ -70,7 +71,7 @@ namespace LOCK {
 		else return 0;
 	}
 
-	size_t NOINLINE getTypeSize(std::string value_type) {
+	constexpr size_t NOINLINE getTypeSize(std::string value_type) {
 		if (!value_type.compare("int8") || !value_type.compare("uint8"))
 			return sizeof(uint8_t);
 		else if (!value_type.compare("int16") || !value_type.compare("uint16"))
@@ -145,6 +146,15 @@ namespace LOCK {
 						temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
 					}
 					else temp_size += getTypeSize(string_check);
+				}
+				else if (!string_check.compare("asm_a64")) {
+					temp_size += 4; // main_offset
+					temp_size++; // value_type
+					temp_size++; // value count
+					if (entry[i]["instructions"].is_seq()) {
+						temp_size += (getTypeSize("uint32") * entry[i]["instructions"].num_children());
+					}
+					else return 0x4096;
 				}
 				else return 2;
 			}
@@ -253,6 +263,30 @@ namespace LOCK {
 						Result rc = writeEntryTo(entry[i]["value"], buffer, &temp_size, value_type);
 						if (R_FAILED(rc)) return rc;
 					}					
+				}
+				else if (!string_check.compare("asm_a64")) {
+					buffer[temp_size++] = 1; // type
+					uint32_t main_offset = 0;
+					entry[i]["main_offset"] >> main_offset;
+					*(uint32_t*)(&buffer[temp_size]) = main_offset;
+					temp_size += 4;
+					buffer[temp_size++] = getValueType("uint32");
+					if (entry[i]["instructions"].is_seq()) {
+						buffer[temp_size++] = entry[i]["instructions"].num_children(); //value_count
+						for (size_t x = 0; x < entry[i]["instructions"].num_children(); x++) {
+							uint32_t inst = 0;
+							Result rc = 1;
+							if (entry[i]["instructions"][x].is_seq()) {
+								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, main_offset);
+								if (R_FAILED(rc)) return rc;
+							}
+							else entry[i]["instructions"][x] >> inst;
+							main_offset += 4;
+							*(uint32_t*)(&buffer[temp_size]) = inst;
+							temp_size += 4;
+						}
+					}
+					else return 0x4096;
 				}
 				else return 2;
 			}
@@ -487,7 +521,7 @@ namespace LOCK {
 		return 0;
 	}
 
-	Result readConfig(char* path) {
+	Result readConfig(const char* path) {
 		FILE* config = fopen(path, "r");
 		if (!config)
 			return 0x202;
