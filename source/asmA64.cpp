@@ -128,7 +128,9 @@ namespace ASM {
 		char* end = 0;
 		if (var.c_str()[0] == '#')
 			var = var.substr(1, std::string::npos);
-		int64_t value = std::strtol(var.c_str(), &end, 0);
+		intptr_t value = 0;
+		if (sizeof(intptr_t) == 8) value = std::strtoll(var.c_str(), &end, 0);
+		else value = std::strtol(var.c_str(), &end, 0);
 		if (end == var.c_str()) return false;
 		*out = (T)value;
 		return true;
@@ -598,13 +600,13 @@ namespace ASM {
 		entry_impl[1] >> inst;
 		if (type <= 1) {
 			int64_t address = 0;
+			bool relative = false;
 			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
-				char* end = 0;
-				address = std::strtol(inst.c_str(), &end, 0);
-				if (!end) return 0xFF0063;
-				address += m_pc_address;
+				relative = true;
 			}
-			else entry_impl[1] >> address;
+			bool passed = getInteger(inst, &address);
+			if (!passed) return 0xFF0062;
+			if (relative) address += m_pc_address;
 			if (type == 0) {
 				switch(subtype) {
 					case 0xFF: {a.b(address); break;}
