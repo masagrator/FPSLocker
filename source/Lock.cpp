@@ -5,6 +5,7 @@
 #include "asmA64.hpp"
 #include <cmath>
 #include <vector>
+#include <map>
 
 namespace LOCK {
 
@@ -17,7 +18,16 @@ namespace LOCK {
 		size_t size;
 		void* buffer_ptr;
 	};
+
+	struct reg_data {
+		int64_t negative_offset;
+		uint8_t value_type;
+		uint64_t value;
+	};
+
 	std::vector<buffer_data*> buffers;
+	std::map<uint32_t, reg_data> registered_variables;
+	int64_t registered_variables_stack_offset = 0;
 
 	void freeBuffers() {
 		for (int i = (buffers.size() - 1); i >= 0; i--) {
@@ -37,12 +47,24 @@ namespace LOCK {
 		return 0;
 	}
 
-	const char regions[3][6] = {"MAIN", "HEAP", "ALIAS"};
+	const char regions[4][7] = {"MAIN", "HEAP", "ALIAS", "GLOBAL"};
 	uint8_t NOINLINE getAddressRegion(std::string region) {
 		for (size_t i = 0; i < std::size(regions); i++)
 			if (!region.compare(regions[i]))
 				return i + 1;
 		return 0;		
+	}
+
+	constexpr uint32_t hash32(const char* str) {
+		uint32_t FNV1_INIT = 0x811C9DC5;
+		uint32_t FNV1_PRIME = 0x1000193;
+		for (size_t x = 0; x < strlen(str); x++) {
+			uint8_t byte = str[x];
+			if ((byte - 65) < 26)
+				byte += 32;
+			FNV1_INIT = (FNV1_PRIME * FNV1_INIT) ^ byte;
+		}
+		return FNV1_INIT;
 	}
 
 	constexpr uint8_t NOINLINE getValueType(std::string value_type) {
@@ -158,6 +180,15 @@ namespace LOCK {
 				}
 				else return 2;
 			}
+			if (registered_variables.size() > 0) {
+				for (const auto& [key, data] : registered_variables) {
+					temp_size++; // type
+					temp_size += 4;
+					temp_size++;
+					temp_size++;
+					temp_size += data.value_type % 0x10;
+				}
+			}
 			temp_size++;
 			return temp_size;
 		}
@@ -230,7 +261,7 @@ namespace LOCK {
 			else if (!string_check.compare("block")) {
 				temp_size++;
 			}
-			else return 2;
+			else return 0x12;
 		}
 		
 		temp_size++;
@@ -278,7 +309,10 @@ namespace LOCK {
 							Result rc = 1;
 							if (entry[i]["instructions"][x].is_seq()) {
 								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, main_offset);
-								if (R_FAILED(rc)) return rc;
+								if (R_FAILED(rc)) {
+									if (rc == 0xFFFFFD) return 0xFE0000 + (i << 8) + x;
+									return rc;
+								}
 							}
 							else entry[i]["instructions"][x] >> inst;
 							main_offset += 4;
@@ -288,7 +322,19 @@ namespace LOCK {
 					}
 					else return 0x4096;
 				}
-				else return 2;
+				else return 0x22;
+			}
+			if (registered_variables.size() > 0) {
+				for (const auto& [key, data] : registered_variables) {
+					buffer[temp_size++] = 1; // type
+					*(int32_t*)(&buffer[temp_size]) = data.negative_offset;
+					temp_size += 4;
+					uint8_t value_type = data.value_type;
+					buffer[temp_size++] = value_type;
+					buffer[temp_size++] = 1;
+					memcpy(&buffer[temp_size], &data.value, value_type % 0x10);
+					temp_size += value_type % 0x10;
+				}
 			}
 			buffer[temp_size++] = 0xFF;
 			*out_size = temp_size;
@@ -306,13 +352,23 @@ namespace LOCK {
 				buffer[temp_size++] = (evaluate_write ? 0x81 : 1); // type
 				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
-				buffer[temp_size++] = getAddressRegion(string_check);
-				for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
-					entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
-					temp_size += 4;
+				uint8_t address_region = getAddressRegion(string_check);
+				buffer[temp_size++] = address_region < 4 ? address_region : 1;
+				uint8_t value_type = 0;
+				if (address_region != 4) {
+					entry[i]["value_type"] >> string_check;
+					value_type = getValueType(string_check);
+					for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
+						entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
+						temp_size += 4;
+					}
 				}
-				entry[i]["value_type"] >> string_check;
-				uint8_t value_type = getValueType(string_check);
+				else {
+					entry[i]["address"][1] >> string_check;
+					*(int32_t*)(&buffer[temp_size]) = registered_variables[hash32(string_check.c_str())].negative_offset;
+					temp_size += 4;
+					value_type = registered_variables[hash32(string_check.c_str())].value_type;
+				}
 				buffer[temp_size++] = value_type;
 				if (entry[i]["value"].is_seq()) {
 					buffer[temp_size++] = entry[i]["value"].num_children(); //value_count
@@ -348,28 +404,49 @@ namespace LOCK {
 				buffer[temp_size++] = (evaluate_write ? 0x82 : 2);
 				buffer[temp_size++] = entry[i]["compare_address"].num_children();
 				entry[i]["compare_address"][0] >> string_check;
-				buffer[temp_size++] = getAddressRegion(string_check);
-				for (size_t x = 1; x < entry[i]["compare_address"].num_children(); x++) {
-					entry[i]["compare_address"][x] >> *(int32_t*)(&buffer[temp_size]);
+				uint8_t address_region = getAddressRegion(string_check);
+				buffer[temp_size++] = address_region < 4 ? address_region : 1;
+				uint8_t compare_value_type = 0;
+				if (address_region != 4) {
+					entry[i]["compare_value_type"] >> string_check;
+					compare_value_type =  getValueType(string_check);
+					for (size_t x = 1; x < entry[i]["compare_address"].num_children(); x++) {
+						entry[i]["compare_address"][x] >> *(int32_t*)(&buffer[temp_size]);
+						temp_size += 4;
+					}
+				}
+				else {
+					entry[i]["compare_address"][1] >> string_check;
+					*(int32_t*)(&buffer[temp_size]) = registered_variables[hash32(string_check.c_str())].negative_offset;
+					compare_value_type = registered_variables[hash32(string_check.c_str())].value_type;
 					temp_size += 4;
 				}
 				entry[i]["compare_type"][0] >> string_check;
 				buffer[temp_size++] = getCompareType(string_check);
-				entry[i]["compare_value_type"] >> string_check;
-				buffer[temp_size++] = getValueType(string_check);
+				buffer[temp_size++] = compare_value_type;
 
-				Result rc = writeEntryTo(entry[i]["compare_value"], buffer, &temp_size, getValueType(string_check));
+				Result rc = writeEntryTo(entry[i]["compare_value"], buffer, &temp_size, compare_value_type);
 				if (R_FAILED(rc)) return rc;
 
 				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
-				buffer[temp_size++] = getAddressRegion(string_check);
-				for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
-					entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
+				address_region = getAddressRegion(string_check);
+				buffer[temp_size++] = address_region < 4 ? address_region : 1;
+				uint8_t value_type = 0;
+				if (address_region != 4) {
+					entry[i]["value_type"] >> string_check;
+					value_type = getValueType(string_check);
+					for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
+						entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
+						temp_size += 4;
+					}
+				}
+				else {
+					entry[i]["address"][1] >> string_check;
+					*(int32_t*)(&buffer[temp_size]) = registered_variables[hash32(string_check.c_str())].negative_offset;
+					value_type = registered_variables[hash32(string_check.c_str())].value_type;
 					temp_size += 4;
 				}
-				entry[i]["value_type"] >> string_check;
-				uint8_t value_type = getValueType(string_check);
 				buffer[temp_size++] = value_type;
 				if (entry[i]["value"].is_seq()) {
 					buffer[temp_size++] = entry[i]["value"].num_children(); //value_count
@@ -401,7 +478,7 @@ namespace LOCK {
 					buffer[temp_size++] = 1;
 				}
 			}
-			else return 2;
+			else return 0x32;
 		}
 		buffer[temp_size++] = 0xFF;
 		*out_size = temp_size;
@@ -436,6 +513,26 @@ namespace LOCK {
 		return 0;
 	}
 
+	template <typename T>
+	Result NOINLINE registerVariables(T entry) {
+		std::string string_check;
+		for (size_t i = 0; i < entry.num_children(); i++) {
+			entry[i]["type"] >> string_check;
+			if (string_check.compare("variable")) return 0xE0001;
+			entry[i]["name"] >> string_check;
+			uint32_t hash = hash32(string_check.c_str());
+			entry[i]["value_type"] >> string_check;
+			uint8_t value_type = getValueType(string_check);
+			registered_variables_stack_offset -= 8;
+			registered_variables[hash] = reg_data(registered_variables_stack_offset, value_type, 0);
+			uint64_t buffer = 0;
+			size_t offset = 0;
+			writeEntryTo(entry[i]["default_value"], (uint8_t*)&buffer, &offset, value_type);
+			registered_variables[hash].value = buffer;
+		}
+		return 0;
+	}
+
 	Result createPatch(const char* path) {
 		bool unsafeCheck = false;
 
@@ -445,6 +542,11 @@ namespace LOCK {
 		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
 
 		Result ret = -1;
+
+		if (tree.find_child(tree.root_id(), "REGISTER") != c4::yml::NONE) {
+			ret = registerVariables(tree["REGISTER"]);
+			if (R_FAILED(ret)) return ret;
+		}
 		
 		ret = processEntry(tree["ALL_FPS"], false);
 
