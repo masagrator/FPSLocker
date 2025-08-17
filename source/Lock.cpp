@@ -148,7 +148,7 @@ namespace LOCK {
 	}
 
 	template <typename T>
-	size_t NOINLINE calculateSize(T entry, bool masterWrite = false, bool compiled = false) {
+	Result NOINLINE calculateSize(T entry, size_t* out, bool masterWrite = false, bool compiled = false) {
 		std::string string_check = "";
 		size_t temp_size = 0;
 
@@ -183,14 +183,15 @@ namespace LOCK {
 			if (registered_variables.size() > 0) {
 				for (const auto& [key, data] : registered_variables) {
 					temp_size++; // type
-					temp_size += 4;
-					temp_size++;
-					temp_size++;
+					temp_size += 4;//main_offset
+					temp_size++;//value_type
+					temp_size++;//value_count
 					temp_size += data.value_type % 0x10;
 				}
 			}
 			temp_size++;
-			return temp_size;
+			*out = temp_size;
+			return 0;
 		}
 		
 		for (size_t i = 0; i < entry.num_children(); i++) {
@@ -204,11 +205,18 @@ namespace LOCK {
 				temp_size++; // value_type
 				temp_size++; // value count
 				if (!string_check.compare("write") || compiled) {
-					entry[i]["value_type"] >> string_check;
-					if (entry[i]["value"].is_seq()) {
-						temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+					entry[i]["address"][0] >> string_check;
+					uint8_t address_region = getAddressRegion(string_check);
+					if (address_region != 4) {
+						entry[i]["value_type"] >> string_check;
+						if (entry[i]["value"].is_seq()) {
+							temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+						}
+						else temp_size += getTypeSize(string_check);
 					}
-					else temp_size += getTypeSize(string_check);
+					else {
+						temp_size += registered_variables[hash32(string_check.c_str())].value_type % 0x10;
+					}
 				}
 				else {
 					if (entry[i]["value"].is_seq()) {
@@ -232,18 +240,34 @@ namespace LOCK {
 				temp_size += ((entry[i]["compare_address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // compare_type
 				temp_size++; // compare_value_type
-				entry[i]["compare_value_type"] >> string_check;
-				temp_size += getTypeSize(string_check);
+				entry[i]["compare_address"][0] >> string_check;
+				uint8_t address_region = getAddressRegion(string_check);
+				if (address_region != 4) {
+					entry[i]["compare_value_type"] >> string_check;
+					temp_size += getTypeSize(string_check);
+				}
+				else {
+					entry[i]["compare_address"][1] >> string_check;
+					temp_size += registered_variables[hash32(string_check.c_str())].value_type % 0x10;
+				}
 				temp_size++; // address count
 				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // value_type
 				temp_size++; // value count
 				if (!evaluate_compare || compiled) {
-					entry[i]["value_type"] >> string_check;
-					if (entry[i]["value"].is_seq()) {
-						temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+					entry[i]["address"][0] >> string_check;
+					address_region = getAddressRegion(string_check);
+					if (address_region != 4) {
+						entry[i]["value_type"] >> string_check;
+						if (entry[i]["value"].is_seq()) {
+							temp_size += (getTypeSize(string_check) * entry[i]["value"].num_children());
+						}
+						else temp_size += getTypeSize(string_check);
 					}
-					else temp_size += getTypeSize(string_check);
+					else {
+						entry[i]["address"][1] >> string_check;
+						temp_size += registered_variables[hash32(string_check.c_str())].value_type % 0x10;
+					}
 				}
 				else {
 					if (entry[i]["value"].is_seq()) {
@@ -265,7 +289,8 @@ namespace LOCK {
 		}
 		
 		temp_size++;
-		return temp_size;
+		*out = temp_size;
+		return 0;
 	}
 
 	template <typename T>
@@ -401,31 +426,31 @@ namespace LOCK {
 				if (!string_check.compare("evaluate_compare"))
 					evaluate_write = true;
 				
-				buffer[temp_size++] = (evaluate_write ? 0x82 : 2);
-				buffer[temp_size++] = entry[i]["compare_address"].num_children();
+				buffer[temp_size++] = (evaluate_write ? 0x82 : 2); //+1
+				buffer[temp_size++] = entry[i]["compare_address"].num_children();//+1
 				entry[i]["compare_address"][0] >> string_check;
 				uint8_t address_region = getAddressRegion(string_check);
-				buffer[temp_size++] = address_region < 4 ? address_region : 1;
+				buffer[temp_size++] = address_region < 4 ? address_region : 1; //+1
 				uint8_t compare_value_type = 0;
 				if (address_region != 4) {
 					entry[i]["compare_value_type"] >> string_check;
 					compare_value_type =  getValueType(string_check);
 					for (size_t x = 1; x < entry[i]["compare_address"].num_children(); x++) {
 						entry[i]["compare_address"][x] >> *(int32_t*)(&buffer[temp_size]);
-						temp_size += 4;
+						temp_size += 4; //+(x*4)
 					}
 				}
 				else {
 					entry[i]["compare_address"][1] >> string_check;
 					*(int32_t*)(&buffer[temp_size]) = registered_variables[hash32(string_check.c_str())].negative_offset;
 					compare_value_type = registered_variables[hash32(string_check.c_str())].value_type;
-					temp_size += 4;
+					temp_size += 4; //+4
 				}
 				entry[i]["compare_type"][0] >> string_check;
-				buffer[temp_size++] = getCompareType(string_check);
-				buffer[temp_size++] = compare_value_type;
+				buffer[temp_size++] = getCompareType(string_check); //+1
+				buffer[temp_size++] = compare_value_type; //+1
 
-				Result rc = writeEntryTo(entry[i]["compare_value"], buffer, &temp_size, compare_value_type);
+				Result rc = writeEntryTo(entry[i]["compare_value"], buffer, &temp_size, compare_value_type); //+x
 				if (R_FAILED(rc)) return rc;
 
 				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
@@ -490,14 +515,18 @@ namespace LOCK {
 		
 		size_t temp_size = 0;
 		size_t old_temp_size = 0;
+		static uint16_t call_count = 0;
+		call_count++;
 		
-		temp_size = calculateSize(entry, masterWrite);
+		Result rc = calculateSize(entry, &temp_size, masterWrite);
+
+		if (R_FAILED(rc)) return rc;
 
 		uint8_t* buffer = (uint8_t*)calloc(temp_size, sizeof(uint8_t));
 		old_temp_size = temp_size;
 		temp_size = 0;
 
-		Result rc = processEntryImpl(entry, buffer, &temp_size, masterWrite);
+		rc = processEntryImpl(entry, buffer, &temp_size, masterWrite);
 		if (R_FAILED(rc)) {
 			free(buffer);
 			return rc;
@@ -516,6 +545,7 @@ namespace LOCK {
 	template <typename T>
 	Result NOINLINE registerVariables(T entry) {
 		std::string string_check;
+		registered_variables.clear();
 		for (size_t i = 0; i < entry.num_children(); i++) {
 			entry[i]["type"] >> string_check;
 			if (string_check.compare("variable")) return 0xE0001;
@@ -538,11 +568,13 @@ namespace LOCK {
 
 		char lockMagic[] = "LOCK";
 		tree["unsafeCheck"] >> unsafeCheck;
-		uint8_t compiledSize = (uint8_t)sqrt(calculateSize(tree["ALL_FPS"], false, true) + 0x10) + 1;
+		size_t temp_size = 0;
+		Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
+		if (R_FAILED(ret)) return ret;
+		uint8_t compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
 		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
 
-		Result ret = -1;
-
+		
 		if (tree.find_child(tree.root_id(), "REGISTER") != c4::yml::NONE) {
 			ret = registerVariables(tree["REGISTER"]);
 			if (R_FAILED(ret)) return ret;
