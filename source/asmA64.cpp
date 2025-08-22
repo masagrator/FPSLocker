@@ -37,7 +37,7 @@ namespace ASM {
 	#define COND_ERROR (asmjit::a64::CondCode)0xFF
 
 	uintptr_t m_pc_address = 0;
-	uint8_t adjust_type = 0; //1 - B/BL, 2 - ADRP
+	uint8_t adjust_type = 0; //1 - B/BL Codes, 2 - ADRP Variables, 3 - ADRP Codes
 
 	constexpr uint32_t hash32(const char* str) {
 		uint32_t FNV1_INIT = 0x811C9DC5;
@@ -175,25 +175,25 @@ namespace ASM {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
-		if (inst.c_str()[0] == '_') {
-			if (LOCK::declared_codes.find(hash32(inst.c_str())) != LOCK::declared_codes.end()) {
-				a.adrp(asmjit::a64::Gp::make_r64(asmjit::a64::Gp::Id::kIdZr), 0);
+		uint32_t address = 0;
+		std::string var;
+		entry_impl[2] >> var;
+		if (var.c_str()[0] == '_') {
+			if (LOCK::declared_codes.find(hash32(var.c_str())) != LOCK::declared_codes.end()) {
 				adjust_type = 2;
 			} 
 			else return 0xFF0003;
 		}
-		else if (inst.c_str()[0] == '$') {
-			if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
-				a.adrp(asmjit::a64::Gp::make_r64(asmjit::a64::Gp::Id::kIdZr), 0);
+		else if (var.c_str()[0] == '$') {
+			if (LOCK::declared_variables.find(hash32(var.c_str())) == LOCK::declared_variables.end()) {
 				adjust_type = 3;
 			}
 			else return 0xFF0004;
 		}
-		uint32_t address = 0;
-		std::string var;
-		entry_impl[2] >> var;
-		bool passed = getInteger(var, &address);
-		if (!passed) return 0xFF0002;
+		else {
+			bool passed = getInteger(var, &address);
+			if (!passed) return 0xFF0002;
+		}
 		asmjit::a64::Gp reg = getGenRegister(inst);
 		if (reg == GP_REG_ERROR) return 0xFF0001;
 		a.adrp(reg, address);
