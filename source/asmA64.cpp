@@ -390,8 +390,7 @@ namespace ASM {
 						else {
 							std::string inst;
 							entry_impl[3] >> inst;
-							if (!inst.compare("!")) a.ldr(reg0, asmjit::a64::ptr_pre(reg1));
-							else {
+							if (inst.compare("!")) {
 								uint16_t value = 0;
 								bool passed = getInteger(inst, &value);
 								if (!passed) return 0xFF0028;
@@ -404,8 +403,7 @@ namespace ASM {
 						else {
 							std::string inst;
 							entry_impl[3] >> inst;
-							if (!inst.compare("!")) a.ldrb(reg0, asmjit::a64::ptr_pre(reg1));
-							else {
+							if (inst.compare("!")) {
 								uint16_t value = 0;
 								bool passed = getInteger(inst, &value);
 								if (!passed) return 0xFF0028;
@@ -418,8 +416,7 @@ namespace ASM {
 						else {
 							std::string inst;
 							entry_impl[3] >> inst;
-							if (!inst.compare("!")) a.ldrh(reg0, asmjit::a64::ptr_pre(reg1));
-							else {
+							if (inst.compare("!")) {
 								uint16_t value = 0;
 								bool passed = getInteger(inst, &value);
 								if (!passed) return 0xFF0028;
@@ -1070,7 +1067,7 @@ namespace ASM {
 	template <typename T> Result LDP (T entry_impl, uint8_t type = 0) {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
-		if (entry_impl.num_children() != 4)
+		if (entry_impl.num_children() < 4 || entry_impl.num_children() > 5)
 			return 0xFF0130;
 		if (!entry_impl[3].is_seq()) return 0xFF0021;
 		if (entry_impl[3].num_children() == 0 || entry_impl[3].num_children() > 2) return 0xFF0132;
@@ -1090,14 +1087,18 @@ namespace ASM {
 				entry_impl[3][1] >> inst;
 				bool passed = getInteger(inst, &value);
 				if (!passed) return 0xFF0138;
-				if (type == 0)
-					a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
-				else if (type == 1)
-					a.stp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+				if (type == 0) {
+					if (entry_impl.num_children() == 4) a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+					else a.ldp(regfp, regfp2, asmjit::a64::ptr_pre(reg1, value));
+				}
+				else if (type == 1) {
+					if (entry_impl.num_children() == 4) a.stp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+					else a.stp(regfp, regfp2, asmjit::a64::ptr_pre(reg1, value));
+				}
 			}
 			else {
 				if (type == 0) {
-					if (entry_impl.num_children() == 3) a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1));
+					if (entry_impl.num_children() == 4) a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1));
 					else {
 						std::string inst;
 						entry_impl[3] >> inst;
@@ -1110,7 +1111,7 @@ namespace ASM {
 					}
 				}
 				else if (type == 1) {
-					if (entry_impl.num_children() == 3) a.stp(regfp, regfp2, asmjit::a64::Mem(reg1));
+					if (entry_impl.num_children() == 4) a.stp(regfp, regfp2, asmjit::a64::Mem(reg1));
 					else {
 						std::string inst;
 						entry_impl[3] >> inst;
@@ -1136,14 +1137,18 @@ namespace ASM {
 				entry_impl[3][1] >> inst;
 				bool passed = getInteger(inst, &value);
 				if (!passed) return 0xFF0138;
-				if (type == 0)
-					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2, value));
-				else if (type == 1)
-					a.stp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+				if (type == 0) {
+					if (entry_impl.num_children() == 4) a.ldp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+					else a.ldp(reg0, reg1, asmjit::a64::ptr_pre(reg2, value));
+				}
+				else if (type == 1) {
+					if (entry_impl.num_children() == 4) a.stp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+					else a.stp(reg0, reg1, asmjit::a64::ptr_pre(reg2, value));
+				}
 			}
 			else {
 				if (type == 0) {
-					if (entry_impl.num_children() == 3) a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
+					if (entry_impl.num_children() == 4) a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
 					else {
 						std::string inst;
 						entry_impl[3] >> inst;
@@ -1156,7 +1161,7 @@ namespace ASM {
 					}
 				}
 				else if (type == 1) {
-					if (entry_impl.num_children() == 3) a.stp(reg0, reg1, asmjit::a64::Mem(reg2));
+					if (entry_impl.num_children() == 4) a.stp(reg0, reg1, asmjit::a64::Mem(reg2));
 					else {
 						std::string inst;
 						entry_impl[3] >> inst;
