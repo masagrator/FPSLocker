@@ -5,7 +5,7 @@
 #include "asmA64.hpp"
 #include <cmath>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 namespace LOCK {
 
@@ -34,9 +34,9 @@ namespace LOCK {
 		uint8_t* adjust_types_buffer;
 	};
 
-	std::map<uint32_t, declare_var> declared_variables;
-	std::map<uint32_t, uint64_t> declared_consts;
-	std::map<uint32_t, declare_code> declared_codes;
+	std::unordered_map<uint32_t, declare_var> declared_variables;
+	std::unordered_map<uint32_t, uint64_t> declared_consts;
+	std::unordered_map<uint32_t, declare_code> declared_codes;
 
 	void freeBuffers() {
 		for (int i = (buffers.size() - 1); i >= 0; i--) {
@@ -213,6 +213,7 @@ namespace LOCK {
 					temp_size += 4;//main_offset
 					temp_size++;//value_type
 					temp_size++;//value_count
+					temp_size += data.instructions_num; //adjustment
 					temp_size += getTypeSize("uint32") * data.instructions_num;
 				}
 			}
@@ -371,6 +372,7 @@ namespace LOCK {
 					buffer[temp_size++] = 2; // type
 					uint32_t main_offset = 0;
 					entry[i]["main_offset"] >> main_offset;
+					uint32_t start_main_offset = main_offset;
 					*(uint32_t*)(&buffer[temp_size]) = main_offset;
 					temp_size += 4;
 					buffer[temp_size++] = getValueType("uint32");
@@ -380,8 +382,8 @@ namespace LOCK {
 							uint32_t inst = 0;
 							Result rc = 1;
 							if (entry[i]["instructions"][x].is_seq()) {
-								std::map<std::string, uint32_t> gotos;
-								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, 0, main_offset, gotos);
+								std::unordered_map<std::string, uint32_t> gotos;
+								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, 0, main_offset, start_main_offset, gotos);
 								if (R_FAILED(rc)) {
 									if (rc == 0xFFFFFD) return 0xFE0000 + (i << 8) + x;
 									return rc;
@@ -400,7 +402,7 @@ namespace LOCK {
 			if (declared_variables.size() > 0) {
 				for (const auto& [key, data] : declared_variables) {
 					buffer[temp_size++] = 2; // type
-					*(int32_t*)(&buffer[temp_size]) = data.cave_offset;
+					*(uint32_t*)(&buffer[temp_size]) = data.cave_offset;
 					temp_size += 4;
 					uint8_t value_type = data.value_type;
 					buffer[temp_size++] = value_type;
@@ -412,12 +414,15 @@ namespace LOCK {
 			if (declared_codes.size() > 0) {
 				for (const auto& [key, data] : declared_codes) {
 					buffer[temp_size++] = 3; // type
-					*(int32_t*)(&buffer[temp_size]) = data.cave_offset;
+					*(uint32_t*)(&buffer[temp_size]) = data.cave_offset;
 					temp_size += 4;
 					buffer[temp_size++] = 4; //value_type
 					buffer[temp_size++] = data.instructions_num;
-					memcpy(&buffer[temp_size], data.code_buffer, 4 * data.instructions_num);
-					temp_size += 4 * data.instructions_num;
+					for (size_t i = 0; i < data.instructions_num; i++) {
+						buffer[temp_size++] = data.adjust_types_buffer[i];
+						memcpy(&buffer[temp_size], &data.code_buffer[i], 4);
+						temp_size += 4;
+					}
 				}
 			}
 			buffer[temp_size++] = 0xFF;
@@ -576,7 +581,7 @@ namespace LOCK {
 				buffer[temp_size++] = 0x81; // type
 				buffer[temp_size++] = 2; // address count
 				buffer[temp_size++] = 4; //address region VARIABLE
-				memcpy(&buffer[temp_size], &key, 4);
+				memcpy(&buffer[temp_size], &data.cave_offset, 4);
 				temp_size += 4;
 				buffer[temp_size++] = data.value_type;
 				buffer[temp_size++] = 1; //value_count
@@ -624,15 +629,12 @@ namespace LOCK {
 	template <typename T> 
 	Result NOINLINE processVariable(T entry) {
 		std::string string_check;
+		static ptrdiff_t cave_offset = 0;
 		entry["name"] >> string_check;
 		uint32_t hash = hash32(string_check.c_str());
 		entry["value_type"] >> string_check;
 		uint8_t value_type = getValueType(string_check);
 		size_t value_size = value_type % 0x10;
-		ptrdiff_t cave_offset = 0;
-		if (declared_variables.size() > 0) {
-			cave_offset = declared_variables.rbegin()->second.cave_offset + value_size;
-		}
 		if (cave_offset % value_size != 0) {
 			cave_offset += value_size - (cave_offset % value_size);
 		}
@@ -644,6 +646,7 @@ namespace LOCK {
 		size_t offset = 0;
 		writeEntryTo(entry["default_value"], (uint8_t*)&value, &offset, value_type);
 		declared_variables[hash] = declare_var{cave_offset, value_type, string_check, value};
+		cave_offset += value_type % 0x10;
 		return 0;
 	}
 
@@ -667,10 +670,10 @@ namespace LOCK {
 		std::string string_check = "_" + string_temp + "()";
 		uint32_t hash = hash32(string_check.c_str());
 		uint32_t start_cave_offset = 0;
-		std::map<std::string, uint32_t> gotos;
+		std::unordered_map<std::string, uint32_t> gotos;
 
 		if (declared_codes.size() > 0) {
-			auto it = declared_codes.rbegin()->second;
+			auto it = declared_codes.begin()->second;
 			start_cave_offset = it.cave_offset + (it.instructions_num * 4);
 		}
 		uint32_t cave_offset = start_cave_offset;
@@ -689,16 +692,18 @@ namespace LOCK {
 		uint32_t* out_buffer = (uint32_t*)calloc(4, instruction_num);
 		uint8_t* adjust_types_buffer = (uint8_t*)calloc(1, instruction_num);
 		cave_offset = start_cave_offset;
+		size_t itr = 0;
 		for (size_t i = 0; i < num_children; i++) {
 			if (entry["instructions"][i].is_seq()) {
 				uint32_t instruction = 0;
 				uint8_t adjust_type = 0;
-				Result rc = ASM::processArm64(entry["instructions"][i], &instruction, &adjust_type, cave_offset, gotos);
+				Result rc = ASM::processArm64(entry["instructions"][i], &instruction, &adjust_type, cave_offset, start_cave_offset, gotos);
 				if (R_FAILED(rc)) {
 					freeDeclares();
-					return 0xED0001;
+					return rc;
 				}
-				out_buffer[cave_offset / 4] = instruction;
+				adjust_types_buffer[itr] = adjust_type;
+				out_buffer[itr++] = instruction;
 				cave_offset += 4;
 			}
 		}
@@ -713,14 +718,16 @@ namespace LOCK {
 		declared_consts.clear();
 		freeDeclares();
 		declared_codes.clear();
+		Result rc = 0;
 		for (size_t i = 0; i < entry.num_children(); i++) {
 			entry[i]["type"] >> string_check;
 			switch(hash32(string_check.c_str())) {
-				case hash32("variable"): {processVariable(entry[i]); break;}
-				case hash32("const"): {processConst(entry[i]); break;}
-				case hash32("code"): {processCode(entry[i]); break;}
+				case hash32("variable"): {rc = processVariable(entry[i]); break;}
+				case hash32("const"): {rc = processConst(entry[i]); break;}
+				case hash32("code"): {rc = processCode(entry[i]); break;}
 				default: return 0xE0001;
 			}
+			if (R_FAILED(rc)) return rc;
 		}
 		return 0;
 	}

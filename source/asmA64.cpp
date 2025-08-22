@@ -4,7 +4,7 @@
 #include <array>
 #include "c4/yml/node.hpp"
 #include "c4/std/string.hpp"
-#include <map>
+#include <unordered_map>
 
 namespace LOCK {
 
@@ -22,9 +22,9 @@ namespace LOCK {
 		uint8_t* adjust_types_buffer;
 	};
 
-	extern std::map<uint32_t, declare_var> declared_variables;
-	extern std::map<uint32_t, uint64_t> declared_consts;
-	extern std::map<uint32_t, declare_code> declared_codes;
+	extern std::unordered_map<uint32_t, declare_var> declared_variables;
+	extern std::unordered_map<uint32_t, uint64_t> declared_consts;
+	extern std::unordered_map<uint32_t, declare_code> declared_codes;
 }
 
 namespace ASM {
@@ -37,6 +37,7 @@ namespace ASM {
 	#define COND_ERROR (asmjit::a64::CondCode)0xFF
 
 	uintptr_t m_pc_address = 0;
+	uintptr_t m_pc_start = 0;
 	uint8_t adjust_type = 0; //1 - B/BL Codes, 2 - ADRP Variables, 3 - ADRP Codes
 
 	constexpr uint32_t hash32(const char* str) {
@@ -185,7 +186,7 @@ namespace ASM {
 			else return 0xFF0003;
 		}
 		else if (var.c_str()[0] == '$') {
-			if (LOCK::declared_variables.find(hash32(var.c_str())) != LOCK::declared_variables.end()) {
+			if (LOCK::declared_variables.find(hash32(&var.c_str()[1])) != LOCK::declared_variables.end()) {
 				adjust_type = 3;
 			}
 			else return 0xFF0004;
@@ -225,8 +226,8 @@ namespace ASM {
 				}
 				else if (inst.c_str()[0] == '$') {
 					if (type != 0) return 0xFF0016;
-					if (LOCK::declared_variables.find(hash32(inst.c_str())) != LOCK::declared_variables.end()) {
-						value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
+					if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+						value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
 					}
 					else return 0xFF0014;
 				}
@@ -279,8 +280,8 @@ namespace ASM {
 					int32_t value = 0;
 					if (inst.c_str()[0] == '$') {
 						if (type != 0) return 0xFF0025;
-						if (LOCK::declared_variables.find(hash32(inst.c_str())) != LOCK::declared_variables.end()) {
-							value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
 						}
 						else return 0xFF0026;
 					}
@@ -339,8 +340,8 @@ namespace ASM {
 					int32_t value = 0;
 					if (inst.c_str()[0] == '$') {
 						if (type != 0) return 0xFF0025;
-						if (LOCK::declared_variables.find(hash32(inst.c_str())) != LOCK::declared_variables.end()) {
-							value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
 						}
 						else return 0xFF0026;
 					}
@@ -479,7 +480,7 @@ namespace ASM {
 			uint64_t value = 0;
 			entry_impl[2] >> inst;
 			if (inst.c_str()[0] == '$') {
-				value = LOCK::declared_consts[hash32(&inst.c_str()[1])] & 0xFFFF;
+				value = LOCK::declared_consts[hash32(&inst.c_str()[1])];
 				value = (value >> shift) & 0xFFFF;
 			}
 			else {
@@ -562,8 +563,8 @@ namespace ASM {
 					int32_t value = 0;
 					if (inst.c_str()[0] == '$') {
 						if (type != 0) return 0xFF0057;
-						if (LOCK::declared_variables.find(hash32(inst.c_str())) != LOCK::declared_variables.end()) {
-							value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
 						}
 						else return 0xFF0056;
 					}
@@ -617,8 +618,17 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0055;
+					if (inst.c_str()[0] == '$') {
+						if (type > 2) return 0xFF0059;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
+						}
+						else return 0xFF0056;
+					}
+					else {
+						bool passed = getInteger(inst, &value);
+						if (!passed) return 0xFF0055;
+					}
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.str(reg0, asmjit::a64::Mem(reg1, value));
@@ -707,30 +717,39 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result B(T entry_impl, uint8_t type = 0, uint32_t subtype = 0xFF) {
+	template <typename T> Result B(T entry_impl, uint8_t type, uint32_t subtype, const std::unordered_map<std::string, uint32_t> gotos = {}) {
 		if (entry_impl.num_children() != 2)
 			return 0xFF0060;
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
 		if (type == 0) {
+			int64_t address = 0;
 			if (inst.c_str()[0] == '_') {
-				if (LOCK::declared_codes.size() == 0) return 0xFF0053;
+				if (LOCK::declared_codes.size() == 0) return 0xFF0061;
 				uint32_t hash = hash32(inst.c_str());
 				auto it = LOCK::declared_codes.find(hash);
-				if (it == LOCK::declared_codes.end()) return 0xFF0054;
+				if (it == LOCK::declared_codes.end()) return 0xFF0062;
 				a.b(it->second.cave_offset);
 				adjust_type = 1;
 				return 0;
 			}
-			int64_t address = 0;
 			bool relative = false;
-			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+			if (inst.c_str()[0] == ':') {
+				auto it = gotos.find(inst);
+				if (it == gotos.end()) return 0xFF0069;
+				address = m_pc_start + it->second;
 				relative = true;
 			}
-			bool passed = getInteger(inst, &address);
-			if (!passed) return 0xFF0062;
-			if (relative) address += m_pc_address;
+			else {
+				if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+					relative = true;
+				}
+				bool passed = getInteger(inst, &address);
+				if (!passed) return 0xFF0063;
+				if (relative) address += m_pc_address;
+			}
+			if (!relative) adjust_type = 1;
 			switch(subtype) {
 				case 0xFF: {a.b(address); break;}
 				case hash32("LE"): {a.b_le(address); break;}
@@ -739,7 +758,7 @@ namespace ASM {
 				case hash32("GT"): {a.b_gt(address); break;}
 				case hash32("LT"): {a.b_lt(address); break;}
 				case hash32("HI"): {a.b_hi(address); break;}
-				default: return 0xFF0062;
+				default: return 0xFF0064;
 			}
 		}
 		else if (type == 1) {
@@ -747,10 +766,10 @@ namespace ASM {
 				if (inst.compare("_ConvertToTimeSpan()")) a.bl(m_pc_address - 4);
 				else if (inst.compare("_SetUserInactivityDetectionTimeExtended()")) a.bl(m_pc_address - 8);
 				else {
-					if (LOCK::declared_codes.size() == 0) return 0xFF0053;
+					if (LOCK::declared_codes.size() == 0) return 0xFF0065;
 					uint32_t hash = hash32(inst.c_str());
 					auto it = LOCK::declared_codes.find(hash);
-					if (it == LOCK::declared_codes.end()) return 0xFF0054;
+					if (it == LOCK::declared_codes.end()) return 0xFF0066;
 					a.bl(it->second.cave_offset);
 				}
 				adjust_type = 1;
@@ -762,14 +781,14 @@ namespace ASM {
 				relative = true;
 			}
 			bool passed = getInteger(inst, &address);
-			if (!passed) return 0xFF0062;
+			if (!passed) return 0xFF0067;
 			if (relative) address += m_pc_address;
 			a.bl(address);
 
 		}
 		else if (type == 2 || type == 3) {
 			auto reg = getGenRegister(inst);
-			if (reg == GP_REG_ERROR) return 0xFF0061;
+			if (reg == GP_REG_ERROR) return 0xFF0068;
 			if (type == 2) a.blr(reg);
 			else if (type == 3) a.br(reg);
 		}
@@ -1101,11 +1120,11 @@ namespace ASM {
 					if (entry_impl.num_children() == 4) a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1));
 					else {
 						std::string inst;
-						entry_impl[3] >> inst;
+						entry_impl[4] >> inst;
 						if (inst.compare("!")) {
 							uint16_t value = 0;
 							bool passed = getInteger(inst, &value);
-							if (!passed) return 0xFF0138;
+							if (!passed) return 0xFF0139;
 							a.ldp(regfp, regfp2, asmjit::a64::ptr_post(reg1, value));
 						}
 					}
@@ -1114,11 +1133,11 @@ namespace ASM {
 					if (entry_impl.num_children() == 4) a.stp(regfp, regfp2, asmjit::a64::Mem(reg1));
 					else {
 						std::string inst;
-						entry_impl[3] >> inst;
+						entry_impl[4] >> inst;
 						if (inst.compare("!")) {
 							uint16_t value = 0;
 							bool passed = getInteger(inst, &value);
-							if (!passed) return 0xFF0138;
+							if (!passed) return 0xFF013A;
 							a.stp(regfp, regfp2, asmjit::a64::ptr_post(reg1, value));
 						}
 					}
@@ -1136,7 +1155,7 @@ namespace ASM {
 				int32_t value = 0;
 				entry_impl[3][1] >> inst;
 				bool passed = getInteger(inst, &value);
-				if (!passed) return 0xFF0138;
+				if (!passed) return 0xFF013B;
 				if (type == 0) {
 					if (entry_impl.num_children() == 4) a.ldp(reg0, reg1, asmjit::a64::Mem(reg2, value));
 					else a.ldp(reg0, reg1, asmjit::a64::ptr_pre(reg2, value));
@@ -1151,11 +1170,11 @@ namespace ASM {
 					if (entry_impl.num_children() == 4) a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
 					else {
 						std::string inst;
-						entry_impl[3] >> inst;
+						entry_impl[4] >> inst;
 						if (inst.compare("!")) {
 							uint16_t value = 0;
 							bool passed = getInteger(inst, &value);
-							if (!passed) return 0xFF0138;
+							if (!passed) return 0xFF013D;
 							a.ldp(reg0, reg1, asmjit::a64::ptr_post(reg2, value));
 						}
 					}
@@ -1164,11 +1183,11 @@ namespace ASM {
 					if (entry_impl.num_children() == 4) a.stp(reg0, reg1, asmjit::a64::Mem(reg2));
 					else {
 						std::string inst;
-						entry_impl[3] >> inst;
+						entry_impl[4] >> inst;
 						if (inst.compare("!")) {
 							uint16_t value = 0;
 							bool passed = getInteger(inst, &value);
-							if (!passed) return 0xFF0138;
+							if (!passed) return 0xFF013C;
 							a.stp(reg0, reg1, asmjit::a64::ptr_post(reg2, value));
 						}
 					}
@@ -1299,11 +1318,12 @@ namespace ASM {
 	static_assert(!has_duplicates(hashes, std::size(hashes)), "Detected repeated hash!");
 	static_assert(!has_duplicates(hashes2, std::size(hashes2)), "Detected repeated hash!");
 
-	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, const std::map<std::string, uint32_t> gotos) {
+	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, uintptr_t start_address, const std::unordered_map<std::string, uint32_t> gotos) {
 		std::string inst;
 		entry[0] >> inst;
 		code.init(customEnv, pc_address);
 		m_pc_address = pc_address;
+		m_pc_start = start_address;
 		Result rc = 0;
 		adjust_type = 0;
 		switch(hash32(inst.c_str())) {
@@ -1327,16 +1347,16 @@ namespace ASM {
 			case hash32("STUR"): {rc = STR(entry, 3); break;}
 			case hash32("STURH"): {rc = STR(entry, 4); break;}
 			case hash32("FMOV"): {rc = MOV(entry, 2); break;}
-			case hash32("B"): {rc = B(entry); break;}
-			case hash32("B.LE"): {rc = B(entry, 0, hash32("LE")); break;}
-			case hash32("B.GE"): {rc = B(entry, 0, hash32("GE")); break;}
-			case hash32("B.NE"): {rc = B(entry, 0, hash32("NE")); break;}
-			case hash32("B.GT"): {rc = B(entry, 0, hash32("GT")); break;}
-			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT")); break;}
-			case hash32("B.HI"): {rc = B(entry, 0, hash32("HI")); break;}
-			case hash32("BL"): {rc = B(entry, 1); break;}
-			case hash32("BLR"): {rc = B(entry, 2); break;}
-			case hash32("BR"): {rc = B(entry, 3); break;}
+			case hash32("B"): {rc = B(entry, 0, 0xFF, gotos); break;}
+			case hash32("B.LE"): {rc = B(entry, 0, hash32("LE"), gotos); break;}
+			case hash32("B.GE"): {rc = B(entry, 0, hash32("GE"), gotos); break;}
+			case hash32("B.NE"): {rc = B(entry, 0, hash32("NE"), gotos); break;}
+			case hash32("B.GT"): {rc = B(entry, 0, hash32("GT"), gotos); break;}
+			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT"), gotos); break;}
+			case hash32("B.HI"): {rc = B(entry, 0, hash32("HI"), gotos); break;}
+			case hash32("BL"): {rc = B(entry, 1, 0xFF); break;}
+			case hash32("BLR"): {rc = B(entry, 2, 0xFF); break;}
+			case hash32("BR"): {rc = B(entry, 3, 0xFF); break;}
 			case hash32("SUB"): {rc = ADD(entry, 2); break;}
 			case hash32("FSUB"): {rc = ADD(entry, 3); break;}
 			case hash32("CMP"): {rc = CMP(entry); break;}
