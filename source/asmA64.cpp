@@ -185,7 +185,7 @@ namespace ASM {
 			else return 0xFF0003;
 		}
 		else if (var.c_str()[0] == '$') {
-			if (LOCK::declared_variables.find(hash32(var.c_str())) == LOCK::declared_variables.end()) {
+			if (LOCK::declared_variables.find(hash32(var.c_str())) != LOCK::declared_variables.end()) {
 				adjust_type = 3;
 			}
 			else return 0xFF0004;
@@ -225,7 +225,7 @@ namespace ASM {
 				}
 				else if (inst.c_str()[0] == '$') {
 					if (type != 0) return 0xFF0016;
-					if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
+					if (LOCK::declared_variables.find(hash32(inst.c_str())) != LOCK::declared_variables.end()) {
 						value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
 					}
 					else return 0xFF0014;
@@ -284,7 +284,7 @@ namespace ASM {
 					int32_t value = 0;
 					if (inst.c_str()[0] == '$') {
 						if (type != 0) return 0xFF0025;
-						if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
+						if (LOCK::declared_variables.find(hash32(inst.c_str())) != LOCK::declared_variables.end()) {
 							value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
 						}
 						else return 0xFF0026;
@@ -548,7 +548,7 @@ namespace ASM {
 					int32_t value = 0;
 					if (inst.c_str()[0] == '$') {
 						if (type != 0) return 0xFF0057;
-						if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
+						if (LOCK::declared_variables.find(hash32(inst.c_str())) != LOCK::declared_variables.end()) {
 							value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
 						}
 						else return 0xFF0056;
