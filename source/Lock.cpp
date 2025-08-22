@@ -71,7 +71,7 @@ namespace LOCK {
 		return 0;		
 	}
 
-	constexpr uint32_t hash32(const char* str) {
+	constexpr uint32_t NOINLINE hash32(const char* str) {
 		uint32_t FNV1_INIT = 0x811C9DC5;
 		uint32_t FNV1_PRIME = 0x1000193;
 		for (size_t x = 0; x < strlen(str); x++) {
@@ -170,8 +170,10 @@ namespace LOCK {
 
 		//calculate bytes size
 
+		auto num_children = entry.num_children();
+
 		if (masterWrite) {
-			for (size_t i = 0; i < entry.num_children(); i++) {
+			for (size_t i = 0; i < num_children; i++) {
 				temp_size++;
 				entry[i]["type"] >> string_check;
 
@@ -205,12 +207,21 @@ namespace LOCK {
 					temp_size += data.value_type % 0x10;
 				}
 			}
+			if (declared_codes.size() > 0) {
+				for (const auto& [key, data] : declared_codes) {
+					temp_size++; // type
+					temp_size += 4;//main_offset
+					temp_size++;//value_type
+					temp_size++;//value_count
+					temp_size += getTypeSize("uint32") * data.instructions_num;
+				}
+			}
 			temp_size++;
 			*out = temp_size;
 			return 0;
 		}
 		
-		for (size_t i = 0; i < entry.num_children(); i++) {
+		for (size_t i = 0; i < num_children; i++) {
 
 			entry[i]["type"] >> string_check;
 			
@@ -267,10 +278,15 @@ namespace LOCK {
 					temp_size += declared_variables[hash32(string_check.c_str())].value_type % 0x10;
 				}
 				temp_size++; // address count
-				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
+				if (entry[i].has_child("address"))
+					temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // value_type
 				temp_size++; // value count
-				if (!evaluate_compare || compiled) {
+				if (entry[i].has_child("address") == false) {
+					entry[i]["value_type"] >> string_check;
+					temp_size += getTypeSize(string_check);
+				}
+				else if (!evaluate_compare || compiled) {
 					entry[i]["address"][0] >> string_check;
 					address_region = getAddressRegion(string_check);
 					if (address_region != 4) {
@@ -303,7 +319,21 @@ namespace LOCK {
 			}
 			else return 0x12;
 		}
+
 		
+		if (declared_variables.size() > 0) {
+			for (const auto& [key, data] : declared_variables) {
+				if (!data.evaluate.compare("")) continue;
+				temp_size++; // type
+				temp_size++; //address_count
+				temp_size++; //address region
+				temp_size += 4;//offset
+				temp_size++;//value_type
+				temp_size++;//value_count
+				if (compiled) temp_size += data.value_type % 0x10;
+				else temp_size += data.evaluate.length() + 1;
+			}
+		}		
 		temp_size++;
 		*out = temp_size;
 		return 0;
@@ -313,8 +343,9 @@ namespace LOCK {
 	Result NOINLINE processEntryImpl(T entry, uint8_t* buffer, size_t* out_size, bool masterWrite = false) {
 		std::string string_check = "";
 		size_t temp_size = 0;
+		auto num_children = entry.num_children();
 		if (masterWrite) {
-			for (size_t i = 0; i < entry.num_children(); i++) {
+			for (size_t i = 0; i < num_children; i++) {
 				entry[i]["type"] >> string_check;
 				if (!string_check.compare("bytes")) {
 					buffer[temp_size++] = 1; // type
@@ -378,11 +409,22 @@ namespace LOCK {
 					temp_size += value_type % 0x10;
 				}
 			}
+			if (declared_codes.size() > 0) {
+				for (const auto& [key, data] : declared_codes) {
+					buffer[temp_size++] = 3; // type
+					*(int32_t*)(&buffer[temp_size]) = data.cave_offset;
+					temp_size += 4;
+					buffer[temp_size++] = 4; //value_type
+					buffer[temp_size++] = data.instructions_num;
+					memcpy(&buffer[temp_size], data.code_buffer, 4 * data.instructions_num);
+					temp_size += 4 * data.instructions_num;
+				}
+			}
 			buffer[temp_size++] = 0xFF;
 			*out_size = temp_size;
 			return 0;
 		}
-		for (size_t i = 0; i < entry.num_children(); i++) {
+		for (size_t i = 0; i < num_children; i++) {
 		
 			entry[i]["type"] >> string_check;
 			if (!string_check.compare("write") || !string_check.compare("evaluate_write")) {
@@ -395,7 +437,7 @@ namespace LOCK {
 				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
 				uint8_t address_region = getAddressRegion(string_check);
-				buffer[temp_size++] = address_region < 4 ? address_region : 1;
+				buffer[temp_size++] = address_region;
 				uint8_t value_type = 0;
 				if (address_region != 4) {
 					entry[i]["value_type"] >> string_check;
@@ -447,11 +489,11 @@ namespace LOCK {
 				buffer[temp_size++] = entry[i]["compare_address"].num_children();//+1
 				entry[i]["compare_address"][0] >> string_check;
 				uint8_t address_region = getAddressRegion(string_check);
-				buffer[temp_size++] = address_region < 4 ? address_region : 1; //+1
+				buffer[temp_size++] = address_region; //+1
 				uint8_t compare_value_type = 0;
 				if (address_region != 4) {
 					entry[i]["compare_value_type"] >> string_check;
-					compare_value_type =  getValueType(string_check);
+					compare_value_type = getValueType(string_check);
 					for (size_t x = 1; x < entry[i]["compare_address"].num_children(); x++) {
 						entry[i]["compare_address"][x] >> *(int32_t*)(&buffer[temp_size]);
 						temp_size += 4; //+(x*4)
@@ -459,7 +501,7 @@ namespace LOCK {
 				}
 				else {
 					entry[i]["compare_address"][1] >> string_check;
-					*(int32_t*)(&buffer[temp_size]) = declared_variables[hash32(string_check.c_str())].cave_offset;
+					*(uint32_t*)(&buffer[temp_size]) = declared_variables[hash32(string_check.c_str())].cave_offset;
 					compare_value_type = declared_variables[hash32(string_check.c_str())].value_type;
 					temp_size += 4; //+4
 				}
@@ -469,25 +511,31 @@ namespace LOCK {
 
 				Result rc = writeEntryTo(entry[i]["compare_value"], buffer, &temp_size, compare_value_type); //+x
 				if (R_FAILED(rc)) return rc;
-
-				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
-				entry[i]["address"][0] >> string_check;
-				address_region = getAddressRegion(string_check);
-				buffer[temp_size++] = address_region < 4 ? address_region : 1;
 				uint8_t value_type = 0;
-				if (address_region != 4) {
+				if (entry[i].has_child("address") == false) {
+					buffer[temp_size++] = 0;
 					entry[i]["value_type"] >> string_check;
 					value_type = getValueType(string_check);
-					for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
-						entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
-						temp_size += 4;
-					}
 				}
 				else {
-					entry[i]["address"][1] >> string_check;
-					*(int32_t*)(&buffer[temp_size]) = declared_variables[hash32(string_check.c_str())].cave_offset;
-					value_type = declared_variables[hash32(string_check.c_str())].value_type;
-					temp_size += 4;
+					buffer[temp_size++] = entry[i]["address"].num_children(); // address count
+					entry[i]["address"][0] >> string_check;
+					address_region = getAddressRegion(string_check);
+					buffer[temp_size++] = address_region < 4 ? address_region : 1;
+					if (address_region != 4) {
+						entry[i]["value_type"] >> string_check;
+						value_type = getValueType(string_check);
+						for (size_t x = 1; x < entry[i]["address"].num_children(); x++) {
+							entry[i]["address"][x] >> *(int32_t*)(&buffer[temp_size]);
+							temp_size += 4;
+						}
+					}
+					else {
+						entry[i]["address"][1] >> string_check;
+						*(int32_t*)(&buffer[temp_size]) = declared_variables[hash32(string_check.c_str())].cave_offset;
+						value_type = declared_variables[hash32(string_check.c_str())].value_type;
+						temp_size += 4;
+					}
 				}
 				buffer[temp_size++] = value_type;
 				if (entry[i]["value"].is_seq()) {
@@ -521,6 +569,20 @@ namespace LOCK {
 				}
 			}
 			else return 0x32;
+		}
+		if (declared_variables.size() > 0) {
+			for (const auto& [key, data] : declared_variables) {
+				if (!data.evaluate.compare("")) continue;
+				buffer[temp_size++] = 0x81; // type
+				buffer[temp_size++] = 2; // address count
+				buffer[temp_size++] = 4; //address region VARIABLE
+				memcpy(&buffer[temp_size], &key, 4);
+				temp_size += 4;
+				buffer[temp_size++] = data.value_type;
+				buffer[temp_size++] = 1; //value_count
+				memcpy(&buffer[temp_size], data.evaluate.c_str(), data.evaluate.length() + 1);
+				temp_size += data.evaluate.length() + 1;
+			}
 		}
 		buffer[temp_size++] = 0xFF;
 		*out_size = temp_size;
@@ -560,7 +622,7 @@ namespace LOCK {
 	}
 
 	template <typename T> 
-	Result processVariable(T entry) {
+	Result NOINLINE processVariable(T entry) {
 		std::string string_check;
 		entry["name"] >> string_check;
 		uint32_t hash = hash32(string_check.c_str());
@@ -586,7 +648,7 @@ namespace LOCK {
 	}
 
 	template <typename T> 
-	Result processConst(T entry) {
+	Result NOINLINE processConst(T entry) {
 		std::string string_check;
 		entry["name"] >> string_check;
 		uint32_t hash = hash32(string_check.c_str());
@@ -599,7 +661,7 @@ namespace LOCK {
 	}
 
 	template <typename T> 
-	Result processCode(T entry) {
+	Result NOINLINE processCode(T entry) {
 		std::string string_temp;
 		entry["name"] >> string_temp;
 		std::string string_check = "_" + string_temp + "()";
@@ -613,7 +675,8 @@ namespace LOCK {
 		}
 		uint32_t cave_offset = start_cave_offset;
 		size_t instruction_num = 0;
-		for (size_t i = 0; i < entry["instructions"].num_children(); i++) {
+		auto num_children = entry["instructions"].num_children();
+		for (size_t i = 0; i < num_children; i++) {
 			if (entry["instructions"][i].is_seq()) {
 				cave_offset += 4;
 				instruction_num++;
@@ -626,11 +689,11 @@ namespace LOCK {
 		uint32_t* out_buffer = (uint32_t*)calloc(4, instruction_num);
 		uint8_t* adjust_types_buffer = (uint8_t*)calloc(1, instruction_num);
 		cave_offset = start_cave_offset;
-		for (size_t i = 0; i < entry["instructions"].num_children(); i++) {
+		for (size_t i = 0; i < num_children; i++) {
 			if (entry["instructions"][i].is_seq()) {
 				uint32_t instruction = 0;
 				uint8_t adjust_type = 0;
-				Result rc = ASM::processArm64(entry[i]["instructions"][i], &instruction, &adjust_type, cave_offset, gotos);
+				Result rc = ASM::processArm64(entry["instructions"][i], &instruction, &adjust_type, cave_offset, gotos);
 				if (R_FAILED(rc)) {
 					freeDeclares();
 					return 0xED0001;
@@ -647,12 +710,15 @@ namespace LOCK {
 	Result NOINLINE registerDeclarations(T entry) {
 		std::string string_check;
 		declared_variables.clear();
+		declared_consts.clear();
+		freeDeclares();
+		declared_codes.clear();
 		for (size_t i = 0; i < entry.num_children(); i++) {
 			entry[i]["type"] >> string_check;
 			switch(hash32(string_check.c_str())) {
-				case hash32("variable"): return processVariable(entry[i]);
-				case hash32("const"): return processConst(entry[i]);
-				case hash32("code"): return processCode(entry[i]);
+				case hash32("variable"): {processVariable(entry[i]); break;}
+				case hash32("const"): {processConst(entry[i]); break;}
+				case hash32("code"): {processCode(entry[i]); break;}
 				default: return 0xE0001;
 			}
 		}
@@ -665,16 +731,16 @@ namespace LOCK {
 		char lockMagic[] = "LOCK";
 		tree["unsafeCheck"] >> unsafeCheck;
 		size_t temp_size = 0;
+
+		if (tree.has_child(tree.root_id(), "DECLARATIONS") == true) {
+			Result ret = registerDeclarations(tree["DECLARATIONS"]);
+			if (R_FAILED(ret)) return ret;
+		}
+
 		Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
 		if (R_FAILED(ret)) return ret;
 		uint8_t compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
 		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
-
-		
-		if (tree.has_child(tree.root_id(), "DECLARATIONS") == true) {
-			ret = registerDeclarations(tree["DECLARATIONS"]);
-			if (R_FAILED(ret)) return ret;
-		}
 		
 		ret = processEntry(tree["ALL_FPS"], false);
 
