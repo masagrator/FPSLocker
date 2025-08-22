@@ -31,6 +31,7 @@ namespace LOCK {
 		ptrdiff_t cave_offset;
 		size_t instructions_num;
 		uint32_t* code_buffer;
+		uint8_t* adjust_types_buffer;
 	};
 
 	std::map<uint32_t, declare_var> declared_variables;
@@ -49,7 +50,8 @@ namespace LOCK {
 
 	void freeDeclares() {
 		for (const auto& [key, data] : declared_codes) {
-			free(data.code_buffer);
+			if (data.code_buffer) free(data.code_buffer);
+			if (data.adjust_types_buffer) free(data.adjust_types_buffer);
 		}
 	}
 
@@ -348,7 +350,7 @@ namespace LOCK {
 							Result rc = 1;
 							if (entry[i]["instructions"][x].is_seq()) {
 								std::map<std::string, uint32_t> gotos;
-								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, main_offset, gotos);
+								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, 0, main_offset, gotos);
 								if (R_FAILED(rc)) {
 									if (rc == 0xFFFFFD) return 0xFE0000 + (i << 8) + x;
 									return rc;
@@ -622,11 +624,13 @@ namespace LOCK {
 			}
 		}
 		uint32_t* out_buffer = (uint32_t*)calloc(4, instruction_num);
+		uint8_t* adjust_types_buffer = (uint8_t*)calloc(1, instruction_num);
 		cave_offset = start_cave_offset;
 		for (size_t i = 0; i < entry["instructions"].num_children(); i++) {
 			if (entry["instructions"][i].is_seq()) {
 				uint32_t instruction = 0;
-				Result rc = ASM::processArm64(entry[i]["instructions"][i], &instruction, cave_offset, gotos);
+				uint8_t adjust_type = 0;
+				Result rc = ASM::processArm64(entry[i]["instructions"][i], &instruction, &adjust_type, cave_offset, gotos);
 				if (R_FAILED(rc)) {
 					freeDeclares();
 					return 0xED0001;
@@ -635,7 +639,7 @@ namespace LOCK {
 				cave_offset += 4;
 			}
 		}
-		declared_codes[hash] = declare_code(start_cave_offset, instruction_num, out_buffer);
+		declared_codes[hash] = declare_code(start_cave_offset, instruction_num, out_buffer, adjust_types_buffer);
 		return 0;
 	}
 

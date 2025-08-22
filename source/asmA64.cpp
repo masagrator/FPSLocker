@@ -14,9 +14,17 @@ namespace LOCK {
 		std::string evaluate;
 		uint64_t default_value;
 	};
+
+	struct declare_code {
+		ptrdiff_t cave_offset;
+		size_t instructions_num;
+		uint32_t* code_buffer;
+		uint8_t* adjust_types_buffer;
+	};
+
 	extern std::map<uint32_t, declare_var> declared_variables;
 	extern std::map<uint32_t, uint64_t> declared_consts;
-
+	extern std::map<uint32_t, declare_code> declared_codes;
 }
 
 namespace ASM {
@@ -29,6 +37,7 @@ namespace ASM {
 	#define COND_ERROR (asmjit::a64::CondCode)0xFF
 
 	uintptr_t m_pc_address = 0;
+	uint8_t adjust_type = 0; //1 - B/BL, 2 - ADRP
 
 	constexpr uint32_t hash32(const char* str) {
 		uint32_t FNV1_INIT = 0x811C9DC5;
@@ -166,6 +175,20 @@ namespace ASM {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
+		if (inst.c_str()[0] == '_') {
+			if (LOCK::declared_codes.find(hash32(inst.c_str())) != LOCK::declared_codes.end()) {
+				a.adrp(asmjit::a64::Gp::make_r64(asmjit::a64::Gp::Id::kIdZr), 0);
+				adjust_type = 2;
+			} 
+			else return 0xFF0003;
+		}
+		else if (inst.c_str()[0] == '$') {
+			if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
+				a.adrp(asmjit::a64::Gp::make_r64(asmjit::a64::Gp::Id::kIdZr), 0);
+				adjust_type = 3;
+			}
+			else return 0xFF0004;
+		}
 		uint32_t address = 0;
 		std::string var;
 		entry_impl[2] >> var;
@@ -193,8 +216,24 @@ namespace ASM {
 			regs[2] = getGenRegister(inst, true, true, true);
 			if (regs[2] == GP_REG_ERROR) {
 				int64_t value = 0;
-				bool passed = getInteger(inst, &value);
-				if (!passed) return 0xFF0013;
+				if (inst.c_str()[0] == '_') {
+					if (type != 0) return 0xFF0015;
+					if (LOCK::declared_codes.find(hash32(inst.c_str())) != LOCK::declared_codes.end()) {
+						value = LOCK::declared_codes[hash32(inst.c_str())].cave_offset;
+					} 
+					else return 0xFF0013;
+				}
+				else if (inst.c_str()[0] == '$') {
+					if (type != 0) return 0xFF0016;
+					if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
+						value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
+					}
+					else return 0xFF0014;
+				}
+				else {
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0013;
+				}
 				if (type == 0) a.add(regs[0], regs[1], value);
 				else if (type == 2) a.sub(regs[0], regs[1], value);
 			}
@@ -243,8 +282,17 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst, false, false, true);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0025;
+					if (inst.c_str()[0] == '$') {
+						if (type != 0) return 0xFF0025;
+						if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
+						}
+						else return 0xFF0026;
+					}
+					else {
+						bool passed = getInteger(inst, &value);
+						if (!passed) return 0xFF0027;
+					}
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.ldr(regfp, asmjit::a64::Mem(reg1, value));
@@ -498,8 +546,17 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst, false, false, true);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0055;
+					if (inst.c_str()[0] == '$') {
+						if (type != 0) return 0xFF0057;
+						if (LOCK::declared_variables.find(hash32(inst.c_str())) == LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(inst.c_str())].cave_offset;
+						}
+						else return 0xFF0056;
+					}
+					else {
+						bool passed = getInteger(inst, &value);
+						if (!passed) return 0xFF0055;
+					}
 					switch (type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.str(regfp, asmjit::a64::Mem(reg1, value));
@@ -627,7 +684,16 @@ namespace ASM {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
-		if (type <= 1) {
+		if (type == 0) {
+			if (inst.c_str()[0] == '_') {
+				if (LOCK::declared_codes.size() == 0) return 0xFF0053;
+				uint32_t hash = hash32(inst.c_str());
+				auto it = LOCK::declared_codes.find(hash);
+				if (it == LOCK::declared_codes.end()) return 0xFF0054;
+				a.b(it->second.cave_offset);
+				adjust_type = 1;
+				return 0;
+			}
 			int64_t address = 0;
 			bool relative = false;
 			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
@@ -636,22 +702,41 @@ namespace ASM {
 			bool passed = getInteger(inst, &address);
 			if (!passed) return 0xFF0062;
 			if (relative) address += m_pc_address;
-			if (type == 0) {
-				switch(subtype) {
-					case 0xFF: {a.b(address); break;}
-					case hash32("LE"): {a.b_le(address); break;}
-					case hash32("GE"): {a.b_ge(address); break;}
-					case hash32("NE"): {a.b_ne(address); break;}
-					case hash32("GT"): {a.b_gt(address); break;}
-					case hash32("LT"): {a.b_lt(address); break;}
-					case hash32("HI"): {a.b_hi(address); break;}
-					default: return 0xFF0062;
+			switch(subtype) {
+				case 0xFF: {a.b(address); break;}
+				case hash32("LE"): {a.b_le(address); break;}
+				case hash32("GE"): {a.b_ge(address); break;}
+				case hash32("NE"): {a.b_ne(address); break;}
+				case hash32("GT"): {a.b_gt(address); break;}
+				case hash32("LT"): {a.b_lt(address); break;}
+				case hash32("HI"): {a.b_hi(address); break;}
+				default: return 0xFF0062;
+			}
+		}
+		else if (type == 1) {
+			if (inst.c_str()[0] == '_') {
+				if (inst.compare("_ConvertToTimeSpan()")) a.bl(m_pc_address - 4);
+				else if (inst.compare("_SetUserInactivityDetectionTimeExtended()")) a.bl(m_pc_address - 8);
+				else {
+					if (LOCK::declared_codes.size() == 0) return 0xFF0053;
+					uint32_t hash = hash32(inst.c_str());
+					auto it = LOCK::declared_codes.find(hash);
+					if (it == LOCK::declared_codes.end()) return 0xFF0054;
+					a.bl(it->second.cave_offset);
 				}
+				adjust_type = 1;
+				return 0;
 			}
-			else if (type == 1) {
-				a.bl(address);
+			int64_t address = 0;
+			bool relative = false;
+			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+				relative = true;
+			}
+			bool passed = getInteger(inst, &address);
+			if (!passed) return 0xFF0062;
+			if (relative) address += m_pc_address;
+			a.bl(address);
 
-			}
 		}
 		else if (type == 2 || type == 3) {
 			auto reg = getGenRegister(inst);
@@ -1139,12 +1224,13 @@ namespace ASM {
 	static_assert(!has_duplicates(hashes, std::size(hashes)), "Detected repeated hash!");
 	static_assert(!has_duplicates(hashes2, std::size(hashes2)), "Detected repeated hash!");
 
-	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uintptr_t pc_address, const std::map<std::string, uint32_t> gotos) {
+	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, const std::map<std::string, uint32_t> gotos) {
 		std::string inst;
 		entry[0] >> inst;
 		code.init(customEnv, pc_address);
 		m_pc_address = pc_address;
 		Result rc = 0;
+		adjust_type = 0;
 		switch(hash32(inst.c_str())) {
 			case hash32("ADRP"): {rc = ADRP(entry); break;}
 			case hash32("ADD"): {rc = ADD(entry); break;}
@@ -1217,6 +1303,7 @@ namespace ASM {
 		}
 		code.copyFlattenedData(out, 4);
 		code.reset();
+		if (adjust_type_arg) *adjust_type_arg = adjust_type;
 		return 0;
 	}
 }

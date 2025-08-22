@@ -4,6 +4,6 @@
 
 namespace ASM {
 
-    Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uintptr_t pc_address, const std::map<std::string, uint32_t> gotos);
+    Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, const std::map<std::string, uint32_t> gotos);
     
 }
