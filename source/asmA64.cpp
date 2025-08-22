@@ -390,20 +390,35 @@ namespace ASM {
 			entry_impl[2] >> inst;
 			auto reg1 = getGenRegister(inst, true, true, true);
 			if (reg1 == GP_REG_ERROR) {
-				int64_t value = 0;
-				bool passed = getInteger(inst, &value);
-				if (!passed) return 0xFF0035;
+				uint64_t value = 0;
+				if (inst.c_str()[0] == '$') {
+					value = LOCK::declared_consts[hash32(&inst.c_str()[1])] & 0xFFFF;
+				}
+				else {
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0035;
+				}
 				a.mov(reg0, value);
 			}
 			else a.mov(reg0, reg1);
 		}
 		else if (type == 1) {
 			if (reg0 == GP_REG_ERROR) return 0xFF0032;
-			uint16_t value = 0;
-			entry_impl[2] >> value;
 			uint8_t shift = 0;
-			entry_impl[3] >> shift;
+			entry_impl[3] >> inst;
+			bool passed = getInteger(inst, &shift);
+			if (!passed) return 0xFF0037;
 			if ((shift > 64) || (shift % 16 != 0)) return 0xFF0036;
+			uint64_t value = 0;
+			entry_impl[2] >> inst;
+			if (inst.c_str()[0] == '$') {
+				value = LOCK::declared_consts[hash32(&inst.c_str()[1])] & 0xFFFF;
+				value = (value >> shift) & 0xFFFF;
+			}
+			else {
+				bool passed = getInteger(inst, &value);
+				if (!passed) return 0xFF0035;
+			}
 			a.movk(reg0, value, shift);
 		}
 		else if (type == 2) {
