@@ -8,13 +8,15 @@
 
 namespace LOCK {
 
-	struct reg_data {
-		int64_t negative_offset;
+	struct declare_var {
+		ptrdiff_t cave_offset;
 		uint8_t value_type;
-		uint64_t value;
+		std::string evaluate;
+		uint64_t default_value;
 	};
+	extern std::map<uint32_t, declare_var> declared_variables;
+	extern std::map<uint32_t, uint64_t> declared_consts;
 
-	extern std::map<uint32_t, reg_data> registered_variables;
 }
 
 namespace ASM {
@@ -25,7 +27,6 @@ namespace ASM {
 	#define GP_REG_ERROR asmjit::a64::Gp::make_r32(asmjit::a64::Gp::Id::kIdSp)
 	#define FP_REG_ERROR asmjit::a64::Vec::make_v128(31)
 	#define COND_ERROR (asmjit::a64::CondCode)0xFF
-	#define ASLR_BASE 0x7100000000
 
 	uintptr_t m_pc_address = 0;
 
@@ -165,23 +166,14 @@ namespace ASM {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
-		uint64_t address = 0;
+		uint32_t address = 0;
 		std::string var;
 		entry_impl[2] >> var;
+		bool passed = getInteger(var, &address);
+		if (!passed) return 0xFF0002;
 		asmjit::a64::Gp reg = getGenRegister(inst);
 		if (reg == GP_REG_ERROR) return 0xFF0001;
-		if (var.c_str()[0] != '$') {
-			bool passed = getInteger(var, &address);
-			if (!passed) return 0xFF0002;
-			a.adrp(reg, ASLR_BASE+address);
-		}
-		else {
-			uint32_t hash_name = hash32(&var.c_str()[1]);
-			auto it = LOCK::registered_variables.find(hash_name);
-			if (it == LOCK::registered_variables.end()) return 0xFF0003;
-			address = ASLR_BASE + it->second.negative_offset;
-			a.adrp(reg, address & ~0xFFF);
-		}
+		a.adrp(reg, address);
 		return 0;
 	}
 
@@ -201,16 +193,8 @@ namespace ASM {
 			regs[2] = getGenRegister(inst, true, true, true);
 			if (regs[2] == GP_REG_ERROR) {
 				int64_t value = 0;
-				if (inst.c_str()[0] != '$') {
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0013;
-				}
-				else {
-					uint32_t hash_name = hash32(&inst.c_str()[1]);
-					auto it = LOCK::registered_variables.find(hash_name);
-					if (it == LOCK::registered_variables.end()) return 0xFF0014;	
-					value = (ASLR_BASE + it->second.negative_offset) & 0xFFF;
-				}
+				bool passed = getInteger(inst, &value);
+				if (!passed) return 0xFF0013;
 				if (type == 0) a.add(regs[0], regs[1], value);
 				else if (type == 2) a.sub(regs[0], regs[1], value);
 			}
@@ -259,16 +243,8 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst, false, false, true);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					if (inst.c_str()[0] != '$') {
-						bool passed = getInteger(inst, &value);
-						if (!passed) return 0xFF0025;
-					}
-					else {
-						uint32_t hash_name = hash32(&inst.c_str()[1]);
-						auto it = LOCK::registered_variables.find(hash_name);
-						if (it == LOCK::registered_variables.end()) return 0xFF0026;
-						value = (ASLR_BASE + it->second.negative_offset) & 0xFFF;
-					}
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0025;
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.ldr(regfp, asmjit::a64::Mem(reg1, value));
@@ -315,16 +291,8 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					if (inst.c_str()[0] != '$') {
-						bool passed = getInteger(inst, &value);
-						if (!passed) return 0xFF0025;
-					}
-					else {
-						uint32_t hash_name = hash32(&inst.c_str()[1]);
-						auto it = LOCK::registered_variables.find(hash_name);
-						if (it == LOCK::registered_variables.end()) return 0xFF0026;
-						value = (ASLR_BASE + it->second.negative_offset) & 0xFFF;
-					}
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0025;
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.ldr(reg0, asmjit::a64::Mem(reg1, value));
@@ -515,16 +483,8 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst, false, false, true);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					if (inst.c_str()[0] != '$') {
-						bool passed = getInteger(inst, &value);
-						if (!passed) return 0xFF0055;
-					}
-					else {
-						uint32_t hash_name = hash32(&inst.c_str()[1]);
-						auto it = LOCK::registered_variables.find(hash_name);
-						if (it == LOCK::registered_variables.end()) return 0xFF0056;
-						value = (ASLR_BASE + it->second.negative_offset) & 0xFFF;
-					}
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0055;
 					switch (type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.str(regfp, asmjit::a64::Mem(reg1, value));
@@ -568,16 +528,8 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					if (inst.c_str()[0] != '$') {
-						bool passed = getInteger(inst, &value);
-						if (!passed) return 0xFF0055;
-					}
-					else {
-						uint32_t hash_name = hash32(&inst.c_str()[1]);
-						auto it = LOCK::registered_variables.find(hash_name);
-						if (it == LOCK::registered_variables.end()) return 0xFF0056;
-						value = (ASLR_BASE + it->second.negative_offset) & 0xFFF;
-					}
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0055;
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.str(reg0, asmjit::a64::Mem(reg1, value));
@@ -671,18 +623,18 @@ namespace ASM {
 			if (relative) address += m_pc_address;
 			if (type == 0) {
 				switch(subtype) {
-					case 0xFF: {a.b(ASLR_BASE+address); break;}
-					case hash32("LE"): {a.b_le(ASLR_BASE+address); break;}
-					case hash32("GE"): {a.b_ge(ASLR_BASE+address); break;}
-					case hash32("NE"): {a.b_ne(ASLR_BASE+address); break;}
-					case hash32("GT"): {a.b_gt(ASLR_BASE+address); break;}
-					case hash32("LT"): {a.b_lt(ASLR_BASE+address); break;}
-					case hash32("HI"): {a.b_hi(ASLR_BASE+address); break;}
+					case 0xFF: {a.b(address); break;}
+					case hash32("LE"): {a.b_le(address); break;}
+					case hash32("GE"): {a.b_ge(address); break;}
+					case hash32("NE"): {a.b_ne(address); break;}
+					case hash32("GT"): {a.b_gt(address); break;}
+					case hash32("LT"): {a.b_lt(address); break;}
+					case hash32("HI"): {a.b_hi(address); break;}
 					default: return 0xFF0062;
 				}
 			}
 			else if (type == 1) {
-				a.bl(ASLR_BASE+address);
+				a.bl(address);
 
 			}
 		}
@@ -804,8 +756,8 @@ namespace ASM {
 		bool passed = getInteger(inst, &address);
 		if (!passed) return 0xFF00B2;
 		if (relative) address += m_pc_address;
-		if (type == 0) a.cbz(reg0, ASLR_BASE+address);
-		if (type == 1) a.cbnz(reg0, ASLR_BASE+address);
+		if (type == 0) a.cbz(reg0, address);
+		if (type == 1) a.cbnz(reg0, address);
 		return 0;
 	}
 
@@ -830,8 +782,8 @@ namespace ASM {
 		passed = getInteger(inst, &address);
 		if (!passed) return 0xFF00C2;
 		if (relative) address += m_pc_address;
-		if (type == 0) a.tbz(reg0, shift, ASLR_BASE+address);
-		if (type == 1) a.tbnz(reg0, shift, ASLR_BASE+address);
+		if (type == 0) a.tbz(reg0, shift, address);
+		if (type == 1) a.tbnz(reg0, shift, address);
 		return 0;
 	}
 
@@ -1172,10 +1124,10 @@ namespace ASM {
 	static_assert(!has_duplicates(hashes, std::size(hashes)), "Detected repeated hash!");
 	static_assert(!has_duplicates(hashes2, std::size(hashes2)), "Detected repeated hash!");
 
-	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uintptr_t pc_address) {
+	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uintptr_t pc_address, const std::map<std::string, uint32_t> gotos) {
 		std::string inst;
 		entry[0] >> inst;
-		code.init(customEnv, ASLR_BASE+pc_address);
+		code.init(customEnv, pc_address);
 		m_pc_address = pc_address;
 		Result rc = 0;
 		switch(hash32(inst.c_str())) {
