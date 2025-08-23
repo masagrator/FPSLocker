@@ -176,18 +176,20 @@ namespace ASM {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
-		uint32_t address = 0;
+		int64_t address = 0;
 		std::string var;
 		entry_impl[2] >> var;
 		if (var.c_str()[0] == '_') {
 			if (LOCK::declared_codes.find(hash32(var.c_str())) != LOCK::declared_codes.end()) {
 				adjust_type = 2;
+				address = (m_pc_address & ~0xFFF) - 0x10000000;
 			} 
 			else return 0xFF0003;
 		}
 		else if (var.c_str()[0] == '$') {
 			if (LOCK::declared_variables.find(hash32(&var.c_str()[1])) != LOCK::declared_variables.end()) {
 				adjust_type = 3;
+				address = (m_pc_address & ~0xFFF) - 0xFFFFF000;
 			}
 			else return 0xFF0004;
 		}
@@ -758,19 +760,20 @@ namespace ASM {
 				case hash32("GT"): {a.b_gt(address); break;}
 				case hash32("LT"): {a.b_lt(address); break;}
 				case hash32("HI"): {a.b_hi(address); break;}
+				case hash32("EQ"): {a.b_eq(address); break;}
 				default: return 0xFF0064;
 			}
 		}
 		else if (type == 1) {
 			if (inst.c_str()[0] == '_') {
-				if (inst.compare("_ConvertToTimeSpan()")) a.bl(m_pc_address - 4);
-				else if (inst.compare("_SetUserInactivityDetectionTimeExtended()")) a.bl(m_pc_address - 8);
+				if (!inst.compare("_convertTickToTimeSpan()")) a.bl(m_pc_address - 4);
+				else if (!inst.compare("_setUserInactivityDetectionTimeExtended()")) a.bl(m_pc_address - 8);
 				else {
 					if (LOCK::declared_codes.size() == 0) return 0xFF0065;
 					uint32_t hash = hash32(inst.c_str());
 					auto it = LOCK::declared_codes.find(hash);
 					if (it == LOCK::declared_codes.end()) return 0xFF0066;
-					a.bl(it->second.cave_offset);
+					a.bl(m_pc_address - (it->second.cave_offset + 0x100));
 				}
 				adjust_type = 1;
 				return 0;
@@ -1266,6 +1269,7 @@ namespace ASM {
 		hash32("STURH"),
 		hash32("FMOV"),
 		hash32("B"),
+		hash32("B.EQ"),
 		hash32("B.LE"),
 		hash32("B.GE"),
 		hash32("B.NE"),
@@ -1348,6 +1352,7 @@ namespace ASM {
 			case hash32("STURH"): {rc = STR(entry, 4); break;}
 			case hash32("FMOV"): {rc = MOV(entry, 2); break;}
 			case hash32("B"): {rc = B(entry, 0, 0xFF, gotos); break;}
+			case hash32("B.EQ"): {rc = B(entry, 0, hash32("EQ"), gotos); break;}
 			case hash32("B.LE"): {rc = B(entry, 0, hash32("LE"), gotos); break;}
 			case hash32("B.GE"): {rc = B(entry, 0, hash32("GE"), gotos); break;}
 			case hash32("B.NE"): {rc = B(entry, 0, hash32("NE"), gotos); break;}

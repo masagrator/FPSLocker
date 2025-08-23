@@ -63,7 +63,7 @@ namespace LOCK {
 		return 0;
 	}
 
-	const char regions[4][9] = {"MAIN", "HEAP", "ALIAS", "VARIABLE"};
+	const char regions[5][9] = {"MAIN", "HEAP", "ALIAS", "VARIABLE", "CODE"};
 	uint8_t NOINLINE getAddressRegion(std::string region) {
 		for (size_t i = 0; i < std::size(regions); i++)
 			if (!region.compare(regions[i]))
@@ -188,10 +188,12 @@ namespace LOCK {
 					else temp_size += getTypeSize(string_check);
 				}
 				else if (!string_check.compare("asm_a64")) {
+					temp_size++; // address_region
 					temp_size += 4; // main_offset
 					temp_size++; // value_type
 					temp_size++; // value count
 					if (entry[i]["instructions"].is_seq()) {
+						temp_size += entry[i]["instructions"].num_children(); //adjustment
 						temp_size += (getTypeSize("uint32") * entry[i]["instructions"].num_children());
 					}
 					else return 0x4096;
@@ -210,6 +212,7 @@ namespace LOCK {
 			if (declared_codes.size() > 0) {
 				for (const auto& [key, data] : declared_codes) {
 					temp_size++; // type
+					temp_size++; // address_region
 					temp_size += 4;//main_offset
 					temp_size++;//value_type
 					temp_size++;//value_count
@@ -281,6 +284,7 @@ namespace LOCK {
 				temp_size++; // address count
 				if (entry[i].has_child("address"))
 					temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
+				else temp_size++;
 				temp_size++; // value_type
 				temp_size++; // value count
 				if (entry[i].has_child("address") == false) {
@@ -369,9 +373,10 @@ namespace LOCK {
 					}					
 				}
 				else if (!string_check.compare("asm_a64")) {
-					buffer[temp_size++] = 1; // type
+					buffer[temp_size++] = 3; // type
 					uint32_t main_offset = 0;
 					entry[i]["main_offset"] >> main_offset;
+					buffer[temp_size++] = getAddressRegion("MAIN");
 					*(uint32_t*)(&buffer[temp_size]) = main_offset;
 					uint32_t start_main_offset = main_offset;
 					temp_size += 4;
@@ -381,12 +386,14 @@ namespace LOCK {
 						for (size_t x = 0; x < entry[i]["instructions"].num_children(); x++) {
 							uint32_t inst = 0;
 							Result rc = 1;
+							uint8_t adjust_type = 0;
 							if (entry[i]["instructions"][x].is_seq()) {
-								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, 0, main_offset, start_main_offset);
+								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, &adjust_type, main_offset, start_main_offset);
 								if (R_FAILED(rc)) return rc;
 							}
 							else entry[i]["instructions"][x] >> inst;
 							main_offset += 4;
+							buffer[temp_size++] = adjust_type;
 							*(uint32_t*)(&buffer[temp_size]) = inst;
 							temp_size += 4;
 						}
@@ -410,6 +417,7 @@ namespace LOCK {
 			if (declared_codes.size() > 0) {
 				for (const auto& [key, data] : declared_codes) {
 					buffer[temp_size++] = 3; // type
+					buffer[temp_size++] = getAddressRegion("CODE");
 					*(uint32_t*)(&buffer[temp_size]) = data.cave_offset;
 					temp_size += 4;
 					buffer[temp_size++] = 4; //value_type
@@ -514,6 +522,7 @@ namespace LOCK {
 				if (R_FAILED(rc)) return rc;
 				uint8_t value_type = 0;
 				if (entry[i].has_child("address") == false) {
+					buffer[temp_size++] = 0;
 					buffer[temp_size++] = 0;
 					entry[i]["value_type"] >> string_check;
 					value_type = getValueType(string_check);
@@ -736,23 +745,38 @@ namespace LOCK {
 		tree["unsafeCheck"] >> unsafeCheck;
 		size_t temp_size = 0;
 
+		uint8_t compiledSize = 0;
+
 		if (tree.has_child(tree.root_id(), "DECLARATIONS") == true) {
 			gen = 4;
 			Result ret = registerDeclarations(tree["DECLARATIONS"]);
 			if (R_FAILED(ret)) return ret;
 		}
 
-		Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
-		if (R_FAILED(ret)) return ret;
-		uint8_t compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
-		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
-		
-		ret = processEntry(tree["ALL_FPS"], false);
-
-		if (R_FAILED(ret)) {
-			freeBuffers();
-			return ret;
+		if (tree.has_child(tree.root_id(), "ALL_FPS") == false) {
+			if (master_write == false) return 0x3006;
+			uint8_t* buffer = (uint8_t*)calloc(1, sizeof(uint8_t));
+			buffer[0] = 0xFF;
+			buffer_data* new_struct = (buffer_data*)calloc(sizeof(buffer_data), 1);
+			new_struct -> size = 1;
+			new_struct -> buffer_ptr = &buffer[0];
+			buffers.push_back(new_struct);
+			compiledSize = (uint8_t)sqrt(1 + 0x10) + 1;
 		}
+		else {
+			Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
+			if (R_FAILED(ret)) return ret;
+		
+			ret = processEntry(tree["ALL_FPS"], false);
+
+			if (R_FAILED(ret)) {
+				freeBuffers();
+				return ret;
+			}
+			compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
+		}
+
+		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
 		
 		if (master_write) {
 			Result ret = processEntry(tree["MASTER_WRITE"], true);
