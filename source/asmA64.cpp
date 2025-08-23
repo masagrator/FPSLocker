@@ -753,7 +753,8 @@ namespace ASM {
 				}
 				bool passed = getInteger(inst, &address);
 				if (!passed) return 0xFF0063;
-				if (relative) address += m_pc_address;
+				address += m_pc_address;
+				if (!relative) adjust_type = 1;
 			}
 			switch(subtype) {
 				case 0xFF: {a.b(address); break;}
