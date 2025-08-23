@@ -744,7 +744,7 @@ namespace ASM {
 			if (inst.c_str()[0] == ':') {
 				auto it = gotos.find(inst);
 				if (it == gotos.end()) return 0xFF0069;
-				address = m_pc_start + it->second;
+				address = it->second;
 				relative = true;
 			}
 			else {
@@ -895,7 +895,7 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result CBZ(T entry_impl, uint8_t type = 0) {
+	template <typename T> Result CBZ(T entry_impl, uint8_t type, const std::unordered_map<std::string, uint32_t> gotos = {}) {
 		if (entry_impl.num_children() != 3)
 			return 0xFF00B0;
 		asmjit::a64::Assembler a(&code);
@@ -904,14 +904,18 @@ namespace ASM {
 		auto reg0 = getGenRegister(inst, true, false, true);
 		if (reg0 == GP_REG_ERROR) return 0xFF00B1;
 		entry_impl[2] >> inst;
-		bool relative = false;
-		if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
-			relative = true;
-		}
 		int64_t address = 0;
-		bool passed = getInteger(inst, &address);
-		if (!passed) return 0xFF00B2;
-		if (relative) address += m_pc_address;
+		if (inst.c_str()[0] == ':') {
+			auto it = gotos.find(inst);
+			if (it == gotos.end()) return 0xFF00B3;
+			address = m_pc_start + it->second;
+		}
+		else if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+			bool passed = getInteger(inst, &address);
+			if (!passed) return 0xFF00B2;
+			address += m_pc_address;
+		}
+		else return 0xFF00B4;
 		if (type == 0) a.cbz(reg0, address);
 		if (type == 1) a.cbnz(reg0, address);
 		return 0;
@@ -1375,8 +1379,8 @@ namespace ASM {
 			case hash32("UCVTF"): {rc = UCVTF(entry); break;}
 			case hash32("SCVTF"): {rc = UCVTF(entry, 1); break;}
 			case hash32("FCVT"): {rc = FCVT(entry); break;}
-			case hash32("CBZ"): {rc = CBZ(entry); break;}
-			case hash32("CBNZ"): {rc = CBZ(entry, 1); break;}
+			case hash32("CBZ"): {rc = CBZ(entry, 0, gotos); break;}
+			case hash32("CBNZ"): {rc = CBZ(entry, 1, gotos); break;}
 			case hash32("TBZ"): {rc = TBZ(entry); break;}
 			case hash32("TBNZ"): {rc = TBZ(entry, 1); break;}
 			case hash32("CSEL"): {rc = CSEL(entry); break;}

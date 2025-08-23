@@ -433,6 +433,22 @@ namespace LOCK {
 			*out_size = temp_size;
 			return 0;
 		}
+
+		if (declared_variables.size() > 0) {
+			for (const auto& [key, data] : declared_variables) {
+				if (!data.evaluate.compare("")) continue;
+				buffer[temp_size++] = 0x81; // type
+				buffer[temp_size++] = 2; // address count
+				buffer[temp_size++] = 4; //address region VARIABLE
+				memcpy(&buffer[temp_size], &data.cave_offset, 4);
+				temp_size += 4;
+				buffer[temp_size++] = data.value_type;
+				buffer[temp_size++] = 1; //value_count
+				memcpy(&buffer[temp_size], data.evaluate.c_str(), data.evaluate.length() + 1);
+				temp_size += data.evaluate.length() + 1;
+			}
+		}
+		
 		for (size_t i = 0; i < num_children; i++) {
 		
 			entry[i]["type"] >> string_check;
@@ -531,7 +547,7 @@ namespace LOCK {
 					buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 					entry[i]["address"][0] >> string_check;
 					address_region = getAddressRegion(string_check);
-					buffer[temp_size++] = address_region < 4 ? address_region : 1;
+					buffer[temp_size++] = address_region;
 					if (address_region != 4) {
 						entry[i]["value_type"] >> string_check;
 						value_type = getValueType(string_check);
@@ -579,20 +595,6 @@ namespace LOCK {
 				}
 			}
 			else return 0x32;
-		}
-		if (declared_variables.size() > 0) {
-			for (const auto& [key, data] : declared_variables) {
-				if (!data.evaluate.compare("")) continue;
-				buffer[temp_size++] = 0x81; // type
-				buffer[temp_size++] = 2; // address count
-				buffer[temp_size++] = 4; //address region VARIABLE
-				memcpy(&buffer[temp_size], &data.cave_offset, 4);
-				temp_size += 4;
-				buffer[temp_size++] = data.value_type;
-				buffer[temp_size++] = 1; //value_count
-				memcpy(&buffer[temp_size], data.evaluate.c_str(), data.evaluate.length() + 1);
-				temp_size += data.evaluate.length() + 1;
-			}
 		}
 		buffer[temp_size++] = 0xFF;
 		*out_size = temp_size;
