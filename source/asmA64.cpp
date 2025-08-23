@@ -728,11 +728,15 @@ namespace ASM {
 		if (type == 0) {
 			int64_t address = 0;
 			if (inst.c_str()[0] == '_') {
-				if (LOCK::declared_codes.size() == 0) return 0xFF0061;
-				uint32_t hash = hash32(inst.c_str());
-				auto it = LOCK::declared_codes.find(hash);
-				if (it == LOCK::declared_codes.end()) return 0xFF0062;
-				a.b(it->second.cave_offset);
+				if (!inst.compare("_convertTickToTimeSpan()")) a.b(m_pc_address - 4);
+				else if (!inst.compare("_setUserInactivityDetectionTimeExtended()")) a.b(m_pc_address - 8);
+				else {
+					if (LOCK::declared_codes.size() == 0) return 0xFF0065;
+					uint32_t hash = hash32(inst.c_str());
+					auto it = LOCK::declared_codes.find(hash);
+					if (it == LOCK::declared_codes.end()) return 0xFF0066;
+					a.b(m_pc_address - (it->second.cave_offset + 0x100));
+				}
 				adjust_type = 1;
 				return 0;
 			}
@@ -751,7 +755,6 @@ namespace ASM {
 				if (!passed) return 0xFF0063;
 				if (relative) address += m_pc_address;
 			}
-			if (!relative) adjust_type = 1;
 			switch(subtype) {
 				case 0xFF: {a.b(address); break;}
 				case hash32("LE"): {a.b_le(address); break;}
@@ -783,9 +786,10 @@ namespace ASM {
 			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
 				relative = true;
 			}
+			else if (!adjust_type) adjust_type = 4;
 			bool passed = getInteger(inst, &address);
 			if (!passed) return 0xFF0067;
-			if (relative) address += m_pc_address;
+			if (relative && adjust_type == 4) address += m_pc_address;
 			a.bl(address);
 
 		}
