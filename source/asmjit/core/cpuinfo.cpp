@@ -94,22 +94,9 @@ ASMJIT_BEGIN_NAMESPACE
 // CpuInfo - Detect - HW-Thread Count
 // ==================================
 
-#if defined(_WIN32)
-static inline uint32_t detectHWThreadCount() noexcept {
-  SYSTEM_INFO info;
-  ::GetSystemInfo(&info);
-  return info.dwNumberOfProcessors;
-}
-#elif defined(_SC_NPROCESSORS_ONLN)
-static inline uint32_t detectHWThreadCount() noexcept {
-  long res = ::sysconf(_SC_NPROCESSORS_ONLN);
-  return res <= 0 ? uint32_t(1) : uint32_t(res);
-}
-#else
 static inline uint32_t detectHWThreadCount() noexcept {
   return 1;
 }
-#endif
 
 // CpuInfo - Detect - X86
 // ======================
