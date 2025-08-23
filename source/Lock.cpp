@@ -369,11 +369,11 @@ namespace LOCK {
 					}					
 				}
 				else if (!string_check.compare("asm_a64")) {
-					buffer[temp_size++] = 2; // type
+					buffer[temp_size++] = 1; // type
 					uint32_t main_offset = 0;
 					entry[i]["main_offset"] >> main_offset;
-					uint32_t start_main_offset = main_offset;
 					*(uint32_t*)(&buffer[temp_size]) = main_offset;
+					uint32_t start_main_offset = main_offset;
 					temp_size += 4;
 					buffer[temp_size++] = getValueType("uint32");
 					if (entry[i]["instructions"].is_seq()) {
@@ -382,12 +382,8 @@ namespace LOCK {
 							uint32_t inst = 0;
 							Result rc = 1;
 							if (entry[i]["instructions"][x].is_seq()) {
-								std::unordered_map<std::string, uint32_t> gotos;
-								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, 0, main_offset, start_main_offset, gotos);
-								if (R_FAILED(rc)) {
-									if (rc == 0xFFFFFD) return 0xFE0000 + (i << 8) + x;
-									return rc;
-								}
+								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, 0, main_offset, start_main_offset);
+								if (R_FAILED(rc)) return rc;
 							}
 							else entry[i]["instructions"][x] >> inst;
 							main_offset += 4;
@@ -736,10 +732,12 @@ namespace LOCK {
 		bool unsafeCheck = false;
 
 		char lockMagic[] = "LOCK";
+		gen = 3;
 		tree["unsafeCheck"] >> unsafeCheck;
 		size_t temp_size = 0;
 
 		if (tree.has_child(tree.root_id(), "DECLARATIONS") == true) {
+			gen = 4;
 			Result ret = registerDeclarations(tree["DECLARATIONS"]);
 			if (R_FAILED(ret)) return ret;
 		}
