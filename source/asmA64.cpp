@@ -5,6 +5,7 @@
 #include "c4/yml/node.hpp"
 #include "c4/std/string.hpp"
 #include <unordered_map>
+#include <vector>
 
 namespace LOCK {
 
@@ -24,7 +25,7 @@ namespace LOCK {
 
 	extern std::unordered_map<uint32_t, declare_var> declared_variables;
 	extern std::unordered_map<uint32_t, uint64_t> declared_consts;
-	extern std::unordered_map<uint32_t, declare_code> declared_codes;
+	extern std::vector<std::pair<uint32_t, declare_code>> declared_codes;
 }
 
 namespace ASM {
@@ -180,7 +181,8 @@ namespace ASM {
 		std::string var;
 		entry_impl[2] >> var;
 		if (var.c_str()[0] == '_') {
-			if (LOCK::declared_codes.find(hash32(var.c_str())) != LOCK::declared_codes.end()) {
+			uint32_t hash = hash32(var.c_str());
+			if (std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;}) != LOCK::declared_codes.end()) {
 				adjust_type = 2;
 				address = (m_pc_address & ~0xFFF) - 0x10000000;
 			} 
@@ -221,8 +223,10 @@ namespace ASM {
 				int64_t value = 0;
 				if (inst.c_str()[0] == '_') {
 					if (type != 0) return 0xFF0015;
-					if (LOCK::declared_codes.find(hash32(inst.c_str())) != LOCK::declared_codes.end()) {
-						value = LOCK::declared_codes[hash32(inst.c_str())].cave_offset;
+					uint32_t hash = hash32(inst.c_str());
+					auto it = std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;});
+					if (it != LOCK::declared_codes.end()) {
+						value = it->second.cave_offset;
 					} 
 					else return 0xFF0013;
 				}
@@ -733,7 +737,7 @@ namespace ASM {
 				else {
 					if (LOCK::declared_codes.size() == 0) return 0xFF0065;
 					uint32_t hash = hash32(inst.c_str());
-					auto it = LOCK::declared_codes.find(hash);
+					auto it = std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;});
 					if (it == LOCK::declared_codes.end()) return 0xFF0066;
 					a.b(m_pc_address - (it->second.cave_offset + 0x100));
 				}
@@ -775,7 +779,7 @@ namespace ASM {
 				else {
 					if (LOCK::declared_codes.size() == 0) return 0xFF0065;
 					uint32_t hash = hash32(inst.c_str());
-					auto it = LOCK::declared_codes.find(hash);
+					auto it = std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;});
 					if (it == LOCK::declared_codes.end()) return 0xFF0066;
 					a.bl(m_pc_address - (it->second.cave_offset + 0x100));
 				}

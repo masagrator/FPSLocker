@@ -36,7 +36,7 @@ namespace LOCK {
 
 	std::unordered_map<uint32_t, declare_var> declared_variables;
 	std::unordered_map<uint32_t, uint64_t> declared_consts;
-	std::unordered_map<uint32_t, declare_code> declared_codes;
+	std::vector<std::pair<uint32_t, declare_code>> declared_codes;
 
 	void freeBuffers() {
 		for (int i = (buffers.size() - 1); i >= 0; i--) {
@@ -680,8 +680,8 @@ namespace LOCK {
 		std::unordered_map<std::string, uint32_t> gotos;
 
 		if (declared_codes.size() > 0) {
-			auto it = declared_codes.begin()->second;
-			start_cave_offset = it.cave_offset + (it.instructions_num * 4);
+			auto it = declared_codes.rbegin();
+			start_cave_offset = it->second.cave_offset + (it->second.instructions_num * 4);
 		}
 		uint32_t cave_offset = start_cave_offset;
 		size_t instruction_num = 0;
@@ -714,7 +714,7 @@ namespace LOCK {
 				cave_offset += 4;
 			}
 		}
-		declared_codes[hash] = declare_code(start_cave_offset, instruction_num, out_buffer, adjust_types_buffer);
+		declared_codes.push_back(std::pair(hash, declare_code(start_cave_offset, instruction_num, out_buffer, adjust_types_buffer)));
 		return 0;
 	}
 
