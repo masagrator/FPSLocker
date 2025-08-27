@@ -338,7 +338,7 @@ namespace LOCK {
 				if (compiled) temp_size += data.value_type % 0x10;
 				else temp_size += data.evaluate.length() + 1;
 			}
-		}		
+		}
 		temp_size++;
 		*out = temp_size;
 		return 0;
@@ -721,10 +721,6 @@ namespace LOCK {
 	template <typename T>
 	Result NOINLINE registerDeclarations(T entry) {
 		std::string string_check;
-		declared_variables.clear();
-		declared_consts.clear();
-		freeDeclares();
-		declared_codes.clear();
 		Result rc = 0;
 		for (size_t i = 0; i < entry.num_children(); i++) {
 			entry[i]["type"] >> string_check;
@@ -740,6 +736,11 @@ namespace LOCK {
 	}
 
 	Result createPatch(const char* path) {
+		declared_variables.clear();
+		declared_consts.clear();
+		freeDeclares();
+		declared_codes.clear();
+
 		bool unsafeCheck = false;
 
 		char lockMagic[] = "LOCK";
@@ -756,27 +757,25 @@ namespace LOCK {
 		}
 
 		if (tree.has_child(tree.root_id(), "ALL_FPS") == false) {
-			if (master_write == false) return 0x3006;
-			uint8_t* buffer = (uint8_t*)calloc(1, sizeof(uint8_t));
-			buffer[0] = 0xFF;
-			buffer_data* new_struct = (buffer_data*)calloc(sizeof(buffer_data), 1);
-			new_struct -> size = 1;
-			new_struct -> buffer_ptr = &buffer[0];
-			buffers.push_back(new_struct);
-			compiledSize = (uint8_t)sqrt(1 + 0x10) + 1;
+			if (!master_write) return 0x1137;
+			tree["ALL_FPS"];
 		}
-		else {
-			Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
-			if (R_FAILED(ret)) return ret;
-		
-			ret = processEntry(tree["ALL_FPS"], false);
 
-			if (R_FAILED(ret)) {
-				freeBuffers();
-				return ret;
-			}
-			compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
+		if (!master_write && (declared_codes.size() > 0 || declared_variables.size() > 0)) {
+			tree["MASTER_WRITE"];
+			master_write = true;
 		}
+		
+		Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
+		if (R_FAILED(ret)) return ret;
+	
+		ret = processEntry(tree["ALL_FPS"], false);
+
+		if (R_FAILED(ret)) {
+			freeBuffers();
+			return ret;
+		}
+		compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
 
 		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
 		
