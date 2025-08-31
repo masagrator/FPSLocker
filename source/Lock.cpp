@@ -13,6 +13,7 @@ namespace LOCK {
 	char configBuffer[32770] = "";
 	uint8_t gen = 3;
 	bool master_write = false;
+	bool unsafeCheck = false;
 
 	struct buffer_data {
 		size_t size;
@@ -231,6 +232,7 @@ namespace LOCK {
 			
 			temp_size++;
 			if (!string_check.compare("write") || !string_check.compare("evaluate_write")) {
+				temp_size++; // unsafe address
 				temp_size++; // address count
 				temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // value_type
@@ -267,6 +269,7 @@ namespace LOCK {
 				bool evaluate_compare = false;
 				if (!string_check.compare("evaluate_compare"))
 					evaluate_compare = true;
+				temp_size++; // unsafe compare address
 				temp_size++; // compare_address count
 				temp_size += ((entry[i]["compare_address"].num_children() - 1) * 4) + 1; // address array
 				temp_size++; // compare_type
@@ -281,6 +284,7 @@ namespace LOCK {
 					entry[i]["compare_address"][1] >> string_check;
 					temp_size += declared_variables[hash32(string_check.c_str())].value_type % 0x10;
 				}
+				temp_size++; // unsafe address
 				temp_size++; // address count
 				if (entry[i].has_child("address"))
 					temp_size += ((entry[i]["address"].num_children() - 1) * 4) + 1; // address array
@@ -330,6 +334,7 @@ namespace LOCK {
 			for (const auto& [key, data] : declared_variables) {
 				if (!data.evaluate.compare("")) continue;
 				temp_size++; // type
+				temp_size++; // unsafe address (which is always false here)
 				temp_size++; //address_count
 				temp_size++; //address region
 				temp_size += 4;//offset
@@ -459,6 +464,9 @@ namespace LOCK {
 					evaluate_write = true;
 
 				buffer[temp_size++] = (evaluate_write ? 0x81 : 1); // type
+				if (entry[i].has_child("address_unsafe"))
+					entry[i]["address_unsafe"] >> buffer[temp_size++];
+				else buffer[temp_size++] = unsafeCheck;
 				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
 				uint8_t address_region = getAddressRegion(string_check);
@@ -511,6 +519,9 @@ namespace LOCK {
 					evaluate_write = true;
 				
 				buffer[temp_size++] = (evaluate_write ? 0x82 : 2); //+1
+				if (entry[i].has_child("compare_address_unsafe"))
+					entry[i]["compare_address_unsafe"] >> buffer[temp_size++];
+				else buffer[temp_size++] = unsafeCheck;
 				buffer[temp_size++] = entry[i]["compare_address"].num_children();//+1
 				entry[i]["compare_address"][0] >> string_check;
 				uint8_t address_region = getAddressRegion(string_check);
@@ -540,10 +551,14 @@ namespace LOCK {
 				if (entry[i].has_child("address") == false) {
 					buffer[temp_size++] = 0;
 					buffer[temp_size++] = 0;
+					buffer[temp_size++] = 0;
 					entry[i]["value_type"] >> string_check;
 					value_type = getValueType(string_check);
 				}
 				else {
+					if (entry[i].has_child("address_unsafe"))
+						entry[i]["address_unsafe"] >> buffer[temp_size++];
+					else buffer[temp_size++] = unsafeCheck;
 					buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 					entry[i]["address"][0] >> string_check;
 					address_region = getAddressRegion(string_check);
@@ -741,17 +756,17 @@ namespace LOCK {
 		freeDeclares();
 		declared_codes.clear();
 
-		bool unsafeCheck = false;
+		unsafeCheck = false;
 
 		char lockMagic[] = "LOCK";
-		gen = 3;
-		tree["unsafeCheck"] >> unsafeCheck;
+		gen = 4;
+		if (tree.has_child(tree.root_id(), "unsafeCheck"))
+			tree["unsafeCheck"] >> unsafeCheck;
 		size_t temp_size = 0;
 
 		uint8_t compiledSize = 0;
 
 		if (tree.has_child(tree.root_id(), "DECLARATIONS") == true) {
-			gen = 4;
 			Result ret = registerDeclarations(tree["DECLARATIONS"]);
 			if (R_FAILED(ret)) return ret;
 		}
@@ -777,7 +792,7 @@ namespace LOCK {
 		}
 		compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
 
-		uint8_t flags[4] = {gen, master_write, compiledSize, unsafeCheck};
+		uint8_t flags[4] = {gen, master_write, compiledSize, NULL};
 		
 		if (master_write) {
 			Result ret = processEntry(tree["MASTER_WRITE"], true);
