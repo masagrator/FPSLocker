@@ -792,7 +792,7 @@ namespace LOCK {
 		}
 		compiledSize = (uint8_t)sqrt(temp_size + 0x10) + 1;
 
-		uint8_t flags[4] = {gen, master_write, compiledSize, NULL};
+		uint8_t flags[4] = {gen, master_write, compiledSize, 0};
 		
 		if (master_write) {
 			Result ret = processEntry(tree["MASTER_WRITE"], true);
@@ -875,16 +875,10 @@ namespace LOCK {
 
 		if (!tree.is_map(root_id))
 			return 0x1104;
-		if (tree.find_child(root_id, "unsafeCheck") == c4::yml::NONE)
-			return 0x1101;
-		if (!tree["unsafeCheck"].is_keyval())
-			return 0x1102;
 		if (tree.find_child(root_id, "MASTER_WRITE") != c4::yml::NONE)
 			master_write = true;
-		if (tree.find_child(root_id, "ALL_FPS") == c4::yml::NONE)
+		if (tree.find_child(root_id, "ALL_FPS") == c4::yml::NONE && !master_write)
 			return 0x1105;
-		if (tree.find_child(root_id, "ALL_REFRESH_RATES") != c4::yml::NONE)
-			return 0x1106;
 
 		return 0;
 	}
