@@ -443,6 +443,7 @@ namespace LOCK {
 			for (const auto& [key, data] : declared_variables) {
 				if (!data.evaluate.compare("")) continue;
 				buffer[temp_size++] = 0x81; // type
+				buffer[temp_size++] = 0; // address unsafe
 				buffer[temp_size++] = 2; // address count
 				buffer[temp_size++] = 4; //address region VARIABLE
 				memcpy(&buffer[temp_size], &data.cave_offset, 4);

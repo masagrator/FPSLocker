@@ -1,6 +1,12 @@
 #pragma once
 #include <curl/curl.h>
 
+const unsigned char data[] = {
+	#embed "titleids_with_patches.bin"
+};
+
+std::array<uint64_t, sizeof(data) / 8>* titleids_needing_patch = (std::array<uint64_t, sizeof(data) / 8>*)&data[0];
+
 struct resolutionCalls {
 	uint16_t width;
 	uint16_t height;

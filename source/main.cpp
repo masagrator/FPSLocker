@@ -481,6 +481,7 @@ public:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 	bool render100Above = false;
 	bool pluginRanAtBoot = false;
+	bool noPatchDetectedButNeeded = false;
 	GuiTest(u8 arg1, u8 arg2, bool arg3) { 
 		
 		if (isLite) entry_mode = ApmPerformanceMode_Normal;
@@ -492,6 +493,10 @@ public:
 			}
 			else entry_mode = ApmPerformanceMode_Normal;
 			smExit();
+		}
+		if (TID != 0) {
+			if (std::find(titleids_needing_patch -> begin(), titleids_needing_patch -> end(), TID) != titleids_needing_patch -> end() && !file_exists(patchPath))
+				noPatchDetectedButNeeded = true;
 		}
 	}
 
@@ -537,6 +542,7 @@ public:
 				else renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
 				renderer->drawString("FPS", false, x+320, y+70, 20, renderer->a(0xFFFF));
 				if (Shared -> forceOriginalRefreshRate) renderer->drawString(getStringID(17), false, x, y+129, 20, renderer->a(0xF99F));
+				else if (noPatchDetectedButNeeded) renderer->drawString(getStringID(49), false, x, y+129, 20, renderer->a(0xF99F));
 			}
 		}), 170);
 
