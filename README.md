@@ -11,7 +11,7 @@ Max supported YAML size is 32kB, though it can be expanded in the next updates.
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
 - [My fork of SaltyNX, version 1.4.3+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
-- Overclocking toolset (And don't expect to run games in docked mode at locked 60 FPS without some ridiculously beefy clocks, no - 1963/998/2133 is not beefy)
+- Overclocking toolset (And don't expect to run games in docked mode at locked 60 FPS without ridiculously beefy clocks, no - 1963/998/2133 clocks are not beefy enough)
 
 How to set up everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
 
