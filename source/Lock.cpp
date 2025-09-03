@@ -465,8 +465,11 @@ namespace LOCK {
 					evaluate_write = true;
 
 				buffer[temp_size++] = (evaluate_write ? 0x81 : 1); // type
-				if (entry[i].has_child("address_unsafe"))
-					entry[i]["address_unsafe"] >> buffer[temp_size++];
+				if (entry[i].has_child("address_unsafe")) {
+					bool temp = false;
+					entry[i]["address_unsafe"] >> temp;
+					buffer[temp_size++] = temp;
+				}
 				else buffer[temp_size++] = !unsafeCheck;
 				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
@@ -520,8 +523,11 @@ namespace LOCK {
 					evaluate_write = true;
 				
 				buffer[temp_size++] = (evaluate_write ? 0x82 : 2); //+1
-				if (entry[i].has_child("compare_address_unsafe"))
-					entry[i]["compare_address_unsafe"] >> buffer[temp_size++];
+				if (entry[i].has_child("compare_address_unsafe")) {
+					bool temp = false;
+					entry[i]["compare_address_unsafe"] >> temp;
+					buffer[temp_size++] = temp;
+				}
 				else buffer[temp_size++] = !unsafeCheck;
 				buffer[temp_size++] = entry[i]["compare_address"].num_children();//+1
 				entry[i]["compare_address"][0] >> string_check;
@@ -557,8 +563,11 @@ namespace LOCK {
 					value_type = getValueType(string_check);
 				}
 				else {
-					if (entry[i].has_child("address_unsafe"))
-						entry[i]["address_unsafe"] >> buffer[temp_size++];
+					if (entry[i].has_child("address_unsafe")) {
+						bool temp = false;
+						entry[i]["address_unsafe"] >> temp;
+						buffer[temp_size++] = temp;
+					}
 					else buffer[temp_size++] = !unsafeCheck;
 					buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 					entry[i]["address"][0] >> string_check;
