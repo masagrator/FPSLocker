@@ -467,7 +467,7 @@ namespace LOCK {
 				buffer[temp_size++] = (evaluate_write ? 0x81 : 1); // type
 				if (entry[i].has_child("address_unsafe"))
 					entry[i]["address_unsafe"] >> buffer[temp_size++];
-				else buffer[temp_size++] = unsafeCheck;
+				else buffer[temp_size++] = !unsafeCheck;
 				buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 				entry[i]["address"][0] >> string_check;
 				uint8_t address_region = getAddressRegion(string_check);
@@ -522,7 +522,7 @@ namespace LOCK {
 				buffer[temp_size++] = (evaluate_write ? 0x82 : 2); //+1
 				if (entry[i].has_child("compare_address_unsafe"))
 					entry[i]["compare_address_unsafe"] >> buffer[temp_size++];
-				else buffer[temp_size++] = unsafeCheck;
+				else buffer[temp_size++] = !unsafeCheck;
 				buffer[temp_size++] = entry[i]["compare_address"].num_children();//+1
 				entry[i]["compare_address"][0] >> string_check;
 				uint8_t address_region = getAddressRegion(string_check);
@@ -559,7 +559,7 @@ namespace LOCK {
 				else {
 					if (entry[i].has_child("address_unsafe"))
 						entry[i]["address_unsafe"] >> buffer[temp_size++];
-					else buffer[temp_size++] = unsafeCheck;
+					else buffer[temp_size++] = !unsafeCheck;
 					buffer[temp_size++] = entry[i]["address"].num_children(); // address count
 					entry[i]["address"][0] >> string_check;
 					address_region = getAddressRegion(string_check);
