@@ -398,7 +398,7 @@ namespace LOCK {
 							}
 							else entry[i]["instructions"][x] >> inst;
 							main_offset += 4;
-							buffer[temp_size++] = adjust_type;
+							buffer[temp_size++] = adjust_type == 4 ? 0 : adjust_type;
 							*(uint32_t*)(&buffer[temp_size]) = inst;
 							temp_size += 4;
 						}
