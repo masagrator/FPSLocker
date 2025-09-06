@@ -788,6 +788,7 @@ namespace LOCK {
 		}
 
 		if (!master_write && (declared_codes.size() > 0 || declared_variables.size() > 0)) {
+			master_write = true;
 			auto n = tree["MASTER_WRITE"];
 			n |= ryml::SEQ;
 		}
