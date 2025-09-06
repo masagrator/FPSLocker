@@ -770,25 +770,26 @@ namespace LOCK {
 
 		char lockMagic[] = "LOCK";
 		gen = 4;
-		if (tree.has_child(tree.root_id(), "unsafeCheck"))
+		if (tree.rootref().has_child("unsafeCheck"))
 			tree["unsafeCheck"] >> unsafeCheck;
 		size_t temp_size = 0;
 
 		uint8_t compiledSize = 0;
 
-		if (tree.has_child(tree.root_id(), "DECLARATIONS") == true) {
+		if (tree.rootref().has_child("DECLARATIONS") == true) {
 			Result ret = registerDeclarations(tree["DECLARATIONS"]);
 			if (R_FAILED(ret)) return ret;
 		}
 
-		if (tree.has_child(tree.root_id(), "ALL_FPS") == false) {
+		if (tree.rootref().has_child("ALL_FPS") == false) {
 			if (!master_write) return 0x1137;
-			tree["ALL_FPS"];
+			auto n = tree["ALL_FPS"];
+			n |= ryml::SEQ;
 		}
 
 		if (!master_write && (declared_codes.size() > 0 || declared_variables.size() > 0)) {
-			tree["MASTER_WRITE"];
-			master_write = true;
+			auto n = tree["MASTER_WRITE"];
+			n |= ryml::SEQ;
 		}
 		
 		Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
@@ -881,13 +882,12 @@ namespace LOCK {
 		strcat(&configBuffer[0], "\n");
 
 		tree = ryml::parse_in_place(configBuffer);
-		size_t root_id = tree.root_id();
 
-		if (!tree.is_map(root_id))
+		if (!tree.rootref().is_map())
 			return 0x1104;
-		if (tree.find_child(root_id, "MASTER_WRITE") != c4::yml::NONE)
+		if (tree.rootref().has_child("MASTER_WRITE") == true)
 			master_write = true;
-		if (tree.find_child(root_id, "ALL_FPS") == c4::yml::NONE && !master_write)
+		if (tree.rootref().has_child("ALL_FPS") == false && !master_write)
 			return 0x1105;
 
 		return 0;
