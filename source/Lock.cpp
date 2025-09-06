@@ -783,14 +783,12 @@ namespace LOCK {
 
 		if (tree.rootref().has_child("ALL_FPS") == false) {
 			if (!master_write) return 0x1137;
-			auto n = tree["ALL_FPS"];
-			n |= ryml::SEQ;
+			tree["ALL_FPS"] |= ryml::SEQ;
 		}
 
 		if (!master_write && (declared_codes.size() > 0 || declared_variables.size() > 0)) {
 			master_write = true;
-			auto n = tree["MASTER_WRITE"];
-			n |= ryml::SEQ;
+			tree["MASTER_WRITE"] |= ryml::SEQ;
 		}
 		
 		Result ret = calculateSize(tree["ALL_FPS"], &temp_size, false, true);
