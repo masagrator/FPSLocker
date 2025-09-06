@@ -183,8 +183,8 @@ namespace ASM {
 		if (var.c_str()[0] == '_') {
 			uint32_t hash = hash32(var.c_str());
 			if (std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;}) != LOCK::declared_codes.end()) {
-				adjust_type = 2;
 				address = (m_pc_address & ~0xFFF) - 0x10000000;
+				adjust_type = 2;
 			} 
 			else return 0xFF0003;
 		}
@@ -198,6 +198,7 @@ namespace ASM {
 		else {
 			bool passed = getInteger(var, &address);
 			if (!passed) return 0xFF0002;
+			adjust_type = 4;
 		}
 		asmjit::a64::Gp reg = getGenRegister(inst);
 		if (reg == GP_REG_ERROR) return 0xFF0001;
@@ -791,7 +792,7 @@ namespace ASM {
 			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
 				relative = true;
 			}
-			else if (!adjust_type) adjust_type = 4;
+			else if (!adjust_type) adjust_type = 5;
 			bool passed = getInteger(inst, &address);
 			if (!passed) return 0xFF0067;
 			if (relative && adjust_type == 4) address += m_pc_address;
