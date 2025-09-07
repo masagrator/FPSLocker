@@ -492,6 +492,7 @@ void downloadPatch(void*) {
 						strncpy(&file_path[0], path.c_str(), 191);
 						curl_easy_setopt(curl, CURLOPT_URL, download_path);
 						msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
+						if (msPeriod < 1000) msPeriod = 1000;
 						curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 						FILE* fp = fopen(file_path, "wb");
 						if (!fp) {
@@ -509,7 +510,7 @@ void downloadPatch(void*) {
 		}
 		else if (temp_error_code == 0x404) {
 			error_code = 0x404;
-			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3/README.md");
+			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
 				curl_easy_cleanup(curl);
