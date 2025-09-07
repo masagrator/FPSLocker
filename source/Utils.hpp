@@ -570,6 +570,7 @@ void downloadPatch(void*) {
 						}
 					}
 				}
+				else temp_error_code = 0x1007;
 				free(buffer);
 			}
 			else if (res == CURLE_OPERATION_TIMEDOUT) {
