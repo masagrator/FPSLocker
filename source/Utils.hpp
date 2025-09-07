@@ -1,6 +1,12 @@
 #pragma once
 #include <curl/curl.h>
 
+const unsigned char data[] = {
+	#embed "titleids_with_patches.bin"
+};
+
+std::array<uint64_t, sizeof(data) / 8>* titleids_needing_patch = (std::array<uint64_t, sizeof(data) / 8>*)&data[0];
+
 struct resolutionCalls {
 	uint16_t width;
 	uint16_t height;
@@ -27,7 +33,7 @@ struct NxFpsSharedBlock {
 			bool handheld: 1;
 			bool docked: 1;
 			unsigned int reserved: 6;
-		} NX_PACKED ds;
+		} PACKED ds;
 		uint8_t general;
 	} displaySync;
 	resolutionCalls renderCalls[8];
@@ -38,9 +44,10 @@ struct NxFpsSharedBlock {
 	uint8_t currentRefreshRate;
 	float readSpeedPerSecond;
 	uint8_t FPSlockedDocked;
+	uint64_t frameNumber;
 } NX_PACKED;
 
-static_assert(sizeof(NxFpsSharedBlock) == 165);
+static_assert(sizeof(NxFpsSharedBlock) == 173);
 
 struct DockedAdditionalSettings {
 	bool dontForce60InDocked;
@@ -384,7 +391,7 @@ void downloadPatch(void*) {
 			return;
 		}
 
-		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v3.1/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
         curl_easy_setopt(curl, CURLOPT_URL, download_path);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);

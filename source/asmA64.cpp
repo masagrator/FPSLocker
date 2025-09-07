@@ -4,6 +4,29 @@
 #include <array>
 #include "c4/yml/node.hpp"
 #include "c4/std/string.hpp"
+#include <unordered_map>
+#include <vector>
+
+namespace LOCK {
+
+	struct declare_var {
+		ptrdiff_t cave_offset;
+		uint8_t value_type;
+		std::string evaluate;
+		uint64_t default_value;
+	};
+
+	struct declare_code {
+		ptrdiff_t cave_offset;
+		size_t instructions_num;
+		uint32_t* code_buffer;
+		uint8_t* adjust_types_buffer;
+	};
+
+	extern std::unordered_map<uint32_t, declare_var> declared_variables;
+	extern std::unordered_map<uint32_t, uint64_t> declared_consts;
+	extern std::vector<std::pair<uint32_t, declare_code>> declared_codes;
+}
 
 namespace ASM {
 
@@ -15,6 +38,8 @@ namespace ASM {
 	#define COND_ERROR (asmjit::a64::CondCode)0xFF
 
 	uintptr_t m_pc_address = 0;
+	uintptr_t m_pc_start = 0;
+	uint8_t adjust_type = 0; //1 - B/BL Codes, 2 - ADRP Variables, 3 - ADRP Codes
 
 	constexpr uint32_t hash32(const char* str) {
 		uint32_t FNV1_INIT = 0x811C9DC5;
@@ -152,11 +177,29 @@ namespace ASM {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
-		uint32_t address = 0;
+		int64_t address = 0;
 		std::string var;
 		entry_impl[2] >> var;
-		bool passed = getInteger(var, &address);
-		if (!passed) return 0xFF0002;
+		if (var.c_str()[0] == '_') {
+			uint32_t hash = hash32(var.c_str());
+			if (std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;}) != LOCK::declared_codes.end()) {
+				address = (m_pc_address & ~0xFFF) - 0x10000000;
+				adjust_type = 2;
+			} 
+			else return 0xFF0003;
+		}
+		else if (var.c_str()[0] == '$') {
+			if (LOCK::declared_variables.find(hash32(&var.c_str()[1])) != LOCK::declared_variables.end()) {
+				adjust_type = 3;
+				address = (m_pc_address & ~0xFFF) - 0xFFFFF000;
+			}
+			else return 0xFF0004;
+		}
+		else {
+			bool passed = getInteger(var, &address);
+			if (!passed) return 0xFF0002;
+			adjust_type = 4;
+		}
 		asmjit::a64::Gp reg = getGenRegister(inst);
 		if (reg == GP_REG_ERROR) return 0xFF0001;
 		a.adrp(reg, address);
@@ -179,8 +222,26 @@ namespace ASM {
 			regs[2] = getGenRegister(inst, true, true, true);
 			if (regs[2] == GP_REG_ERROR) {
 				int64_t value = 0;
-				bool passed = getInteger(inst, &value);
-				if (!passed) return 0xFF0013;
+				if (inst.c_str()[0] == '_') {
+					if (type != 0) return 0xFF0015;
+					uint32_t hash = hash32(inst.c_str());
+					auto it = std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;});
+					if (it != LOCK::declared_codes.end()) {
+						value = it->second.cave_offset;
+					} 
+					else return 0xFF0013;
+				}
+				else if (inst.c_str()[0] == '$') {
+					if (type != 0) return 0xFF0016;
+					if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+						value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
+					}
+					else return 0xFF0014;
+				}
+				else {
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0013;
+				}
 				if (type == 0) a.add(regs[0], regs[1], value);
 				else if (type == 2) a.sub(regs[0], regs[1], value);
 			}
@@ -210,11 +271,6 @@ namespace ASM {
 			return 0xFF0020;
 		if (!entry_impl[2].is_seq()) return 0xFF0021;
 		if (entry_impl[2].num_children() == 0 || entry_impl[2].num_children() > 2) return 0xFF0022;
-		if (entry_impl.num_children() == 4) {
-			std::string inst;
-			entry_impl[3] >> inst;
-			if (inst.compare("!")) return 0xFF0025;
-		}
 
 		entry_impl[1] >> inst;
 		auto reg0 = getGenRegister(inst, true, false, true);
@@ -229,28 +285,31 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst, false, false, true);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0025;
+					if (inst.c_str()[0] == '$') {
+						if (type != 0) return 0xFF0025;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
+						}
+						else return 0xFF0026;
+					}
+					else {
+						bool passed = getInteger(inst, &value);
+						if (!passed) return 0xFF0027;
+					}
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.ldr(regfp, asmjit::a64::Mem(reg1, value));
 							else a.ldr(regfp, asmjit::a64::ptr_pre(reg1, value));
 							break;
 						case 3:
-							if (entry_impl.num_children() == 3) a.ldur(regfp, asmjit::a64::Mem(reg1, value));
-							else a.ldur(regfp, asmjit::a64::ptr_pre(reg1, value));
+							a.ldur(regfp, asmjit::a64::Mem(reg1, value));
 							break;
 					}
 				}
 				else {
 					switch(type) {
 						case 0:
-							if (entry_impl.num_children() == 3) a.ldr(regfp, asmjit::a64::Mem(reg1, reg2));
-							else a.ldr(regfp, asmjit::a64::ptr_pre(reg1, reg2));
-							break;
-						case 3:
-							if (entry_impl.num_children() == 3) a.ldur(regfp, asmjit::a64::Mem(reg1, reg2));
-							else a.ldur(regfp, asmjit::a64::ptr_pre(reg1, reg2));
+							a.ldr(regfp, asmjit::a64::Mem(reg1, reg2));
 							break;
 					}
 				}
@@ -259,11 +318,20 @@ namespace ASM {
 				switch(type) {
 					case 0:
 						if (entry_impl.num_children() == 3) a.ldr(regfp, asmjit::a64::Mem(reg1));
-						else a.ldr(regfp, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (!inst.compare("!")) a.ldr(regfp, asmjit::a64::ptr_pre(reg1));
+							else {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0058;
+								a.ldr(regfp, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 3:
-						if (entry_impl.num_children() == 3) a.ldur(regfp, asmjit::a64::Mem(reg1));
-						else a.ldur(regfp, asmjit::a64::ptr_pre(reg1));
+						a.ldur(regfp, asmjit::a64::Mem(reg1));
 						break;
 				}
 			}
@@ -277,8 +345,17 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0025;
+					if (inst.c_str()[0] == '$') {
+						if (type != 0) return 0xFF0025;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
+						}
+						else return 0xFF0026;
+					}
+					else {
+						bool passed = getInteger(inst, &value);
+						if (!passed) return 0xFF0027;
+					}
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.ldr(reg0, asmjit::a64::Mem(reg1, value));
@@ -293,36 +370,23 @@ namespace ASM {
 							else a.ldrh(reg0, asmjit::a64::ptr_pre(reg1, value));
 							break;
 						case 3:
-							if (entry_impl.num_children() == 3) a.ldur(reg0, asmjit::a64::Mem(reg1, value));
-							else a.ldur(reg0, asmjit::a64::ptr_pre(reg1, value));
+							a.ldur(reg0, asmjit::a64::Mem(reg1, value));
 							break;
 						case 4:
-							if (entry_impl.num_children() == 3) a.ldurh(reg0, asmjit::a64::Mem(reg1, value));
-							else a.ldurh(reg0, asmjit::a64::ptr_pre(reg1, value));
+							a.ldurh(reg0, asmjit::a64::Mem(reg1, value));
 							break;
 					}
 				}
 				else {
 					switch(type) {
 						case 0:
-							if (entry_impl.num_children() == 3) a.ldr(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.ldr(reg0, asmjit::a64::ptr_pre(reg1, reg2));
+							a.ldr(reg0, asmjit::a64::Mem(reg1, reg2));
 							break;
 						case 1:
-							if (entry_impl.num_children() == 3) a.ldrb(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.ldrb(reg0, asmjit::a64::ptr_pre(reg1, reg2));
+							a.ldrb(reg0, asmjit::a64::Mem(reg1, reg2));
 							break;
 						case 2:
-							if (entry_impl.num_children() == 3) a.ldrh(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.ldrh(reg0, asmjit::a64::ptr_pre(reg1, reg2));
-							break;
-						case 3:
-							if (entry_impl.num_children() == 3) a.ldur(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.ldur(reg0, asmjit::a64::ptr_pre(reg1, reg2));
-							break;
-						case 4:
-							if (entry_impl.num_children() == 3) a.ldurh(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.ldurh(reg0, asmjit::a64::ptr_pre(reg1, reg2));
+							a.ldrh(reg0, asmjit::a64::Mem(reg1, reg2));
 							break;
 					}
 				}
@@ -331,23 +395,48 @@ namespace ASM {
 				switch(type) {
 					case 0:
 						if (entry_impl.num_children() == 3) a.ldr(reg0, asmjit::a64::Mem(reg1));
-						else a.ldr(reg0, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (inst.compare("!")) {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0028;
+								a.ldr(reg0, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 1:
 						if (entry_impl.num_children() == 3) a.ldrb(reg0, asmjit::a64::Mem(reg1));
-						else a.ldrb(reg0, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (inst.compare("!")) {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0028;
+								a.ldrb(reg0, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 2:
 						if (entry_impl.num_children() == 3) a.ldrh(reg0, asmjit::a64::Mem(reg1));
-						else a.ldrh(reg0, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (inst.compare("!")) {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0028;
+								a.ldrh(reg0, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 3:
-						if (entry_impl.num_children() == 3) a.ldur(reg0, asmjit::a64::Mem(reg1));
-						else a.ldur(reg0, asmjit::a64::ptr_pre(reg1));
+						a.ldur(reg0, asmjit::a64::Mem(reg1));
 						break;
 					case 4:
-						if (entry_impl.num_children() == 3) a.ldurh(reg0, asmjit::a64::Mem(reg1));
-						else a.ldurh(reg0, asmjit::a64::ptr_pre(reg1));
+						a.ldurh(reg0, asmjit::a64::Mem(reg1));
 						break;
 				}
 			}
@@ -376,20 +465,35 @@ namespace ASM {
 			entry_impl[2] >> inst;
 			auto reg1 = getGenRegister(inst, true, true, true);
 			if (reg1 == GP_REG_ERROR) {
-				int64_t value = 0;
-				bool passed = getInteger(inst, &value);
-				if (!passed) return 0xFF0035;
+				uint64_t value = 0;
+				if (inst.c_str()[0] == '$') {
+					value = LOCK::declared_consts[hash32(&inst.c_str()[1])] & 0xFFFF;
+				}
+				else {
+					bool passed = getInteger(inst, &value);
+					if (!passed) return 0xFF0035;
+				}
 				a.mov(reg0, value);
 			}
 			else a.mov(reg0, reg1);
 		}
 		else if (type == 1) {
 			if (reg0 == GP_REG_ERROR) return 0xFF0032;
-			uint16_t value = 0;
-			entry_impl[2] >> value;
 			uint8_t shift = 0;
-			entry_impl[3] >> shift;
+			entry_impl[3] >> inst;
+			bool passed = getInteger(inst, &shift);
+			if (!passed) return 0xFF0037;
 			if ((shift > 64) || (shift % 16 != 0)) return 0xFF0036;
+			uint64_t value = 0;
+			entry_impl[2] >> inst;
+			if (inst.c_str()[0] == '$') {
+				value = LOCK::declared_consts[hash32(&inst.c_str()[1])];
+				value = (value >> shift) & 0xFFFF;
+			}
+			else {
+				bool passed = getInteger(inst, &value);
+				if (!passed) return 0xFF0035;
+			}
 			a.movk(reg0, value, shift);
 		}
 		else if (type == 2) {
@@ -450,11 +554,6 @@ namespace ASM {
 			return 0xFF0050;
 		if (!entry_impl[2].is_seq()) return 0xFF0051;
 		if (entry_impl[2].num_children() == 0 || entry_impl[2].num_children() > 2) return 0xFF0052;
-		if (entry_impl.num_children() == 4) {
-			std::string inst;
-			entry_impl[3] >> inst;
-			if (inst.compare("!")) return 0xFF0055;
-		}
 
 		entry_impl[1] >> inst;
 		auto reg0 = getGenRegister(inst, true, false, true);
@@ -469,27 +568,31 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst, false, false, true);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0055;
+					if (inst.c_str()[0] == '$') {
+						if (type != 0) return 0xFF0057;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
+						}
+						else return 0xFF0056;
+					}
+					else {
+						bool passed = getInteger(inst, &value);
+						if (!passed) return 0xFF0055;
+					}
 					switch (type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.str(regfp, asmjit::a64::Mem(reg1, value));
 							else a.str(regfp, asmjit::a64::ptr_pre(reg1, value));
 							break;
 						case 3:
-							if (entry_impl.num_children() == 3) a.stur(regfp, asmjit::a64::Mem(reg1, value));
-							else a.stur(regfp, asmjit::a64::ptr_pre(reg1, value));
+							a.stur(regfp, asmjit::a64::Mem(reg1, value));
 					}
 				}
 				else {
 					switch(type) {
 						case 0:
-							if (entry_impl.num_children() == 3) a.str(regfp, asmjit::a64::Mem(reg1, reg2));
-							else a.str(regfp, asmjit::a64::ptr_pre(reg1, reg2));
+							a.str(regfp, asmjit::a64::Mem(reg1, reg2));
 							break;
-						case 3:
-							if (entry_impl.num_children() == 3) a.stur(regfp, asmjit::a64::Mem(reg1, reg2));
-							else a.stur(regfp, asmjit::a64::ptr_pre(reg1, reg2));
 					}
 				}
 			}
@@ -497,11 +600,19 @@ namespace ASM {
 				switch(type) {
 					case 0:
 						if (entry_impl.num_children() == 3) a.str(regfp, asmjit::a64::Mem(reg1));
-						else a.str(regfp, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (inst.compare("!")) {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0058;
+								a.str(regfp, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 3:
-						if (entry_impl.num_children() == 3) a.stur(regfp, asmjit::a64::Mem(reg1));
-						else a.stur(regfp, asmjit::a64::ptr_pre(reg1));
+						a.stur(regfp, asmjit::a64::Mem(reg1));
 				}
 			}
 		}
@@ -514,8 +625,17 @@ namespace ASM {
 				auto reg2 = getGenRegister(inst);
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
-					bool passed = getInteger(inst, &value);
-					if (!passed) return 0xFF0055;
+					if (inst.c_str()[0] == '$') {
+						if (type > 2) return 0xFF0059;
+						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
+							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
+						}
+						else return 0xFF0056;
+					}
+					else {
+						bool passed = getInteger(inst, &value);
+						if (!passed) return 0xFF0055;
+					}
 					switch(type) {
 						case 0:
 							if (entry_impl.num_children() == 3) a.str(reg0, asmjit::a64::Mem(reg1, value));
@@ -530,36 +650,23 @@ namespace ASM {
 							else a.strh(reg0, asmjit::a64::ptr_pre(reg1, value));
 							break;
 						case 3:
-							if (entry_impl.num_children() == 3) a.stur(reg0, asmjit::a64::Mem(reg1, value));
-							else a.stur(reg0, asmjit::a64::ptr_pre(reg1, value));
+							a.stur(reg0, asmjit::a64::Mem(reg1, value));
 							break;
 						case 4:
-							if (entry_impl.num_children() == 3) a.sturh(reg0, asmjit::a64::Mem(reg1, value));
-							else a.sturh(reg0, asmjit::a64::ptr_pre(reg1, value));
+							a.sturh(reg0, asmjit::a64::Mem(reg1, value));
 							break;
 					}
 				}
 				else {
 					switch(type) {
 						case 0:
-							if (entry_impl.num_children() == 3) a.str(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.str(reg0, asmjit::a64::ptr_pre(reg1, reg2));
+							a.str(reg0, asmjit::a64::Mem(reg1, reg2));
 							break;
 						case 1:
-							if (entry_impl.num_children() == 3) a.strb(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.strb(reg0, asmjit::a64::ptr_pre(reg1, reg2));
+							a.strb(reg0, asmjit::a64::Mem(reg1, reg2));
 							break;
 						case 2:
-							if (entry_impl.num_children() == 3) a.strh(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.strh(reg0, asmjit::a64::ptr_pre(reg1, reg2));
-							break;
-						case 3:
-							if (entry_impl.num_children() == 3) a.stur(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.stur(reg0, asmjit::a64::ptr_pre(reg1, reg2));
-							break;
-						case 4:
-							if (entry_impl.num_children() == 3) a.sturh(reg0, asmjit::a64::Mem(reg1, reg2));
-							else a.sturh(reg0, asmjit::a64::ptr_pre(reg1, reg2));
+							a.strh(reg0, asmjit::a64::Mem(reg1, reg2));
 							break;
 					}
 				}
@@ -568,23 +675,48 @@ namespace ASM {
 				switch(type) {
 					case 0:
 						if (entry_impl.num_children() == 3) a.str(reg0, asmjit::a64::Mem(reg1));
-						else a.str(reg0, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (inst.compare("!")) {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0058;
+								a.str(reg0, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 1:
 						if (entry_impl.num_children() == 3) a.strb(reg0, asmjit::a64::Mem(reg1));
-						else a.strb(reg0, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (!inst.compare("!")) {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0058;
+								a.strb(reg0, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 2:
 						if (entry_impl.num_children() == 3) a.strh(reg0, asmjit::a64::Mem(reg1));
-						else a.strh(reg0, asmjit::a64::ptr_pre(reg1));
+						else {
+							std::string inst;
+							entry_impl[3] >> inst;
+							if (!inst.compare("!")) {
+								uint16_t value = 0;
+								bool passed = getInteger(inst, &value);
+								if (!passed) return 0xFF0058;
+								a.strh(reg0, asmjit::a64::ptr_post(reg1, value));
+							}
+						}
 						break;
 					case 3:
-						if (entry_impl.num_children() == 3) a.stur(reg0, asmjit::a64::Mem(reg1));
-						else a.stur(reg0, asmjit::a64::ptr_pre(reg1));
+						a.stur(reg0, asmjit::a64::Mem(reg1));
 						break;
 					case 4:
-						if (entry_impl.num_children() == 3) a.sturh(reg0, asmjit::a64::Mem(reg1));
-						else a.sturh(reg0, asmjit::a64::ptr_pre(reg1));
+						a.sturh(reg0, asmjit::a64::Mem(reg1));
 						break;
 				}
 			}
@@ -592,41 +724,84 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result B(T entry_impl, uint8_t type = 0, uint32_t subtype = 0xFF) {
+	template <typename T> Result B(T entry_impl, uint8_t type, uint32_t subtype, const std::unordered_map<std::string, uint32_t> gotos = {}) {
 		if (entry_impl.num_children() != 2)
 			return 0xFF0060;
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		entry_impl[1] >> inst;
-		if (type <= 1) {
+		if (type == 0) {
+			int64_t address = 0;
+			if (inst.c_str()[0] == '_') {
+				if (!inst.compare("_convertTickToTimeSpan()")) a.b(m_pc_address - 4);
+				else if (!inst.compare("_setUserInactivityDetectionTimeExtended()")) a.b(m_pc_address - 8);
+				else {
+					if (LOCK::declared_codes.size() == 0) return 0xFF0065;
+					uint32_t hash = hash32(inst.c_str());
+					auto it = std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;});
+					if (it == LOCK::declared_codes.end()) return 0xFF0066;
+					a.b(m_pc_address - (it->second.cave_offset + 0x100));
+				}
+				adjust_type = 1;
+				return 0;
+			}
+			bool relative = false;
+			if (inst.c_str()[0] == ':') {
+				auto it = gotos.find(inst);
+				if (it == gotos.end()) return 0xFF0069;
+				address = it->second;
+				relative = true;
+			}
+			else {
+				if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+					relative = true;
+				}
+				bool passed = getInteger(inst, &address);
+				if (!passed) return 0xFF0063;
+				if (relative) address += m_pc_address;
+				else adjust_type = 1;
+			}
+			switch(subtype) {
+				case 0xFF: {a.b(address); break;}
+				case hash32("LE"): {a.b_le(address); break;}
+				case hash32("GE"): {a.b_ge(address); break;}
+				case hash32("NE"): {a.b_ne(address); break;}
+				case hash32("GT"): {a.b_gt(address); break;}
+				case hash32("LT"): {a.b_lt(address); break;}
+				case hash32("HI"): {a.b_hi(address); break;}
+				case hash32("EQ"): {a.b_eq(address); break;}
+				default: return 0xFF0064;
+			}
+		}
+		else if (type == 1) {
+			if (inst.c_str()[0] == '_') {
+				if (!inst.compare("_convertTickToTimeSpan()")) a.bl(m_pc_address - 4);
+				else if (!inst.compare("_setUserInactivityDetectionTimeExtended()")) a.bl(m_pc_address - 8);
+				else {
+					if (LOCK::declared_codes.size() == 0) return 0xFF0065;
+					uint32_t hash = hash32(inst.c_str());
+					auto it = std::find_if(LOCK::declared_codes.begin(), LOCK::declared_codes.end(), [hash](auto& pair){return pair.first == hash;});
+					if (it == LOCK::declared_codes.end()) return 0xFF0066;
+					a.bl(m_pc_address - (it->second.cave_offset + 0x100));
+				}
+				adjust_type = 1;
+				return 0;
+			}
 			int64_t address = 0;
 			bool relative = false;
 			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
 				relative = true;
 			}
+			else if (!adjust_type) adjust_type = 5;
 			bool passed = getInteger(inst, &address);
-			if (!passed) return 0xFF0062;
-			if (relative) address += m_pc_address;
-			if (type == 0) {
-				switch(subtype) {
-					case 0xFF: {a.b(address); break;}
-					case hash32("LE"): {a.b_le(address); break;}
-					case hash32("GE"): {a.b_ge(address); break;}
-					case hash32("NE"): {a.b_ne(address); break;}
-					case hash32("GT"): {a.b_gt(address); break;}
-					case hash32("LT"): {a.b_lt(address); break;}
-					case hash32("HI"): {a.b_hi(address); break;}
-					default: return 0xFF0062;
-				}
-			}
-			else if (type == 1) {
-				a.bl(address);
+			if (!passed) return 0xFF0067;
+			if (relative && adjust_type == 4) address += m_pc_address;
+			a.bl(address);
 
-			}
 		}
 		else if (type == 2 || type == 3) {
 			auto reg = getGenRegister(inst);
-			if (reg == GP_REG_ERROR) return 0xFF0061;
+			if (reg == GP_REG_ERROR) return 0xFF0068;
 			if (type == 2) a.blr(reg);
 			else if (type == 3) a.br(reg);
 		}
@@ -725,7 +900,7 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result CBZ(T entry_impl, uint8_t type = 0) {
+	template <typename T> Result CBZ(T entry_impl, uint8_t type, const std::unordered_map<std::string, uint32_t> gotos = {}) {
 		if (entry_impl.num_children() != 3)
 			return 0xFF00B0;
 		asmjit::a64::Assembler a(&code);
@@ -734,14 +909,18 @@ namespace ASM {
 		auto reg0 = getGenRegister(inst, true, false, true);
 		if (reg0 == GP_REG_ERROR) return 0xFF00B1;
 		entry_impl[2] >> inst;
-		bool relative = false;
-		if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
-			relative = true;
-		}
 		int64_t address = 0;
-		bool passed = getInteger(inst, &address);
-		if (!passed) return 0xFF00B2;
-		if (relative) address += m_pc_address;
+		if (inst.c_str()[0] == ':') {
+			auto it = gotos.find(inst);
+			if (it == gotos.end()) return 0xFF00B3;
+			address = m_pc_start + it->second;
+		}
+		else if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+			bool passed = getInteger(inst, &address);
+			if (!passed) return 0xFF00B2;
+			address += m_pc_address;
+		}
+		else return 0xFF00B4;
 		if (type == 0) a.cbz(reg0, address);
 		if (type == 1) a.cbnz(reg0, address);
 		return 0;
@@ -924,7 +1103,7 @@ namespace ASM {
 	template <typename T> Result LDP (T entry_impl, uint8_t type = 0) {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
-		if (entry_impl.num_children() != 4)
+		if (entry_impl.num_children() < 4 || entry_impl.num_children() > 5)
 			return 0xFF0130;
 		if (!entry_impl[3].is_seq()) return 0xFF0021;
 		if (entry_impl[3].num_children() == 0 || entry_impl[3].num_children() > 2) return 0xFF0132;
@@ -944,16 +1123,42 @@ namespace ASM {
 				entry_impl[3][1] >> inst;
 				bool passed = getInteger(inst, &value);
 				if (!passed) return 0xFF0138;
-				if (type == 0)
-					a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
-				else if (type == 1)
-					a.stp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+				if (type == 0) {
+					if (entry_impl.num_children() == 4) a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+					else a.ldp(regfp, regfp2, asmjit::a64::ptr_pre(reg1, value));
+				}
+				else if (type == 1) {
+					if (entry_impl.num_children() == 4) a.stp(regfp, regfp2, asmjit::a64::Mem(reg1, value));
+					else a.stp(regfp, regfp2, asmjit::a64::ptr_pre(reg1, value));
+				}
 			}
 			else {
-				if (type == 0)
-					a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1));
-				else if (type == 1)
-					a.stp(regfp, regfp2, asmjit::a64::Mem(reg1));
+				if (type == 0) {
+					if (entry_impl.num_children() == 4) a.ldp(regfp, regfp2, asmjit::a64::Mem(reg1));
+					else {
+						std::string inst;
+						entry_impl[4] >> inst;
+						if (inst.compare("!")) {
+							uint16_t value = 0;
+							bool passed = getInteger(inst, &value);
+							if (!passed) return 0xFF0139;
+							a.ldp(regfp, regfp2, asmjit::a64::ptr_post(reg1, value));
+						}
+					}
+				}
+				else if (type == 1) {
+					if (entry_impl.num_children() == 4) a.stp(regfp, regfp2, asmjit::a64::Mem(reg1));
+					else {
+						std::string inst;
+						entry_impl[4] >> inst;
+						if (inst.compare("!")) {
+							uint16_t value = 0;
+							bool passed = getInteger(inst, &value);
+							if (!passed) return 0xFF013A;
+							a.stp(regfp, regfp2, asmjit::a64::ptr_post(reg1, value));
+						}
+					}
+				}
 			}
 		}
 		else {
@@ -967,21 +1172,43 @@ namespace ASM {
 				int32_t value = 0;
 				entry_impl[3][1] >> inst;
 				bool passed = getInteger(inst, &value);
-				if (!passed) return 0xFF0138;
-				if (type == 0)
-					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2, value));
-				else if (type == 1)
-					a.stp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+				if (!passed) return 0xFF013B;
+				if (type == 0) {
+					if (entry_impl.num_children() == 4) a.ldp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+					else a.ldp(reg0, reg1, asmjit::a64::ptr_pre(reg2, value));
+				}
+				else if (type == 1) {
+					if (entry_impl.num_children() == 4) a.stp(reg0, reg1, asmjit::a64::Mem(reg2, value));
+					else a.stp(reg0, reg1, asmjit::a64::ptr_pre(reg2, value));
+				}
 			}
 			else {
-				if (type == 0)
-					a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
-				else if (type == 1)
-					a.stp(reg0, reg1, asmjit::a64::Mem(reg2));
-				else if (type == 2)
-					a.stxr(reg0, reg1, asmjit::a64::Mem(reg2));
-				else if (type == 3)
-					a.stxrb(reg0, reg1, asmjit::a64::Mem(reg2));
+				if (type == 0) {
+					if (entry_impl.num_children() == 4) a.ldp(reg0, reg1, asmjit::a64::Mem(reg2));
+					else {
+						std::string inst;
+						entry_impl[4] >> inst;
+						if (inst.compare("!")) {
+							uint16_t value = 0;
+							bool passed = getInteger(inst, &value);
+							if (!passed) return 0xFF013D;
+							a.ldp(reg0, reg1, asmjit::a64::ptr_post(reg2, value));
+						}
+					}
+				}
+				else if (type == 1) {
+					if (entry_impl.num_children() == 4) a.stp(reg0, reg1, asmjit::a64::Mem(reg2));
+					else {
+						std::string inst;
+						entry_impl[4] >> inst;
+						if (inst.compare("!")) {
+							uint16_t value = 0;
+							bool passed = getInteger(inst, &value);
+							if (!passed) return 0xFF013C;
+							a.stp(reg0, reg1, asmjit::a64::ptr_post(reg2, value));
+						}
+					}
+				}
 			}
 		}
 		return 0;
@@ -1056,6 +1283,7 @@ namespace ASM {
 		hash32("STURH"),
 		hash32("FMOV"),
 		hash32("B"),
+		hash32("B.EQ"),
 		hash32("B.LE"),
 		hash32("B.GE"),
 		hash32("B.NE"),
@@ -1093,8 +1321,6 @@ namespace ASM {
 		hash32("LSL"),
 		hash32("SVC"),
 		hash32("FMINNM"),
-		hash32("STXR"),
-		hash32("STXRB")
 	};
 
 	template <typename T> constexpr bool has_duplicates(const T *array, std::size_t size)
@@ -1110,12 +1336,14 @@ namespace ASM {
 	static_assert(!has_duplicates(hashes, std::size(hashes)), "Detected repeated hash!");
 	static_assert(!has_duplicates(hashes2, std::size(hashes2)), "Detected repeated hash!");
 
-	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uintptr_t pc_address) {
+	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, uintptr_t start_address, const std::unordered_map<std::string, uint32_t> gotos) {
 		std::string inst;
 		entry[0] >> inst;
 		code.init(customEnv, pc_address);
 		m_pc_address = pc_address;
+		m_pc_start = start_address;
 		Result rc = 0;
+		adjust_type = 0;
 		switch(hash32(inst.c_str())) {
 			case hash32("ADRP"): {rc = ADRP(entry); break;}
 			case hash32("ADD"): {rc = ADD(entry); break;}
@@ -1137,16 +1365,17 @@ namespace ASM {
 			case hash32("STUR"): {rc = STR(entry, 3); break;}
 			case hash32("STURH"): {rc = STR(entry, 4); break;}
 			case hash32("FMOV"): {rc = MOV(entry, 2); break;}
-			case hash32("B"): {rc = B(entry); break;}
-			case hash32("B.LE"): {rc = B(entry, 0, hash32("LE")); break;}
-			case hash32("B.GE"): {rc = B(entry, 0, hash32("GE")); break;}
-			case hash32("B.NE"): {rc = B(entry, 0, hash32("NE")); break;}
-			case hash32("B.GT"): {rc = B(entry, 0, hash32("GT")); break;}
-			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT")); break;}
-			case hash32("B.HI"): {rc = B(entry, 0, hash32("HI")); break;}
-			case hash32("BL"): {rc = B(entry, 1); break;}
-			case hash32("BLR"): {rc = B(entry, 2); break;}
-			case hash32("BR"): {rc = B(entry, 3); break;}
+			case hash32("B"): {rc = B(entry, 0, 0xFF, gotos); break;}
+			case hash32("B.EQ"): {rc = B(entry, 0, hash32("EQ"), gotos); break;}
+			case hash32("B.LE"): {rc = B(entry, 0, hash32("LE"), gotos); break;}
+			case hash32("B.GE"): {rc = B(entry, 0, hash32("GE"), gotos); break;}
+			case hash32("B.NE"): {rc = B(entry, 0, hash32("NE"), gotos); break;}
+			case hash32("B.GT"): {rc = B(entry, 0, hash32("GT"), gotos); break;}
+			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT"), gotos); break;}
+			case hash32("B.HI"): {rc = B(entry, 0, hash32("HI"), gotos); break;}
+			case hash32("BL"): {rc = B(entry, 1, 0xFF); break;}
+			case hash32("BLR"): {rc = B(entry, 2, 0xFF); break;}
+			case hash32("BR"): {rc = B(entry, 3, 0xFF); break;}
 			case hash32("SUB"): {rc = ADD(entry, 2); break;}
 			case hash32("FSUB"): {rc = ADD(entry, 3); break;}
 			case hash32("CMP"): {rc = CMP(entry); break;}
@@ -1155,8 +1384,8 @@ namespace ASM {
 			case hash32("UCVTF"): {rc = UCVTF(entry); break;}
 			case hash32("SCVTF"): {rc = UCVTF(entry, 1); break;}
 			case hash32("FCVT"): {rc = FCVT(entry); break;}
-			case hash32("CBZ"): {rc = CBZ(entry); break;}
-			case hash32("CBNZ"): {rc = CBZ(entry, 1); break;}
+			case hash32("CBZ"): {rc = CBZ(entry, 0, gotos); break;}
+			case hash32("CBNZ"): {rc = CBZ(entry, 1, gotos); break;}
 			case hash32("TBZ"): {rc = TBZ(entry); break;}
 			case hash32("TBNZ"): {rc = TBZ(entry, 1); break;}
 			case hash32("CSEL"): {rc = CSEL(entry); break;}
@@ -1172,8 +1401,6 @@ namespace ASM {
 			case hash32("FNEG"): {rc = FNEG(entry); break;}
 			case hash32("FSQRT"): {rc = FSQRT(entry); break;}
 			case hash32("STP"): {rc = LDP(entry, 1); break;}
-			case hash32("STXR"): {rc = LDP(entry, 2); break;}
-			case hash32("STXRB"): {rc = LDP(entry, 3); break;}
 			case hash32("LSL"): {rc = LSL(entry); break;}
 			case hash32("SVC"): {rc = SVC(entry); break;}
 			case hash32("FMINNM"): {rc = FMINNM(entry); break;}
@@ -1188,6 +1415,7 @@ namespace ASM {
 		}
 		code.copyFlattenedData(out, 4);
 		code.reset();
+		if (adjust_type_arg) *adjust_type_arg = adjust_type;
 		return 0;
 	}
 }

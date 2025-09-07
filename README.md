@@ -2,15 +2,18 @@
 
 An overlay that, with SaltyNX, allows you to set custom display refresh rate and FPS in Nintendo Switch retail games.
 
-Disclaimer: The tool utilizes detection of the graphics API to manipulate FPS, and in special cases, it requires using patches made specifically for each game version to achieve more than 30 FPS. Overlay has a built-in option to download configs used to make patches. Repository storing those configs can be found [HERE](https://github.com/masagrator/FPSLocker-Warehouse)<br>
+> [!NOTE]
+> The tool utilizes detection of the graphics API to manipulate FPS, and in special cases, it requires using patches made specifically for each game version to achieve more than 30 FPS. Overlay has a built-in option to download configs used to make patches. Repository storing those configs can be found [HERE](https://github.com/masagrator/FPSLocker-Warehouse)<br>
 Max supported YAML size is 32kB, though it can be expanded in the next updates.
 
-**DON'T USE 60 FPS CHEATS SIMULTANEOUSLY WITH THIS TOOL, EITHER YOU NEED A CHEAT OR FPSLOCKER, YOU DON'T NEED BOTH AT ONCE! THIS CAN CREATE COMPATIBILITY ISSUES LEADING TO CRASHES!**
+> [!WARNING]
+> IT IS NOT ADVISED TO USE 60 FPS CHEATS/MODS SIMULTANEOUSLY WITH THIS TOOL, EITHER YOU NEED A CHEAT OR FPSLOCKER, YOU DON'T NEED BOTH AT ONCE! THIS CAN CREATE COMPATIBILITY ISSUES LEADING TO CRASHES!**
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 1.4.3+](https://github.com/masagrator/SaltyNX/releases)
+- [My fork of SaltyNX, version 1.5.0+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
+- Overclocking toolset (And don't expect to run games in docked mode at locked 60 FPS without ridiculously beefy clocks, no - 1963/998/2133 clocks are not beefy enough in most cases)
 
 How to set up everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
 
@@ -32,13 +35,14 @@ The best approach if you want to run 30 FPS games at higher FPS:
 - `Interval Mode` - It's used by NVN API to set the limiter to either 30 FPS (2) or 60 FPS (1) (sporadically to 20 FPS (3) and 15 FPS (4)). 
 - `Custom FPS Target` - It's used to lock the game to a certain FPS. If the game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `FPS` - It shows how many frames have passed in the last second for the currently running game. This is to confirm that the lock is working as expected.
+- `Patch file doesn't exist.` - It shows up when overlay is 100% sure that for FPSLocker to properly work in this specific game it needs FPSLocker patch, but you don't have one. Read `tl;dr` how to get config and convert it to patch (though config may not exist for your game generally or for specific game's version you are using).
 - `Increase/Decrease FPS target` - Shows up only in handheld mode. Change FPS Target by 5. Minimum is 15 FPS, max is 60 FPS.
 - `Change FPS target` - Shows up only in docked mode. Shows up table with different FPS values, from 15 to 60 by default with possibility of expanding to 120 FPS.
 - `Disable custom FPS target` - Removes FPS Target. Since we cannot predict what interval mode is expected at this point, it is in user's discretion to manipulate FPS to bring back correct interval before disabling FPS target.
 - `Advanced settings` - submenu which consists of:
   - If game is using NVN
     - `Window Sync Wait` - this is dangerous setting that disabled can crash game, but in some can bring benefit of disabling double buffer vsync at the cost of small graphical glitches (check list of games compatible with this solution at the bottom of README). Use it with caution. It won't show if game is not using double buffer. 
-    - `Set Buffering` - if game is using any other buffering than double, this option will show that will allow you to force game to run at any other buffering that is not higher than original one (so f.e. you cannot change double buffer to triple buffer). Lowering buffer is recommended only for games that have near perfect performance at 30 or 60 FPS, but suffer from bad framepacing or big input lag. If you will force double buffer in games with uneven performance, FPS drops will be very severe. It can be applied only at boot of game, so after changing buffering you must save settings in FPSLocker and restart game. <br> Explanation of `Set/Active/Available Buffers`: 
+    - `Set Buffering` - if game is using any other buffering than double, this option will show that will allow you to force game to run at any other buffering that is not higher than original one (so f.e. you cannot change double buffer to triple buffer). Lowering buffer is recommended only for games that have near perfect performance at 30 or 60 FPS, but suffer from bad framepacing or big input lag. If you will force double buffer in games with uneven performance, FPS drops will be very severe. It can be applied only at boot of game, so after changing buffering you must restart game. <br> Explanation of `Set/Active/Available Buffers`: 
       - Set - how many buffers were set by using `nvnWindowSetNumActiveTextures`. If game is not using it, it will be 0. It can be used by games to set lower buffer value than reserved space allows. If this is detected to be used and lower than Available Buffers, you can use "(force)" variant next to default option. Without `(force)` it will reset to default settings.
       - Active - How many buffers are actually used by game. 
       - Available - How many buffers is actually provided to NVN. We can use this information to force games to utilize all buffers when they are not doing it.
