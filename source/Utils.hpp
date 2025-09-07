@@ -530,8 +530,6 @@ void downloadPatch(void*) {
 				fseek(fp, 0, SEEK_SET);
 				char* buffer = (char*)calloc(1, filesize + 1);
 				fread(buffer, 1, filesize, fp);
-				fclose(fp);
-				remove("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md");
 				char findText_char[] = "# FPSLocker Warehouse";
 				char BID_search[] = "`1234567890ABCDEF` (◯";
 				if (!strncmp(buffer, findText_char, strlen(findText_char))) {
@@ -578,6 +576,8 @@ void downloadPatch(void*) {
 				temp_error_code = 0x405;
 			}
 			else temp_error_code = 0x406;
+			fclose(fp);
+			remove("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md");
 		}
 
         curl_easy_cleanup(curl);
