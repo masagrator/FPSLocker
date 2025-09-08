@@ -13,7 +13,7 @@ namespace LOCK {
 	char configBuffer[32770] = "";
 	uint8_t gen = 3;
 	bool master_write = false;
-	bool unsafeCheck = false;
+	bool unsafeCheck = true;
 
 	struct buffer_data {
 		size_t size;
@@ -766,7 +766,7 @@ namespace LOCK {
 		freeDeclares();
 		declared_codes.clear();
 
-		unsafeCheck = false;
+		unsafeCheck = true;
 
 		char lockMagic[] = "LOCK";
 		gen = 4;
