@@ -38,7 +38,7 @@ public:
 
 		}
 		else {
-			if ((Shared -> SetActiveBuffers) == 2 && (Shared -> Buffers) == 3 && !SetBuffers_save) {
+			if ((Shared -> SetActiveBuffers) > 0 && (Shared -> Buffers) >= 3) {
 				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(35));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -71,7 +71,7 @@ public:
 			}
 			
 			if ((Shared -> Buffers) == 4) {
-				if ((Shared -> SetActiveBuffers) < 4 && (Shared -> SetActiveBuffers) > 0 && (Shared -> Buffers) == 4) {
+				if ((Shared -> SetActiveBuffers) > 0) {
 					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(36));
 					clickableListItem3->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
