@@ -9,7 +9,7 @@ text = urlopen(request_site).read().decode("UTF-8").split("\n")
 for line in text:
     if line.find("| `0100") == -1:
         continue
-    if line.find("| 🟢 |") != -1:
+    if line.find("| [🟢]") != -1:
         continue
     pos = line.find("| `0100") + 3
     titleid = line[pos:pos+16].upper()

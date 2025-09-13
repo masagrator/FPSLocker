@@ -45,9 +45,10 @@ struct NxFpsSharedBlock {
 	float readSpeedPerSecond;
 	uint8_t FPSlockedDocked;
 	uint64_t frameNumber;
+	int8_t expectedSetBuffers;
 } NX_PACKED;
 
-static_assert(sizeof(NxFpsSharedBlock) == 173);
+static_assert(sizeof(NxFpsSharedBlock) == 174);
 
 struct DockedAdditionalSettings {
 	bool dontForce60InDocked;
