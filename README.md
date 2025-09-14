@@ -29,7 +29,7 @@ If the game is supported by SaltyNX and you installed everything correctly, you 
 **tl;dr**<br>
 The best approach if you want to run 30 FPS games at higher FPS: 
 1. Connect your Switch to the internet, in FPSLocker go to `Advanced Settings`, press `Check/download config file`. If your game and version are compatible with the FPSLocker Warehouse repository, the menu will be refreshed with the option `Convert config to patch` appearing. Press on it, restart the game, and now change the FPS target in FPSLocker.
-2. Go to Advanced Settings, if you see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, look if you need to restart game, choose `Triple (force)`, restart game if needed.
+2. Go to Advanced Settings, if you see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`.
 
 **Explanation of each option and information**:
 - `Interval Mode` - It's used by NVN API to set the limiter to either 30 FPS (2) or 60 FPS (1) (sporadically to 20 FPS (3) and 15 FPS (4)). 
