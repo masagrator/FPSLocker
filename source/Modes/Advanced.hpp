@@ -6,12 +6,14 @@ public:
 		auto frame = new tsl::elm::OverlayFrame(getStringID(30), " ");
 
 		auto list = new tsl::elm::List();
-		list->addItem(new tsl::elm::NoteHeader(getStringID(31), true, {0xF, 0x3, 0x3, 0xF}));
+		if (Shared->expectedSetBuffers == -1) list->addItem(new tsl::elm::NoteHeader(getStringID(31), true, {0xF, 0x3, 0x3, 0xF}));
 		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(33));
 		clickableListItem->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				SetBuffers_save = 2;
+				if (Shared->expectedSetBuffers != -1) Shared->expectedSetBuffers = 2;
 				saveSettings();
+				tsl::goBack();
 				tsl::goBack();
 				return true;
 			}
@@ -24,7 +26,9 @@ public:
 			clickableListItemv1->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					SetBuffers_save = 3;
+					if (Shared->expectedSetBuffers != -1) Shared->expectedSetBuffers = 3;
 					saveSettings();
+					tsl::goBack();
 					tsl::goBack();
 					return true;
 				}
@@ -34,41 +38,49 @@ public:
 
 		}
 		else {
-			if ((Shared -> SetActiveBuffers) == 2 && (Shared -> Buffers) == 3 && !SetBuffers_save) {
+			if ((Shared -> Buffers) >= 3) {
+				if ((Shared -> SetActiveBuffers) > 0) {
 				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(35));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						SetBuffers_save = 3;
+						if (Shared->expectedSetBuffers != -1) Shared->expectedSetBuffers = 3;
 						saveSettings();
+						tsl::goBack();
 						tsl::goBack();
 						return true;
 					}
 					return false;
 				});
 				list->addItem(clickableListItem2);
-			}
-			else {
-				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(34));
-				clickableListItem2->setClickListener([](u64 keys) { 
-					if ((keys & HidNpadButton_A) && PluginRunning) {
-						if ((Shared -> Buffers) == 4) SetBuffers_save = 3;
-						else SetBuffers_save = 0;
-						saveSettings();
-						tsl::goBack();
-						return true;
-					}
-					return false;
-				});
-				list->addItem(clickableListItem2);
+				}
+				else {
+					auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(34));
+					clickableListItem2->setClickListener([](u64 keys) { 
+						if ((keys & HidNpadButton_A) && PluginRunning) {
+							if ((Shared -> Buffers) == 4) SetBuffers_save = 3;
+							else SetBuffers_save = 0;
+							if (Shared->expectedSetBuffers != -1) Shared->expectedSetBuffers = 3;
+							saveSettings();
+							tsl::goBack();
+							tsl::goBack();
+							return true;
+						}
+						return false;
+					});
+					list->addItem(clickableListItem2);
+				}
 			}
 			
 			if ((Shared -> Buffers) == 4) {
-				if ((Shared -> SetActiveBuffers) < 4 && (Shared -> SetActiveBuffers) > 0 && (Shared -> Buffers) == 4) {
+				if ((Shared -> SetActiveBuffers) > 0) {
 					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(36));
 					clickableListItem3->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
 							SetBuffers_save = 4;
+							if (Shared->expectedSetBuffers != -1) Shared->expectedSetBuffers = 4;
 							saveSettings();
+							tsl::goBack();
 							tsl::goBack();
 							return true;
 						}
@@ -81,7 +93,9 @@ public:
 					clickableListItem3->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
 							SetBuffers_save = 0;
+							if (Shared->expectedSetBuffers != -1) Shared->expectedSetBuffers = 4;
 							saveSettings();
+							tsl::goBack();
 							tsl::goBack();
 							return true;
 						}
@@ -211,7 +225,7 @@ public:
 							
 					}), 60);
 
-					if ((Shared -> Buffers) == 2 || (Shared -> SetBuffers) == 2 || (Shared -> ActiveBuffers) == 2) {
+					if ((Shared -> Buffers) == 2 || (Shared -> ActiveBuffers) == 2) {
 						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(54), ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
