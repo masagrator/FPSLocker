@@ -131,6 +131,7 @@ Translation:
 In those games, you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
 - Batman - The Telltale Series (Warehouse patch enables triple buffer, so there is no need to use this option)
 - Pokémon Legends: Arceus
+- Pokémon Legends: Z-A
 - Pokémon Scarlet
 - Pokémon Violet
 - Sonic Frontier
