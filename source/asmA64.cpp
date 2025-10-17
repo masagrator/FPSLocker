@@ -763,6 +763,7 @@ namespace ASM {
 			}
 			switch(subtype) {
 				case 0xFF: {a.b(address); break;}
+				case hash32("EQ"): {a.b_eq(address); break;}
 				case hash32("NE"): {a.b_ne(address); break;}
 				case hash32("CS"): {a.b_cs(address); break;}
 				case hash32("HS"): {a.b_hs(address); break;}
