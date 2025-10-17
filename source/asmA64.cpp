@@ -763,13 +763,23 @@ namespace ASM {
 			}
 			switch(subtype) {
 				case 0xFF: {a.b(address); break;}
-				case hash32("LE"): {a.b_le(address); break;}
-				case hash32("GE"): {a.b_ge(address); break;}
 				case hash32("NE"): {a.b_ne(address); break;}
-				case hash32("GT"): {a.b_gt(address); break;}
-				case hash32("LT"): {a.b_lt(address); break;}
+				case hash32("CS"): {a.b_cs(address); break;}
+				case hash32("HS"): {a.b_hs(address); break;}
+				case hash32("CC"): {a.b_cc(address); break;}
+				case hash32("LO"): {a.b_lo(address); break;}
+				case hash32("MI"): {a.b_mi(address); break;}
+				case hash32("PL"): {a.b_pl(address); break;}
+				case hash32("VS"): {a.b_vs(address); break;}
+				case hash32("VC"): {a.b_vc(address); break;}
 				case hash32("HI"): {a.b_hi(address); break;}
-				case hash32("EQ"): {a.b_eq(address); break;}
+				case hash32("LS"): {a.b_ls(address); break;}
+				case hash32("GE"): {a.b_ge(address); break;}
+				case hash32("LT"): {a.b_lt(address); break;}
+				case hash32("GT"): {a.b_gt(address); break;}
+				case hash32("LE"): {a.b_le(address); break;}
+				case hash32("AL"): {a.b_al(address); break;}
+				case hash32("NV"): {a.nop(); break;}
 				default: return 0xFF0064;
 			}
 		}
@@ -926,7 +936,7 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result TBZ(T entry_impl, uint8_t type = 0) {
+	template <typename T> Result TBZ(T entry_impl, uint8_t type = 0, const std::unordered_map<std::string, uint32_t> gotos = {}) {
 		if (entry_impl.num_children() != 4)
 			return 0xFF00C0;
 		asmjit::a64::Assembler a(&code);
@@ -937,16 +947,20 @@ namespace ASM {
 		entry_impl[2] >> inst;
 		uint8_t shift = 0;
 		bool passed = getInteger(inst, &shift);
-		if (!passed) return 0xFF00C3;
-		entry_impl[3] >> inst;
-		bool relative = false;
-		if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
-			relative = true;
-		}
-		int64_t address = 0;
-		passed = getInteger(inst, &address);
 		if (!passed) return 0xFF00C2;
-		if (relative) address += m_pc_address;
+		entry_impl[3] >> inst;
+		int64_t address = 0;
+		if (inst.c_str()[0] == ':') {
+			auto it = gotos.find(inst);
+			if (it == gotos.end()) return 0xFF00C3;
+			address = m_pc_start + it->second;
+		}
+		else if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
+			bool passed = getInteger(inst, &address);
+			if (!passed) return 0xFF00C4;
+			address += m_pc_address;
+		}
+		else return 0xFF00C5;
 		if (type == 0) a.tbz(reg0, shift, address);
 		if (type == 1) a.tbnz(reg0, shift, address);
 		return 0;
@@ -1284,12 +1298,23 @@ namespace ASM {
 		hash32("FMOV"),
 		hash32("B"),
 		hash32("B.EQ"),
-		hash32("B.LE"),
-		hash32("B.GE"),
 		hash32("B.NE"),
-		hash32("B.GT"),
-		hash32("B.LT"),
+		hash32("B.CS"),
+		hash32("B.HS"),
+		hash32("B.CC"),
+		hash32("B.LO"),
+		hash32("B.MI"),
+		hash32("B.PL"),
+		hash32("B.VS"),
+		hash32("B.VC"),
 		hash32("B.HI"),
+		hash32("B.LS"),
+		hash32("B.GE"),
+		hash32("B.LT"),
+		hash32("B.GT"),
+		hash32("B.LE"),
+		hash32("B.AL"),
+		hash32("B.NV"),
 		hash32("BL"),
 		hash32("BLR"),
 		hash32("BR"),
@@ -1367,12 +1392,23 @@ namespace ASM {
 			case hash32("FMOV"): {rc = MOV(entry, 2); break;}
 			case hash32("B"): {rc = B(entry, 0, 0xFF, gotos); break;}
 			case hash32("B.EQ"): {rc = B(entry, 0, hash32("EQ"), gotos); break;}
-			case hash32("B.LE"): {rc = B(entry, 0, hash32("LE"), gotos); break;}
-			case hash32("B.GE"): {rc = B(entry, 0, hash32("GE"), gotos); break;}
 			case hash32("B.NE"): {rc = B(entry, 0, hash32("NE"), gotos); break;}
-			case hash32("B.GT"): {rc = B(entry, 0, hash32("GT"), gotos); break;}
-			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT"), gotos); break;}
+			case hash32("B.CS"): {rc = B(entry, 0, hash32("CS"), gotos); break;}
+			case hash32("B.HS"): {rc = B(entry, 0, hash32("HS"), gotos); break;}
+			case hash32("B.CC"): {rc = B(entry, 0, hash32("CC"), gotos); break;}
+			case hash32("B.LO"): {rc = B(entry, 0, hash32("LO"), gotos); break;}
+			case hash32("B.MI"): {rc = B(entry, 0, hash32("MI"), gotos); break;}
+			case hash32("B.PL"): {rc = B(entry, 0, hash32("PL"), gotos); break;}
+			case hash32("B.VS"): {rc = B(entry, 0, hash32("VS"), gotos); break;}
+			case hash32("B.VC"): {rc = B(entry, 0, hash32("VC"), gotos); break;}
 			case hash32("B.HI"): {rc = B(entry, 0, hash32("HI"), gotos); break;}
+			case hash32("B.LS"): {rc = B(entry, 0, hash32("LS"), gotos); break;}
+			case hash32("B.GE"): {rc = B(entry, 0, hash32("GE"), gotos); break;}
+			case hash32("B.LT"): {rc = B(entry, 0, hash32("LT"), gotos); break;}
+			case hash32("B.GT"): {rc = B(entry, 0, hash32("GT"), gotos); break;}
+			case hash32("B.LE"): {rc = B(entry, 0, hash32("LE"), gotos); break;}
+			case hash32("B.AL"): {rc = B(entry, 0, hash32("AL"), gotos); break;}
+			case hash32("B.NV"): {rc = B(entry, 0, hash32("NV"), gotos); break;}
 			case hash32("BL"): {rc = B(entry, 1, 0xFF); break;}
 			case hash32("BLR"): {rc = B(entry, 2, 0xFF); break;}
 			case hash32("BR"): {rc = B(entry, 3, 0xFF); break;}
@@ -1386,8 +1422,8 @@ namespace ASM {
 			case hash32("FCVT"): {rc = FCVT(entry); break;}
 			case hash32("CBZ"): {rc = CBZ(entry, 0, gotos); break;}
 			case hash32("CBNZ"): {rc = CBZ(entry, 1, gotos); break;}
-			case hash32("TBZ"): {rc = TBZ(entry); break;}
-			case hash32("TBNZ"): {rc = TBZ(entry, 1); break;}
+			case hash32("TBZ"): {rc = TBZ(entry, 0, gotos); break;}
+			case hash32("TBNZ"): {rc = TBZ(entry, 1, gotos); break;}
 			case hash32("CSEL"): {rc = CSEL(entry); break;}
 			case hash32("FCSEL"): {rc = CSEL(entry, 1); break;}
 			case hash32("FCVTZU"): {rc = FCVTZU(entry); break;}
