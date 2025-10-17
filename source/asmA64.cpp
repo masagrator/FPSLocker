@@ -346,7 +346,7 @@ namespace ASM {
 				if (reg2 == GP_REG_ERROR) {
 					int32_t value = 0;
 					if (inst.c_str()[0] == '$') {
-						if (type != 0) return 0xFF0025;
+						if (type > 2) return 0xFF0025;
 						if (LOCK::declared_variables.find(hash32(&inst.c_str()[1])) != LOCK::declared_variables.end()) {
 							value = LOCK::declared_variables[hash32(&inst.c_str()[1])].cave_offset;
 						}
