@@ -48,7 +48,7 @@ public:
 		// A list that can contain sub elements and handles scrolling
 		auto list = new tsl::elm::List();
 
-		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(0));
+		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(Lang::Id_DeleteSettings));
 		clickableListItem->setClickListener([this](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				char path[512] = "";
@@ -79,7 +79,7 @@ public:
 
 		list->addItem(clickableListItem);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(1));
+		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_DeletePatches));
 		clickableListItem2->setClickListener([this](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				char folder[640] = "";
@@ -159,13 +159,13 @@ public:
 		if (oldSalty || !SaltySD) {
 			list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 				if (!SaltySD) {
-					renderer->drawString(getStringID(2), false, x, y+20, 20, renderer->a(0xF33F));
+					renderer->drawString(getStringID(Lang::Id_SaltyNXIsNotWorking), false, x, y+20, 20, renderer->a(0xF33F));
 				}
 				else if (!plugin) {
-					renderer->drawString(getStringID(3), false, x, y+20, 20, renderer->a(0xF33F));
+					renderer->drawString(getStringID(Lang::Id_CantDetectNXFPSPluginOnSdcard), false, x, y+20, 20, renderer->a(0xF33F));
 				}
 				else if (!check) {
-					renderer->drawString(getStringID(4), false, x, y+20, 19, renderer->a(0xF33F));
+					renderer->drawString(getStringID(Lang::Id_GameIsNotRunning), false, x, y+20, 19, renderer->a(0xF33F));
 				}
 			}), 30);
 		}
@@ -184,10 +184,10 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		else {
-			auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(5));
+			auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(Lang::Id_All));
 			clickableListItem3->setClickListener([](u64 keys) { 
 				if (keys & HidNpadButton_A) {
-					tsl::changeTo<NoGameSub>(0x1234567890ABCDEF, getStringID(6));
+					tsl::changeTo<NoGameSub>(0x1234567890ABCDEF, getStringID(Lang::Id_Everything));
 					return true;
 				}
 				return false;
@@ -238,17 +238,17 @@ public:
 
 		list->addItem(new tsl::elm::CustomDrawer([](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 			if (!SaltySD) {
-				renderer->drawString(getStringID(2), false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(Lang::Id_SaltyNXIsNotWorking), false, x, y+20, 20, renderer->a(0xF33F));
 			}
 			else if (!plugin) {
-				renderer->drawString(getStringID(3), false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(Lang::Id_CantDetectNXFPSPluginOnSdcard), false, x, y+20, 20, renderer->a(0xF33F));
 			}
 			else if (!check) {
-				renderer->drawString(getStringID(4), false, x, y+20, 19, renderer->a(0xF33F));
+				renderer->drawString(getStringID(Lang::Id_GameIsNotRunning), false, x, y+20, 19, renderer->a(0xF33F));
 			}
 		}), 30);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(7));
+		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_GamesList));
 		clickableListItem2->setClickListener([this](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				tsl::changeTo<NoGame2>(this -> rc, 2, true);
@@ -259,7 +259,7 @@ public:
 
 		list->addItem(clickableListItem2);
 
-		auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(8), "\uE151");
+		auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(Lang::Id_DisplaySettings), "\uE151");
 		clickableListItem3->setClickListener([](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				tsl::changeTo<WarningDisplayGui>();
@@ -512,14 +512,14 @@ public:
 		
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 			if (!SaltySD) {
-				renderer->drawString(getStringID(2), false, x, y+50, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(Lang::Id_SaltyNXIsNotWorking), false, x, y+50, 20, renderer->a(0xF33F));
 			}
 			else if (!plugin) {
-				renderer->drawString(getStringID(3), false, x, y+50, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(Lang::Id_CantDetectNXFPSPluginOnSdcard), false, x, y+50, 20, renderer->a(0xF33F));
 			}
 			else if (!check) {
 				if (closed) {
-					renderer->drawString(getStringID(10), false, x, y+20, 19, renderer->a(0xF33F));
+					renderer->drawString(getStringID(Lang::Id_GameWasClosedOverlayDisabled), false, x, y+20, 19, renderer->a(0xF33F));
 					renderer->drawString(getStringID(15), false, x, y+70, 20, renderer->a(0xFFFF));
 				}
 				else {
@@ -696,7 +696,7 @@ public:
 		}
 
 		if (SaltySD) {
-			auto *clickableListItem6 = new tsl::elm::ListItem2(getStringID(8), "\uE151");
+			auto *clickableListItem6 = new tsl::elm::ListItem2(getStringID(Lang::Id_DisplaySettings), "\uE151");
 			clickableListItem6->setClickListener([](u64 keys) { 
 				if (keys & HidNpadButton_A) {
 					tsl::changeTo<WarningDisplayGui>();

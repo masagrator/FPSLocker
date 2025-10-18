@@ -14,7 +14,7 @@ static_assert(ENG::strings.size() == PTBR::strings.size());
 
 SetLanguage language = SetLanguage_ENUS;
 
-const char* getStringID(std::size_t id) {
+const char* getStringID(size_t id) {
 
     switch(language) {
         case SetLanguage_DE:

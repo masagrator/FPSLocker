@@ -855,7 +855,7 @@ public:
 	size_t base_height = 128;
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(8));
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(Lang::Id_DisplaySettings));
 
 		auto list = new tsl::elm::List();
 
