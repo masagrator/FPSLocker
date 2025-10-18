@@ -16,5 +16,5 @@ namespace Lang {
     };
 }
 
-const char* getStringID(size_t id);
+const char* getStringID(std::size_t id);
 const char* getTeslaStringID(std::size_t id);
