@@ -5,12 +5,14 @@
 #include "langs/zhcn.hpp"
 #include "langs/ptbr.hpp"
 #include <switch.h>
+#include "Langs.hpp"
 
-static_assert(ENG::strings.size() == GER::strings.size());
-static_assert(ENG::strings.size() == ZHCN::strings.size());
-static_assert(ENG::strings.size() == FRA::strings.size());
-static_assert(ENG::strings.size() == RUS::strings.size());
-static_assert(ENG::strings.size() == PTBR::strings.size());
+static_assert(Lang::Id_total_number == ENG::strings.size());
+static_assert(Lang::Id_total_number == GER::strings.size());
+static_assert(Lang::Id_total_number == ZHCN::strings.size());
+static_assert(Lang::Id_total_number == FRA::strings.size());
+static_assert(Lang::Id_total_number == RUS::strings.size());
+static_assert(Lang::Id_total_number == PTBR::strings.size());
 
 SetLanguage language = SetLanguage_ENUS;
 

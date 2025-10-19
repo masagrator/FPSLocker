@@ -12,7 +12,6 @@ namespace PTBR {
 		"Tudo",
 		"Lista de jogos",
 		"Configurações de exibição",
-		"Alterar meta de FPS",
 		"Jogo foi fechado!\nSobreposição desativada!",
 		"Jogo não está em execução!\nSobreposição desativada!",
 		"Jogo está em execução.",
@@ -26,7 +25,6 @@ namespace PTBR {
 		"Alterar meta de FPS",
 		"Desativar meta de FPS personalizada",
 		"Configurações avançadas",
-		"Salvar configurações",
 		"Modo de intervalo:\n\uE019 0 (Não utilizado)",
 		"Modo de intervalo:\n\uE019 %d  (%.1f FPS)",
 		"Modo de intervalo:\n\uE019 %d (%d FPS)",
@@ -37,7 +35,6 @@ namespace PTBR {
 		//Advanced Settings
 		"Set Buffering",
 		"Será aplicado ao próximo iniciar do jogo.",
-		"Lembre-se de salvar após as alterações.",
 		"Dobro",
 		"Triplo",
 		"Triplo (forçado)",
@@ -57,7 +54,6 @@ namespace PTBR {
 		"Arquivo de patch não existe.",
 		"Nova config baixada com sucesso.\nUse \"Converter config para patch file\"\npara aplicá-la!",
 		"Arquivo de patch existe.",
-		"Configurações avançadas",
 		"Interface de API GPU: NVN",
 		"Espera de sincronização de janela",
 		"Interface de API GPU: EGL",
@@ -199,5 +195,4 @@ namespace PTBR {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 131);
 }

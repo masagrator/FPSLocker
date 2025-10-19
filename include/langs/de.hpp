@@ -12,7 +12,6 @@ namespace GER {
 		"Alles",
 		"Spielliste",
 		"Anzeigeeinstellungen",
-		"FPS-Ziel ändern",
 		"Spiel wurde geschlossen.\nOverlay deaktiviert!",
 		"Spiel läuft nicht.\nOverlay deaktiviert!",
 		"Spiel läuft.",
@@ -26,7 +25,6 @@ namespace GER {
 		"Ändere FPS-Ziel",
 		"Benutzerdefiniertes FPS-Ziel deaktivieren",
 		"Erweiterte Einstellungen",
-		"Einstellungen speichern",
 		"Interval Modus:\n\uE019 0 (Unbenutzt)",
 		"Interval Modus:\n\uE019 %d (%.1f FPS)",
 		"Interval Modus:\n\uE019 %d (%d FPS)",
@@ -37,7 +35,6 @@ namespace GER {
 		//Advanced Settings
 		"Puffer festlegen",
 		"Es wird beim nächsten Spielstart angewendet.",
-		"Speichere Einstellungen nach Änderung.",
 		"Doppelt",
 		"Dreifach",
 		"Dreifach (erzwungen)",
@@ -57,7 +54,6 @@ namespace GER {
 		"Patch-Datei existiert nicht.",
 		"Neue Config erfolgreich heruntergeladen.\nBenutze \"Konvertiere Config zu Patch-Datei\"\num es verwendbar zu machen!",
 		"Patch-Datei existiert.",
-		"Erweiterte Einstellungen",
 		"GPU API Interface: NVN",
 		"Window Sync Wait",
 		"GPU API Interface: EGL",
@@ -200,5 +196,4 @@ namespace GER {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 131);
 }

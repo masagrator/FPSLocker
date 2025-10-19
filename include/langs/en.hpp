@@ -12,7 +12,6 @@ namespace ENG {
 		"Everything",
 		"Games list",
 		"Display settings",
-		"Change FPS Target",
 		"Game was closed! Overlay disabled!",
 		"Game is not running! Overlay disabled!",
 		"Game is running.",
@@ -26,7 +25,6 @@ namespace ENG {
 		"Change FPS target",
 		"Disable custom FPS target",
 		"Advanced settings",
-		"Save settings",
 		"Interval Mode:\n\uE019 0 (Unused)",
 		"Interval Mode:\n\uE019 %d (%.1f FPS)",
 		"Interval Mode:\n\uE019 %d (%d FPS)",
@@ -37,7 +35,6 @@ namespace ENG {
 		//Advanced Settings
 		"Set Buffering",
 		"It will be applied on next game boot.",
-		"Remember to save settings after change.",
 		"Double",
 		"Triple",
 		"Triple (force)",
@@ -57,7 +54,6 @@ namespace ENG {
 		"Patch file doesn't exist.",
 		"New config downloaded successfully.\nUse \"Convert config to patch file\"\nto make it applicable!",
 		"Patch file exists.",
-		"Advanced settings",
 		"GPU API Interface: NVN",
 		"Window Sync Wait",
 		"GPU API Interface: EGL",
@@ -197,5 +193,4 @@ namespace ENG {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 131);
 }
