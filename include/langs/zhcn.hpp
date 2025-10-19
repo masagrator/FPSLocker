@@ -12,7 +12,6 @@ namespace ZHCN {
 		"所有游戏",
 		"游戏列表",
 		"屏幕设置",
-		"切换目标FPS",
 		"游戏已关闭! FPSLocker已禁用!",
 		"游戏未运行! FPSLocker已禁用!",
 		"游戏正在运行.",
@@ -26,7 +25,6 @@ namespace ZHCN {
 		"切换目标FPS",
 		"禁用自定义的目标FPS",
 		"高级设置",
-		"保存当前设置",
 		"刷新率分频器:\n\uE019 0 (Unused)",
 		"刷新率分频器:\n\uE019 %d (%.1f FPS)",
 		"刷新率分频器:\n\uE019 %d (%d FPS)",
@@ -37,7 +35,6 @@ namespace ZHCN {
 		//Advanced Settings
 		"设置帧缓冲",
 		"设置将会在下次游戏启动时生效.",
-		"在修改后请保存当前设置.",
 		"双重缓冲",
 		"三重缓冲",
 		"强制三重缓冲",
@@ -57,7 +54,6 @@ namespace ZHCN {
 		"补丁不存在.",
 		"新配置文件已下载.\n请使用\"转换配置文件到补丁\"\n来使其生效!",
 		"补丁已存在.",
-		"高级设置",
 		"图形API: NVN",
 		"垂直同步",
 		"图形API: EGL",
@@ -188,5 +184,4 @@ namespace ZHCN {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 131);
 }

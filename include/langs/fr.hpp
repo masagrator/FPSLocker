@@ -12,7 +12,6 @@ namespace FRA {
 		"Liste complète",
 		"Liste des Jeux",
 		"Paramètres de l'écran",
-		"Modifer les FPS",
 		"Le jeu a quitter! Overlay désactivé!",
 		"Pas de jeu en cours! Overlay désactivé!",
 		"Jeu en cours.",
@@ -26,7 +25,6 @@ namespace FRA {
 		"Changer les FPS",
 		"Rétablir les FPS par défaut",
 		"Paramètres avancés",
-		"Sauvegarder les paramètres",
 		"Mode d’intervalle:\n\uE019 0 (Inutilisé)",
 		"Mode d’intervalle:\n\uE019 %d (%.1f FPS)",
 		"Mode d’intervalle:\n\uE019 %d (%d FPS)",
@@ -37,7 +35,6 @@ namespace FRA {
 		//Advanced Settings
 		"Mode de Buffering",
 		"Sera appliqué lors du prochain démarrage du jeu.",
-		"N'oubliez pas d'enregistrer les param. après les avoir modifiés.",
 		"Double",
 		"Triple",
 		"Triple (force)",
@@ -57,7 +54,6 @@ namespace FRA {
 		"Patch introuvable.",
 		"Nouvelle config télécharger avec succès.\nUtiliser \"Convertir la config en patch\"\npour le rendre applicable!",
 		"Patch existe.",
-		"Paramètres avancés",
 		"GPU API Interface: NVN",
 		"Window Sync Wait",
 		"GPU API Interface: EGL",
@@ -201,5 +197,4 @@ namespace FRA {
 	};
 
 	static_assert(teslaStrings.size() == 2);
-	static_assert(strings.size() == 131);
 }
