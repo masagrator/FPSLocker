@@ -8,7 +8,7 @@ CXX = g++
 
 # --- Directories ---
 # Set the directory where your source files are
-SRC_DIR = source
+SRC_DIR = tester/source
 # Set the directory where built object files will go
 BUILD_DIR = build
 
@@ -99,6 +99,13 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 
 # --- C++ Compilation ---
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@cp -r source/c4 tester/source
+	@cp -r source/rapidyaml tester/source
+	@cp -r source/asmjit tester/source
+	@cp source/asmA64.cpp tester/source
+	@cp source/asmA64.hpp tester/source
+	@cp source/Lock.cpp tester/source
+	@cp source/Lock.hpp tester/source
 	@mkdir -p $(dir $@)
 	@echo "==> Compiling C++: $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
