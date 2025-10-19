@@ -3,11 +3,11 @@ public:
     SetBuffers() {}
 
     virtual tsl::elm::Element* createUI() override {
-		auto frame = new tsl::elm::OverlayFrame(getStringID(30), " ");
+		auto frame = new tsl::elm::OverlayFrame(getStringID(Lang::Id_SetBuffering), " ");
 
 		auto list = new tsl::elm::List();
-		if (Shared->expectedSetBuffers == -1) list->addItem(new tsl::elm::NoteHeader(getStringID(31), true, {0xF, 0x3, 0x3, 0xF}));
-		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(33));
+		if (Shared->expectedSetBuffers == -1) list->addItem(new tsl::elm::NoteHeader(getStringID(Lang::Id_ItWillBeAppliedOnNextGameBoot), true, {0xF, 0x3, 0x3, 0xF}));
+		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(Lang::Id_Double));
 		clickableListItem->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				SetBuffers_save = 2;
@@ -22,7 +22,7 @@ public:
 		list->addItem(clickableListItem);
 
 		if ((Shared -> API) == 3) {
-			auto *clickableListItemv1 = new tsl::elm::ListItem2(getStringID(34));
+			auto *clickableListItemv1 = new tsl::elm::ListItem2(getStringID(Lang::Id_Triple));
 			clickableListItemv1->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					SetBuffers_save = 3;
@@ -40,7 +40,7 @@ public:
 		else {
 			if ((Shared -> Buffers) >= 3) {
 				if ((Shared -> SetActiveBuffers) > 0) {
-				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(35));
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_TripleForce));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						SetBuffers_save = 3;
@@ -55,7 +55,7 @@ public:
 				list->addItem(clickableListItem2);
 				}
 				else {
-					auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(34));
+					auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_Triple));
 					clickableListItem2->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
 							if ((Shared -> Buffers) == 4) SetBuffers_save = 3;
@@ -74,7 +74,7 @@ public:
 			
 			if ((Shared -> Buffers) == 4) {
 				if ((Shared -> SetActiveBuffers) > 0) {
-					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(36));
+					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(Lang::Id_QuadrupleForce));
 					clickableListItem3->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
 							SetBuffers_save = 4;
@@ -89,7 +89,7 @@ public:
 					list->addItem(clickableListItem3);	
 				}
 				else {
-					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(37));
+					auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(Lang::Id_Quadruple));
 					clickableListItem3->setClickListener([](u64 keys) { 
 						if ((keys & HidNpadButton_A) && PluginRunning) {
 							SetBuffers_save = 0;
@@ -117,14 +117,14 @@ public:
     SyncMode() {}
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame(getStringID(38), getStringID(39));
+        auto frame = new tsl::elm::OverlayFrame(getStringID(Lang::Id_NVNWindowSyncWait), getStringID(Lang::Id_Mode));
 
 		auto list = new tsl::elm::List();
 
-		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(40));
+		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(Lang::Id_Enabled));
 		clickableListItem->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = getStringID(43);
+				ZeroSyncMode = getStringID(Lang::Id_On);
 				(Shared -> ZeroSync) = 0;
 				saveSettings();
 				tsl::goBack();
@@ -135,10 +135,10 @@ public:
 		});
 		list->addItem(clickableListItem);
 
-		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(41));
+		auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_SemiEnabled));
 		clickableListItem2->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = getStringID(45);
+				ZeroSyncMode = getStringID(Lang::Id_Semi);
 				(Shared -> ZeroSync) = 2;
 				saveSettings();
 				tsl::goBack();
@@ -149,10 +149,10 @@ public:
 		});
 		list->addItem(clickableListItem2);
 
-		auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(42));
+		auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(Lang::Id_Disabled));
 		clickableListItem3->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
-				ZeroSyncMode = getStringID(44);
+				ZeroSyncMode = getStringID(Lang::Id_Off);
 				(Shared -> ZeroSync) = 1;
 				saveSettings();
 				tsl::goBack();
@@ -176,48 +176,48 @@ public:
 		configValid = LOCK::readConfig(&configPath[0]);
 		if (R_FAILED(configValid)) {
 			if (configValid == 0x202) {
-				sprintf(&lockInvalid[0], getStringID(46), TID, BID);
+				sprintf(&lockInvalid[0], getStringID(Lang::Id_GameConfigFileNotFound), TID, BID);
 			}
-			else sprintf(&lockInvalid[0], getStringID(47), configValid);
+			else sprintf(&lockInvalid[0], getStringID(Lang::Id_GameConfigError), configValid);
 		}
 		else {
 			patchValid = !file_exists(&patchPath[0]);
 			if (R_FAILED(patchValid)) {
 				if (!FileDownloaded) {
 					if (R_SUCCEEDED(configValid)) {
-						sprintf(&patchChar[0], getStringID(48));
+						sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileDoesntExistMakeIt));
 					}
-					else sprintf(&patchChar[0], getStringID(49));
+					else sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileDoesntExist));
 				}
 				else {
-					sprintf(&patchChar[0], getStringID(50));
+					sprintf(&patchChar[0], getStringID(Lang::Id_NewConfigDownloadedSuccessfully));
 				}
 			}
-			else sprintf(&patchChar[0], getStringID(51));
+			else sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileExists));
 		}
 		switch((Shared -> ZeroSync)) {
 			case 0:
-				ZeroSyncMode = getStringID(43);
+				ZeroSyncMode = getStringID(Lang::Id_On);
 				break;
 			case 1:
-				ZeroSyncMode = getStringID(44);
+				ZeroSyncMode = getStringID(Lang::Id_Off);
 				break;
 			case 2:
-				ZeroSyncMode = getStringID(45);
+				ZeroSyncMode = getStringID(Lang::Id_Semi);
 		}
 	}
 
 	size_t base_height = 134;
 
     virtual tsl::elm::Element* createUI() override {
-        auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(52));
+        auto frame = new tsl::elm::OverlayFrame("FPSLocker", getStringID(Lang::Id_AdvancedSettings));
 
 		auto list = new tsl::elm::List();
 
 		if ((Shared -> API)) {
 			switch((Shared -> API)) {
 				case 1: {
-					list->addItem(new tsl::elm::CategoryHeader(getStringID(53), false));
+					list->addItem(new tsl::elm::CategoryHeader(getStringID(Lang::Id_GPUAPIInterfaceNVN), false));
 					
 					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 						
@@ -226,7 +226,7 @@ public:
 					}), 60);
 
 					if ((Shared -> Buffers) == 2 || (Shared -> ActiveBuffers) == 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(54), ZeroSyncMode);
+						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(Lang::Id_WindowSyncWait), ZeroSyncMode);
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SyncMode>();
@@ -237,7 +237,7 @@ public:
 						list->addItem(clickableListItem3);
 					}
 					if ((Shared -> Buffers) > 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(30));
+						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(Lang::Id_SetBuffering));
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -250,10 +250,10 @@ public:
 					break;
 				}
 				case 2:
-					list->addItem(new tsl::elm::CategoryHeader(getStringID(55), false));
+					list->addItem(new tsl::elm::CategoryHeader(getStringID(Lang::Id_GPUAPIInterfaceEGL), false));
 					break;
 				case 3: {
-					list->addItem(new tsl::elm::CategoryHeader(getStringID(56), false));
+					list->addItem(new tsl::elm::CategoryHeader(getStringID(Lang::Id_GPUAPIInterfaceVulkan), false));
 
 					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 						
@@ -262,7 +262,7 @@ public:
 					}), 40);
 
 					if ((Shared -> Buffers) >= 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(30));
+						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(Lang::Id_SetBuffering));
 						clickableListItem3->setClickListener([](u64 keys) { 
 							if ((keys & HidNpadButton_A) && PluginRunning) {
 								tsl::changeTo<SetBuffers>();
@@ -276,7 +276,7 @@ public:
 			}
 		}
 
-		list->addItem(new tsl::elm::CategoryHeader(getStringID(57), false));
+		list->addItem(new tsl::elm::CategoryHeader(getStringID(Lang::Id_FPSLockerPatches), false));
 
 		if (R_FAILED(configValid)) {
 			base_height = 154;
@@ -286,7 +286,7 @@ public:
 			
 			if (R_SUCCEEDED(configValid)) {
 				
-				renderer->drawString(getStringID(58), false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(getStringID(Lang::Id_FoundValidConfigFile), false, x, y+20, 20, renderer->a(0xFFFF));
 				renderer->drawString(&patchAppliedChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
 				if (R_FAILED(patchValid)) {
 					renderer->drawString(&patchChar[0], false, x, y+64, 20, renderer->a(0xF99F));
@@ -302,28 +302,28 @@ public:
 		}), base_height);
 
 		if (R_SUCCEEDED(configValid)) {
-			list->addItem(new tsl::elm::NoteHeader(getStringID(59), true, {0xF, 0x3, 0x3, 0xF}));
-			auto *clickableListItem = new tsl::elm::MiniListItem(getStringID(60));
+			list->addItem(new tsl::elm::NoteHeader(getStringID(Lang::Id_RememberToRebootTheGameAfterConversion), true, {0xF, 0x3, 0x3, 0xF}));
+			auto *clickableListItem = new tsl::elm::MiniListItem(getStringID(Lang::Id_ConvertConfigToPatchFile));
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					patchValid = LOCK::createPatch(&patchPath[0]);
 					if (R_SUCCEEDED(patchValid)) {
-						sprintf(&patchChar[0], getStringID(61));
+						sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileCreatedSuccessfully));
 					}
-					else sprintf(&patchChar[0], getStringID(62), patchValid);
+					else sprintf(&patchChar[0], getStringID(Lang::Id_ErrorWhileCreatingPatch), patchValid);
 					return true;
 				}
 				return false;
 			});
 			list->addItem(clickableListItem);
 
-			auto *clickableListItem2 = new tsl::elm::MiniListItem(getStringID(63));
+			auto *clickableListItem2 = new tsl::elm::MiniListItem(getStringID(Lang::Id_DeletePatchFile));
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
 						remove(&patchPath[0]);
 						patchValid = 0x202;
-						sprintf(&patchChar[0], getStringID(64));
+						sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileDeletedSuccessfully));
 					}
 					return true;
 				}
@@ -332,13 +332,13 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		if (R_FAILED(configValid)) {
-			list->addItem(new tsl::elm::NoteHeader(getStringID(65), true, {0xF, 0x3, 0x3, 0xF}));
+			list->addItem(new tsl::elm::NoteHeader(getStringID(Lang::Id_ThisCanTakeUpTo30Seconds), true, {0xF, 0x3, 0x3, 0xF}));
 		}
-		auto *clickableListItem4 = new tsl::elm::MiniListItem(getStringID(66));
+		auto *clickableListItem4 = new tsl::elm::MiniListItem(getStringID(Lang::Id_CheckDownloadConfigFile));
 		clickableListItem4->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning && exitPossible) {
 				exitPossible = false;
-				sprintf(&patchChar[0], getStringID(67));
+				sprintf(&patchChar[0], getStringID(Lang::Id_CheckingWarehouseForConfig));
 				threadCreate(&t1, downloadPatch, NULL, NULL, 0x20000, 0x3F, 3);
 				threadStart(&t1);
 				return true;
@@ -347,9 +347,9 @@ public:
 		});
 		list->addItem(clickableListItem4);
 
-		list->addItem(new tsl::elm::CategoryHeader(getStringID(68), false));
+		list->addItem(new tsl::elm::CategoryHeader(getStringID(Lang::Id_Misc), false));
 
-		auto *clickableListItem5 = new tsl::elm::MiniToggleListItem(getStringID(69), forceSuspend_save);
+		auto *clickableListItem5 = new tsl::elm::MiniToggleListItem(getStringID(Lang::Id_HaltUnfocusedGame), forceSuspend_save);
 		clickableListItem5->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				forceSuspend_save = !forceSuspend_save;
@@ -371,22 +371,22 @@ public:
 		if (PluginRunning) {
 			if (i > 9) {
 				if ((Shared -> patchApplied) == 1) {
-					sprintf(patchAppliedChar, getStringID(70));
+					sprintf(patchAppliedChar, getStringID(Lang::Id_PatchWasLoadedToGame));
 				}
 				else if ((Shared -> patchApplied) == 2) {
-					sprintf(patchAppliedChar, getStringID(71));
+					sprintf(patchAppliedChar, getStringID(Lang::Id_MasterWriteWasLoadedToGame));
 				}
-				else sprintf(patchAppliedChar, getStringID(72));
+				else sprintf(patchAppliedChar, getStringID(Lang::Id_PluginDidntApplyPatchToGame));
 				switch (Shared -> API) {
 					case 1: {
 						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
-							sprintf(&nvnBuffers[0], getStringID(73), (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
+							sprintf(&nvnBuffers[0], getStringID(Lang::Id_SetActiveAvailableBuffers), (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
 						}
 						break;
 					}
 					case 3: {
 						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
-							sprintf(&nvnBuffers[0], getStringID(74), (Shared -> Buffers));
+							sprintf(&nvnBuffers[0], getStringID(Lang::Id_ActiveBuffers), (Shared -> Buffers));
 						}
 						break;
 					}
@@ -415,43 +415,43 @@ public:
 				error_code = UINT32_MAX;
 			}
 			if (rc == 0x316) {
-				sprintf(&patchChar[0], getStringID(75));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ConnectionTimeout));
 			}
 			else if (rc == 0x212 || rc == 0x312) {
-				sprintf(&patchChar[0], getStringID(76), rc);
+				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableRC), rc);
 			}
 			else if (rc == 0x404) {
-				sprintf(&patchChar[0], getStringID(77));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableExitNotPossibleUntilFinished));
 			}
 			else if (rc == 0x405) {
-				sprintf(&patchChar[0], getStringID(78));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableTimeout));
 			}
 			else if (rc == 0x406) {
-				sprintf(&patchChar[0], getStringID(79));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableConnectionError));
 			}
 			else if (rc == 0x104) {
-				sprintf(&patchChar[0], getStringID(80));
+				sprintf(&patchChar[0], getStringID(Lang::Id_NoNewConfigAvailable));
 			}
 			else if (rc == 0x412) {
-				sprintf(&patchChar[0], getStringID(81));
+				sprintf(&patchChar[0], getStringID(Lang::Id_InternetConnectionNotAvailable));
 			}
 			else if (rc == 0x1001) {
-				sprintf(&patchChar[0], getStringID(82));
+				sprintf(&patchChar[0], getStringID(Lang::Id_PatchIsNotNeededForThisGame));
 			}
 			else if (rc == 0x1002) {
-				sprintf(&patchChar[0], getStringID(83));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsNotListedInWarehouse));
 			}
 			else if (rc == 0x1003) {
-				sprintf(&patchChar[0], getStringID(84));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNotNeeded));
 			}
 			else if (rc == 0x1004) {
-				sprintf(&patchChar[0], getStringID(85));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNeeded));
 			}
 			else if (rc == 0x1005) {
-				sprintf(&patchChar[0], getStringID(86));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionConfigAvailable));
 			}
 			else if (rc == 0x1006) {
-				sprintf(&patchChar[0], getStringID(87));
+				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseConfigNotAvailable));
 			}
 			else if (R_SUCCEEDED(rc)) {
 				FILE* fp = fopen(patchPath, "rb");
@@ -464,7 +464,7 @@ public:
 				return true;
 			}
 			else if (rc != UINT32_MAX) {
-				sprintf(&patchChar[0], getStringID(88), rc);
+				sprintf(&patchChar[0], getStringID(Lang::Id_ConnectionErrorRC), rc);
 			}
 		}
         return false;   // Return true here to signal the inputs have been consumed

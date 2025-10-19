@@ -270,7 +270,7 @@ public:
 
 		list->addItem(clickableListItem3);
 
-		auto *clickableListItem4 = new tsl::elm::ToggleListItem(getStringID(127), forceEnglishLanguage);
+		auto *clickableListItem4 = new tsl::elm::ToggleListItem(getStringID(Lang::Id_ForceEnglishLanguage), forceEnglishLanguage);
 		clickableListItem4->setClickListener([](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				setForceEnglishLanguage(!forceEnglishLanguage);
@@ -520,36 +520,36 @@ public:
 			else if (!check) {
 				if (closed) {
 					renderer->drawString(getStringID(Lang::Id_GameWasClosedOverlayDisabled), false, x, y+20, 19, renderer->a(0xF33F));
-					renderer->drawString(getStringID(15), false, x, y+70, 20, renderer->a(0xFFFF));
+					renderer->drawString(getStringID(Lang::Id_RestartOverlayToCheckAgain), false, x, y+70, 20, renderer->a(0xFFFF));
 				}
 				else {
-					renderer->drawString(getStringID(11), false, x, y+20, 19, renderer->a(0xF33F));
+					renderer->drawString(getStringID(Lang::Id_GameIsNotRunningOverlayDisabled), false, x, y+20, 19, renderer->a(0xF33F));
 				}
 			}
 			else if (!PluginRunning) {
-				renderer->drawString(getStringID(12), false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString(getStringID(13), false, x, y+70, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(Lang::Id_GameIsRunning), false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(getStringID(Lang::Id_NXFPSIsNotRunning), false, x, y+70, 20, renderer->a(0xF33F));
 			}
 			else if (!(Shared -> pluginActive)) {
-				renderer->drawString(getStringID(14), false, x, y+20, 20, renderer->a(0xF33F));
+				renderer->drawString(getStringID(Lang::Id_NXFPSIsRunningWaitingForFrame), false, x, y+20, 20, renderer->a(0xF33F));
 			}
 			else {
-				renderer->drawString(getStringID(16), false, x, y+20, 20, renderer->a(0xFFFF));
+				renderer->drawString(getStringID(Lang::Id_NXFPSIsRunning), false, x, y+20, 20, renderer->a(0xFFFF));
 				if (((Shared -> API) > 0) && ((Shared -> API) <= 2))
 					renderer->drawString(FPSMode_c, false, x, y+43, 20, renderer->a(0xFFFF));
 				renderer->drawString(FPSTarget_c, false, x, y+86, 20, renderer->a(0xFFFF));
 				if (render100Above) renderer->drawString(PFPS_c, false, x+265, y+48, 50, renderer->a(0xFFFF));
 				else renderer->drawString(PFPS_c, false, x+290, y+48, 50, renderer->a(0xFFFF));
 				renderer->drawString("FPS", false, x+320, y+70, 20, renderer->a(0xFFFF));
-				if (Shared -> forceOriginalRefreshRate) renderer->drawString(getStringID(17), false, x, y+129, 20, renderer->a(0xF99F));
-				else if (noPatchDetectedButNeeded) renderer->drawString(getStringID(49), false, x, y+129, 20, renderer->a(0xF99F));
+				if (Shared -> forceOriginalRefreshRate) renderer->drawString(getStringID(Lang::Id_PatchIsNotForcing60Hz), false, x, y+129, 20, renderer->a(0xF99F));
+				else if (noPatchDetectedButNeeded) renderer->drawString(getStringID(Lang::Id_PatchFileDoesntExist), false, x, y+129, 20, renderer->a(0xF99F));
 			}
 		}), 170);
 
 		if (PluginRunning && (Shared -> pluginActive)) {
 			pluginRanAtBoot = true;
 			if (entry_mode == ApmPerformanceMode_Normal) {
-				auto *clickableListItem = new tsl::elm::ListItem2(getStringID(18));
+				auto *clickableListItem = new tsl::elm::ListItem2(getStringID(Lang::Id_IncreaseFPSTarget));
 				clickableListItem->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						if ((Shared -> FPSmode) == 2 && !(Shared -> FPSlocked)) {
@@ -599,7 +599,7 @@ public:
 
 				list->addItem(clickableListItem);
 				
-				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(19));
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_DecreaseFPSTarget));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						if ((Shared -> FPSmode) < 2 && !(Shared -> FPSlocked)) {
@@ -649,7 +649,7 @@ public:
 				list->addItem(clickableListItem2);
 			}
 			else if (entry_mode == ApmPerformanceMode_Boost) {
-				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(20));
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_ChangeFPSTarget));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
 						tsl::changeTo<DockedFPSTargetGui>();
@@ -660,7 +660,7 @@ public:
 				list->addItem(clickableListItem2);			
 			}
 
-			auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(21));
+			auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(Lang::Id_DisableCustomFPSTarget));
 			clickableListItem4->setClickListener([this](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (entry_mode == ApmPerformanceMode_Normal && (Shared -> FPSlocked)) {
@@ -684,7 +684,7 @@ public:
 			});
 			list->addItem(clickableListItem4);
 
-			auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(22));
+			auto *clickableListItem3 = new tsl::elm::ListItem2(getStringID(Lang::Id_AdvancedSettings));
 			clickableListItem3->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					tsl::changeTo<AdvancedGui>();
@@ -723,21 +723,21 @@ public:
 				switch ((Shared -> FPSmode)) {
 					case 0:
 						//This is usually a sign that game doesn't use interval
-						sprintf(FPSMode_c, getStringID(24));
+						sprintf(FPSMode_c, getStringID(Lang::Id_IntervalMode0));
 						break;
 					case 1 ... 5:
 						if (std::fmod((double)refreshRate_g, (double)(Shared -> FPSmode)) != 0.0) {
-							sprintf(FPSMode_c, getStringID(25), (Shared -> FPSmode), (double)refreshRate_g / (Shared -> FPSmode));
+							sprintf(FPSMode_c, getStringID(Lang::Id_IntervalModeFloatFPS), (Shared -> FPSmode), (double)refreshRate_g / (Shared -> FPSmode));
 						}
-						else sprintf(FPSMode_c, getStringID(26), (Shared -> FPSmode), refreshRate_g / (Shared -> FPSmode));
+						else sprintf(FPSMode_c, getStringID(Lang::Id_IntervalModeIntegerFPS), (Shared -> FPSmode), refreshRate_g / (Shared -> FPSmode));
 						break;
 					default:
-						sprintf(FPSMode_c, getStringID(27), (Shared -> FPSmode));
+						sprintf(FPSMode_c, getStringID(Lang::Id_IntervalModeWrong), (Shared -> FPSmode));
 				}
 				if ((entry_mode == ApmPerformanceMode_Normal) ? !(Shared -> FPSlocked) : !(Shared -> FPSlockedDocked)) {
-					sprintf(FPSTarget_c, getStringID(28));
+					sprintf(FPSTarget_c, getStringID(Lang::Id_CustomFPSTargetDisabled));
 				}
-				else sprintf(FPSTarget_c, getStringID(29), (entry_mode == ApmPerformanceMode_Normal) ? (Shared -> FPSlocked) : (Shared -> FPSlockedDocked));
+				else sprintf(FPSTarget_c, getStringID(Lang::Id_CustomFPSTarget), (entry_mode == ApmPerformanceMode_Normal) ? (Shared -> FPSlocked) : (Shared -> FPSlockedDocked));
 				uint8_t value = (Shared -> FPS);
 				sprintf(PFPS_c, "%d", value);
 				if (value >= 100) render100Above = true;
