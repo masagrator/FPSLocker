@@ -1,4 +1,11 @@
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include <cstdint>
+typedef uint32_t Result;
+#define R_FAILED(res)      ((res)!=0)
+#define R_SUCCEEDED(res)   ((res)==0)
+#endif
 #include "asmjit/a64.h"
 #include <string>
 #include <array>
