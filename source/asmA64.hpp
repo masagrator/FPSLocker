@@ -1,4 +1,9 @@
+#ifdef __SWITCH__
 #include <switch.h>
+#else
+#include <cstdint>
+typedef uint32_t Result;
+#endif
 #include "c4/yml/node.hpp"
 #include <unordered_map>
 
