@@ -1268,7 +1268,7 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result FMINNM(T entry_impl, uint8_t type = 0) {
+	template <typename T> Result FMINNM(T entry_impl) {
 		asmjit::a64::Assembler a(&code);
 		std::string inst;
 		if (entry_impl.num_children() != 4)
@@ -1462,4 +1462,5 @@ namespace ASM {
 		if (adjust_type_arg) *adjust_type_arg = adjust_type;
 		return 0;
 	}
+
 }
