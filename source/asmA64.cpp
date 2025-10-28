@@ -806,14 +806,9 @@ namespace ASM {
 				return 0;
 			}
 			int64_t address = 0;
-			bool relative = false;
-			if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
-				relative = true;
-			}
-			else if (!adjust_type) adjust_type = 5;
+			if (!adjust_type && !(inst.c_str()[0] == '+' || inst.c_str()[0] == '-')) adjust_type = 5;
 			bool passed = getInteger(inst, &address);
 			if (!passed) return 0xFF0067;
-			if (relative && adjust_type == 4) address += m_pc_address;
 			a.bl(address);
 
 		}
@@ -1462,5 +1457,4 @@ namespace ASM {
 		if (adjust_type_arg) *adjust_type_arg = adjust_type;
 		return 0;
 	}
-
 }
