@@ -189,12 +189,10 @@ namespace LOCK {
 					else temp_size += getTypeSize(string_check);
 				}
 				else if (!string_check.compare("asm_a64")) {
-					temp_size++; // address_region
 					temp_size += 4; // main_offset
 					temp_size++; // value_type
 					temp_size++; // value count
 					if (entry[i]["instructions"].is_seq()) {
-						temp_size += entry[i]["instructions"].num_children(); //adjustment
 						temp_size += (getTypeSize("uint32") * entry[i]["instructions"].num_children());
 					}
 					else return 0x4096;
@@ -378,10 +376,9 @@ namespace LOCK {
 					}					
 				}
 				else if (!string_check.compare("asm_a64")) {
-					buffer[temp_size++] = 3; // type
+					buffer[temp_size++] = 1; // type
 					uint32_t main_offset = 0;
 					entry[i]["main_offset"] >> main_offset;
-					buffer[temp_size++] = getAddressRegion("MAIN");
 					*(uint32_t*)(&buffer[temp_size]) = main_offset;
 					uint32_t start_main_offset = main_offset;
 					temp_size += 4;
@@ -391,14 +388,12 @@ namespace LOCK {
 						for (size_t x = 0; x < entry[i]["instructions"].num_children(); x++) {
 							uint32_t inst = 0;
 							Result rc = 1;
-							uint8_t adjust_type = 0;
 							if (entry[i]["instructions"][x].is_seq()) {
-								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, &adjust_type, main_offset, start_main_offset);
+								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, nullptr, main_offset, start_main_offset);
 								if (R_FAILED(rc)) return rc;
 							}
 							else entry[i]["instructions"][x] >> inst;
 							main_offset += 4;
-							buffer[temp_size++] = adjust_type == 4 ? 0 : adjust_type;
 							*(uint32_t*)(&buffer[temp_size]) = inst;
 							temp_size += 4;
 						}
