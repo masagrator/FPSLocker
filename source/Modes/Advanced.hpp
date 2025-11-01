@@ -354,6 +354,7 @@ public:
 			if ((keys & HidNpadButton_A) && PluginRunning) {
 				forceSuspend_save = !forceSuspend_save;
 				(Shared -> forceSuspend) = forceSuspend_save;
+				saveSettings();
 				return true;
 			}
 			return false;
