@@ -86,7 +86,7 @@ You will have two submenus to choose from (if you are using OLED model, you will
 
 I want to use this space to clarify a few things.<br>
 
-Switch OLED displays require gamma color correction after changing the refresh rate. I am modifying OLED panel registers to adjust the gamma curve to be as close to the original experience as possible. But because those registers have very big steps, it's not possible to do it perfectly, so there are small discrepancies in colors (The worst case I found is 60% brightness at 45 Hz), additionally the lower refresh rate the lower max brightness, that's how register responsible for tweaking gamma at max brightness works for some reason.<br>
+Switch OLED displays require gamma color correction after changing the refresh rate. I am modifying OLED panel registers to adjust the gamma curve to be as close to the original experience as possible. But because those registers have very big steps, it's not possible to do it perfectly, so there are small discrepancies in colors (The worst case I found is 60% brightness at 45 Hz).<br>
 
 From all reports I got, only one LCD screen was getting an issue with small flickering in the left bottom corner when running at 40 Hz (they were using `InnoLux P062CCA-AZ2`, but there were other users who also got this display and had no issues at 40 Hz - me included). No other issues were found.<br>
 
