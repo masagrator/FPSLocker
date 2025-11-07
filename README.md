@@ -32,7 +32,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
 2. Go to Advanced Settings, if you see "Set/Active/Available buffers: 2/2/3", press on `Set buffering`, choose `Triple (force)`.
 
 **Explanation of each option and information**:
-- `Interval Mode` - It's used by NVN API to set the limiter to either 30 FPS (2) or 60 FPS (1) (sporadically to 20 FPS (3) and 15 FPS (4)). 
+- `Interval Mode` - It's used by NVN and EGL API to set vsync. Value 2 means that every frame shows at least 2x longer than by default, so at 60 Hz display you get 30 FPS max. Accepted range is 1-4. Unset value reported as 0 is treated the same way as 1.
 - `Custom FPS Target` - It's used to lock the game to a certain FPS. If the game is using engine proprietary FPS locks, it may not be able to unlock more than 30 FPS without additional patches.
 - `FPS` - It shows how many frames have passed in the last second for the currently running game. This is to confirm that the lock is working as expected.
 - `Patch file doesn't exist.` - It shows up when overlay is 100% sure that for FPSLocker to properly work in this specific game it needs FPSLocker patch, but you don't have one. Read `tl;dr` how to get config and convert it to patch (though config may not exist for your game generally or for specific game's version you are using).
