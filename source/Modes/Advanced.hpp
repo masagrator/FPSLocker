@@ -173,27 +173,40 @@ class AdvancedGui : public tsl::Gui {
 public:
 	bool exitPossible = true;
     AdvancedGui() {
-		configValid = LOCK::readConfig(&configPath[0]);
+		patchChar[0] = 0;
+		configValid = LOCK::readConfig(configPath);
 		if (R_FAILED(configValid)) {
 			if (configValid == 0x202) {
-				sprintf(&lockInvalid[0], getStringID(Lang::Id_GameConfigFileNotFound), TID, BID);
+				sprintf(lockInvalid, getStringID(Lang::Id_GameConfigFileNotFound), TID, BID);
+				size_t appControlDataSize = 0;
+				s32 appContentMetaStatusSize = 0;
+				NsApplicationControlData appControlData;
+				NsApplicationContentMetaStatus appContentMetaStatus[2];
+				if (R_SUCCEEDED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, TID, &appControlData, sizeof(NsApplicationControlData), &appControlDataSize)) 
+					&& R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
+						u32 index = 0;
+						if (appContentMetaStatus[1].meta_type == NcmContentMetaType_Patch) index = 1;
+						if (appContentMetaStatus[index].version != 0)
+							snprintf(lockVersionExpected, sizeof(lockVersionExpected), "%s | v%d/%d", appControlData.nacp.display_version, appContentMetaStatus[index].version / 65536, appContentMetaStatus[index].version);
+						else sprintf(lockVersionExpected, "%s | v0", appControlData.nacp.display_version);
+				}
 			}
-			else sprintf(&lockInvalid[0], getStringID(Lang::Id_GameConfigError), configValid);
+			else sprintf(lockInvalid, getStringID(Lang::Id_GameConfigError), configValid);
 		}
 		else {
-			patchValid = !file_exists(&patchPath[0]);
+			patchValid = !file_exists(patchPath);
 			if (R_FAILED(patchValid)) {
 				if (!FileDownloaded) {
 					if (R_SUCCEEDED(configValid)) {
-						sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileDoesntExistMakeIt));
+						sprintf(patchChar, getStringID(Lang::Id_PatchFileDoesntExistMakeIt));
 					}
-					else sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileDoesntExist));
+					else sprintf(patchChar, getStringID(Lang::Id_PatchFileDoesntExist));
 				}
 				else {
-					sprintf(&patchChar[0], getStringID(Lang::Id_NewConfigDownloadedSuccessfully));
+					sprintf(patchChar, getStringID(Lang::Id_NewConfigDownloadedSuccessfully));
 				}
 			}
-			else sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileExists));
+			else sprintf(patchChar, getStringID(Lang::Id_PatchFileExists));
 		}
 		switch((Shared -> ZeroSync)) {
 			case 0:
@@ -221,7 +234,7 @@ public:
 					
 					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 						
-						renderer->drawString(&nvnBuffers[0], false, x, y+20, 20, renderer->a(0xFFFF));
+						renderer->drawString(nvnBuffers, false, x, y+20, 20, renderer->a(0xFFFF));
 							
 					}), 60);
 
@@ -257,7 +270,7 @@ public:
 
 					list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 						
-						renderer->drawString(&nvnBuffers[0], false, x, y+20, 20, renderer->a(0xFFFF));
+						renderer->drawString(nvnBuffers, false, x, y+20, 20, renderer->a(0xFFFF));
 							
 					}), 40);
 
@@ -287,15 +300,17 @@ public:
 			if (R_SUCCEEDED(configValid)) {
 				
 				renderer->drawString(getStringID(Lang::Id_FoundValidConfigFile), false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString(&patchAppliedChar[0], false, x, y+40, 20, renderer->a(0xFFFF));
+				renderer->drawString(patchAppliedChar, false, x, y+40, 20, renderer->a(0xFFFF));
 				if (R_FAILED(patchValid)) {
-					renderer->drawString(&patchChar[0], false, x, y+64, 20, renderer->a(0xF99F));
+					renderer->drawString(patchChar, false, x, y+64, 20, renderer->a(0xF99F));
 				}
-				else renderer->drawString(&patchChar[0], false, x, y+64, 20, renderer->a(0xFFFF));
+				else renderer->drawString(patchChar, false, x, y+64, 20, renderer->a(0xFFFF));
 			}
 			else {
-				renderer->drawString(&lockInvalid[0], false, x, y+20, 20, renderer->a(0xFFFF));
-				renderer->drawString(&patchChar[0], false, x, y+84, 20, renderer->a(0xF99F));
+				renderer->drawString(lockInvalid, false, x, y+20, 20, renderer->a(0xFFFF));
+				if (patchChar[0] != 0)
+					renderer->drawString(patchChar, false, x, y+84, 20, renderer->a(0xF99F));
+				else renderer->drawString(lockVersionExpected, false, x, y+84, 20, renderer->a(0xFFFF));
 			}
 				
 
@@ -306,11 +321,11 @@ public:
 			auto *clickableListItem = new tsl::elm::MiniListItem(getStringID(Lang::Id_ConvertConfigToPatchFile));
 			clickableListItem->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					patchValid = LOCK::createPatch(&patchPath[0]);
+					patchValid = LOCK::createPatch(patchPath);
 					if (R_SUCCEEDED(patchValid)) {
-						sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileCreatedSuccessfully));
+						sprintf(patchChar, getStringID(Lang::Id_PatchFileCreatedSuccessfully));
 					}
-					else sprintf(&patchChar[0], getStringID(Lang::Id_ErrorWhileCreatingPatch), patchValid);
+					else sprintf(patchChar, getStringID(Lang::Id_ErrorWhileCreatingPatch), patchValid);
 					return true;
 				}
 				return false;
@@ -321,9 +336,9 @@ public:
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
 					if (R_SUCCEEDED(patchValid)) {
-						remove(&patchPath[0]);
+						remove(patchPath);
 						patchValid = 0x202;
-						sprintf(&patchChar[0], getStringID(Lang::Id_PatchFileDeletedSuccessfully));
+						sprintf(patchChar, getStringID(Lang::Id_PatchFileDeletedSuccessfully));
 					}
 					return true;
 				}
@@ -338,7 +353,7 @@ public:
 		clickableListItem4->setClickListener([this](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning && exitPossible) {
 				exitPossible = false;
-				sprintf(&patchChar[0], getStringID(Lang::Id_CheckingWarehouseForConfig));
+				sprintf(patchChar, getStringID(Lang::Id_CheckingWarehouseForConfig));
 				threadCreate(&t1, downloadPatch, NULL, NULL, 0x20000, 0x3F, 3);
 				threadStart(&t1);
 				return true;
@@ -381,13 +396,13 @@ public:
 				switch (Shared -> API) {
 					case 1: {
 						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
-							sprintf(&nvnBuffers[0], getStringID(Lang::Id_SetActiveAvailableBuffers), (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
+							sprintf(nvnBuffers, getStringID(Lang::Id_SetActiveAvailableBuffers), (Shared -> SetActiveBuffers), (Shared -> ActiveBuffers), (Shared -> Buffers));
 						}
 						break;
 					}
 					case 3: {
 						if (((Shared -> Buffers) >= 2 && (Shared -> Buffers) <= 4)) {
-							sprintf(&nvnBuffers[0], getStringID(Lang::Id_ActiveBuffers), (Shared -> Buffers));
+							sprintf(nvnBuffers, getStringID(Lang::Id_ActiveBuffers), (Shared -> Buffers));
 						}
 						break;
 					}
@@ -416,43 +431,43 @@ public:
 				error_code = UINT32_MAX;
 			}
 			if (rc == 0x316) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ConnectionTimeout));
+				sprintf(patchChar, getStringID(Lang::Id_ConnectionTimeout));
 			}
 			else if (rc == 0x212 || rc == 0x312) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableRC), rc);
+				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableRC), rc);
 			}
 			else if (rc == 0x404) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableExitNotPossibleUntilFinished));
+				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableExitNotPossibleUntilFinished));
 			}
 			else if (rc == 0x405) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableTimeout));
+				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableTimeout));
 			}
 			else if (rc == 0x406) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ConfigIsNotAvailableConnectionError));
+				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableConnectionError));
 			}
 			else if (rc == 0x104) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_NoNewConfigAvailable));
+				sprintf(patchChar, getStringID(Lang::Id_NoNewConfigAvailable));
 			}
 			else if (rc == 0x412) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_InternetConnectionNotAvailable));
+				sprintf(patchChar, getStringID(Lang::Id_InternetConnectionNotAvailable));
 			}
 			else if (rc == 0x1001) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_PatchIsNotNeededForThisGame));
+				sprintf(patchChar, getStringID(Lang::Id_PatchIsNotNeededForThisGame));
 			}
 			else if (rc == 0x1002) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsNotListedInWarehouse));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsNotListedInWarehouse));
 			}
 			else if (rc == 0x1003) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNotNeeded));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNotNeeded));
 			}
 			else if (rc == 0x1004) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNeeded));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNeeded));
 			}
 			else if (rc == 0x1005) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionConfigAvailable));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionConfigAvailable));
 			}
 			else if (rc == 0x1006) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ThisGameIsListedInWarehouseConfigNotAvailable));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseConfigNotAvailable));
 			}
 			else if (R_SUCCEEDED(rc)) {
 				FILE* fp = fopen(patchPath, "rb");
@@ -465,7 +480,7 @@ public:
 				return true;
 			}
 			else if (rc != UINT32_MAX) {
-				sprintf(&patchChar[0], getStringID(Lang::Id_ConnectionErrorRC), rc);
+				sprintf(patchChar, getStringID(Lang::Id_ConnectionErrorRC), rc);
 			}
 		}
         return false;   // Return true here to signal the inputs have been consumed

@@ -34,7 +34,7 @@ public:
 
 	NoGameSub(uint64_t titleID, std::string titleName) {
 		_titleid = titleID;
-		sprintf(&_titleidc[0], "%016lX", titleID);
+		sprintf(_titleidc, "%016lX", titleID);
 		_titleName = titleName;
 	}
 
@@ -53,20 +53,20 @@ public:
 			if (keys & HidNpadButton_A) {
 				char path[512] = "";
 				if (_titleid != 0x1234567890ABCDEF) {
-					sprintf(&path[0], "sdmc:/SaltySD/plugins/FPSLocker/%016lx.dat", _titleid);
+					sprintf(path, "sdmc:/SaltySD/plugins/FPSLocker/%016lx.dat", _titleid);
 					remove(path);
 				}
 				else {
 					struct dirent *entry;
     				DIR *dp;
-					sprintf(&path[0], "sdmc:/SaltySD/plugins/FPSLocker/");
+					sprintf(path, "sdmc:/SaltySD/plugins/FPSLocker/");
 
 					dp = opendir(path);
 					if (!dp)
 						return true;
 					while ((entry = readdir(dp))) {
 						if (entry -> d_type != DT_DIR && std::string(entry -> d_name).find(".dat") != std::string::npos) {
-							sprintf(&path[0], "sdmc:/SaltySD/plugins/FPSLocker/%s", entry->d_name);
+							sprintf(path, "sdmc:/SaltySD/plugins/FPSLocker/%s", entry->d_name);
 							remove(path);
 						}
 					}
@@ -84,7 +84,7 @@ public:
 			if (keys & HidNpadButton_A) {
 				char folder[640] = "";
 				if (_titleid != 0x1234567890ABCDEF) {
-					sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lx/", _titleid);
+					sprintf(folder, "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lx/", _titleid);
 
 					struct dirent *entry;
     				DIR *dp;
@@ -94,7 +94,7 @@ public:
 						return true;
 					while ((entry = readdir(dp))) {
 						if (entry -> d_type != DT_DIR && std::string(entry -> d_name).find(".bin") != std::string::npos) {
-							sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lx/%s", _titleid, entry -> d_name);
+							sprintf(folder, "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lx/%s", _titleid, entry -> d_name);
 							remove(folder);
 						}
 					}
@@ -106,18 +106,18 @@ public:
     				DIR *dp;
 					DIR *dp2;
 
-					sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/");
+					sprintf(folder, "sdmc:/SaltySD/plugins/FPSLocker/patches/");
 					dp = opendir(folder);
 					if (!dp)
 						return true;
 					while ((entry = readdir(dp))) {
 						if (entry -> d_type != DT_DIR)
 							continue;
-						sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%s/", entry -> d_name);
+						sprintf(folder, "sdmc:/SaltySD/plugins/FPSLocker/patches/%s/", entry -> d_name);
 						dp2 = opendir(folder);
 						while ((entry2 = readdir(dp2))) {
 							if (entry2 -> d_type != DT_DIR && std::string(entry2 -> d_name).find(".bin") != std::string::npos) {
-								sprintf(&folder[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%s/%s", entry -> d_name, entry2 -> d_name);
+								sprintf(folder, "sdmc:/SaltySD/plugins/FPSLocker/patches/%s/%s", entry -> d_name, entry2 -> d_name);
 								remove(folder);
 							}
 						}
@@ -172,7 +172,7 @@ public:
 
 		if (R_FAILED(rc)) {
 			char error[24] = "";
-			sprintf(&error[0], "Err: 0x%x", rc);
+			sprintf(error, "Err: 0x%x", rc);
 			auto *clickableListItem2 = new tsl::elm::ListItem2(error);
 			clickableListItem2->setClickListener([](u64 keys) { 
 				if (keys & HidNpadButton_A) {
@@ -813,6 +813,7 @@ public:
 			systemtickfrequency = armGetSystemTickFreq();
 		#endif
 		tsl::hlp::doWithSmSession([]{
+			nsInitialize();
 			ommInitialize();
 			setsysInitialize();
 			SetSysProductModel model;
@@ -880,9 +881,9 @@ public:
 					pminfoGetProgramId(&TID, PID);
 					pminfoExit();
 					BID = getBID();
-					sprintf(&patchPath[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.bin", TID, BID);
-					sprintf(&configPath[0], "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
-					sprintf(&savePath[0], "sdmc:/SaltySD/plugins/FPSLocker/%016lX.dat", TID);
+					sprintf(patchPath, "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.bin", TID, BID);
+					sprintf(configPath, "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+					sprintf(savePath, "sdmc:/SaltySD/plugins/FPSLocker/%016lX.dat", TID);
 
 					SetBuffers_save = (Shared -> SetBuffers);
 					forceSuspend_save = (Shared -> forceSuspend);
@@ -918,9 +919,6 @@ public:
 			return initially<Dummy>(1, 2, true);  // Initial Gui to load. It's possible to pass arguments to it's constructor like this
 		}
 		else {
-			tsl::hlp::doWithSmSession([]{
-				nsInitialize();
-			});
 			mutexInit(&TitlesAccess);
 			threadCreate(&t1, TitlesThread, NULL, NULL, 0x1000, 0x10, -2);
 			threadStart(&t1);
