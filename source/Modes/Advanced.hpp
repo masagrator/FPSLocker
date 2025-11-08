@@ -185,7 +185,7 @@ public:
 				if (R_SUCCEEDED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, TID, &appControlData, sizeof(NsApplicationControlData), &appControlDataSize)) 
 					&& R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
 						u32 index = 0;
-						if (appContentMetaStatus[1].meta_type == NcmContentMetaType_Patch) index = 1;
+						if (appContentMetaStatusSize == 2 && appContentMetaStatus[1].meta_type == NcmContentMetaType_Patch) index = 1;
 						if (appContentMetaStatus[index].version != 0)
 							snprintf(lockVersionExpected, sizeof(lockVersionExpected), "%s | v%d/%d", appControlData.nacp.display_version, appContentMetaStatus[index].version / 65536, appContentMetaStatus[index].version);
 						else sprintf(lockVersionExpected, "%s | v0", appControlData.nacp.display_version);
