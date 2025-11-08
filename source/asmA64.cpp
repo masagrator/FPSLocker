@@ -50,7 +50,7 @@ namespace ASM {
 
 	constexpr uint32_t hash32(const char* str) {
 		uint32_t FNV1_INIT = 0x811C9DC5;
-		uint32_t FNV1_PRIME = 0x1000193;
+		const uint32_t FNV1_PRIME = 0x1000193;
 		for (size_t x = 0; x < strlen(str); x++) {
 			uint8_t byte = str[x];
 			if ((byte - 65) < 26)
@@ -1457,4 +1457,5 @@ namespace ASM {
 		if (adjust_type_arg) *adjust_type_arg = adjust_type;
 		return 0;
 	}
+
 }
