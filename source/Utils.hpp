@@ -99,6 +99,7 @@ bool SharedMemoryUsed = false;
 Result configValid = 10;
 Result patchValid = 0x202;
 char lockInvalid[96] = "";
+char lockVersionExpected[40] = "";
 char patchChar[192] = "";
 char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
