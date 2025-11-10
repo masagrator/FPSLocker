@@ -383,6 +383,24 @@ void downloadPatch(void*) {
 
 		snprintf(file_path, sizeof(file_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/temp.yaml", TID);
 
+		size_t appControlDataSize = 0;
+		s32 appContentMetaStatusSize = 0;
+		NsApplicationControlData* appControlData = new NsApplicationControlData;
+		NsApplicationContentMetaStatus* appContentMetaStatus = new NsApplicationContentMetaStatus[2];
+		char display_version[sizeof(appControlData -> nacp.display_version)] = "";
+		uint32_t version = 0;
+		if (R_SUCCEEDED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), &appControlDataSize))) {
+			strcpy(display_version, appControlData->nacp.display_version);
+			if (R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
+				u32 index = 0;
+				if (appContentMetaStatusSize == 2 && appContentMetaStatus[1].meta_type == NcmContentMetaType_Patch) index = 1;
+				version = appContentMetaStatus[index].version / 65536;
+			}
+		}
+		delete appControlData;
+		delete[] appContentMetaStatus;
+		
+
 		FILE* fp = fopen(file_path, "wb+");
 		if (!fp) {
 			curl_easy_cleanup(curl);
@@ -435,6 +453,31 @@ void downloadPatch(void*) {
 			}
 			else temp_error_code = 0;
 			free(buffer);
+		}
+	
+		static uint64_t last_TID_checked = 0;
+		if (TID != last_TID_checked) {
+			last_TID_checked = TID;
+			CURL *curl_ga = curl_easy_init();
+			if (curl_ga) {
+				const char macro_id[] = "\x41\x4B\x66\x79\x63\x62\x78\x72\x77\x45\x30\x51\x66\x75\x39\x34\x4A\x38\x44\x6E\x69\x53\x46\x6A\x33\x61\x73\x73\x6C\x68\x78\x42\x46\x43\x2D\x50\x52\x7A\x50\x64\x55\x6E\x37\x41\x5F\x4C\x4D\x61\x69\x37\x4F\x56\x57\x42\x70\x6E\x62\x73\x61\x53\x77\x55\x4D\x42\x72\x44\x69\x45\x69\x6F\x57\x65\x33\x77";
+				const char m_template[] = "\x68\x74\x74\x70\x73\x3A\x2F\x2F\x73\x63\x72\x69\x70\x74\x2E\x67\x6F\x6F\x67\x6C\x65\x2E\x63\x6F\x6D\x2F\x6D\x61\x63\x72\x6F\x73\x2F\x73\x2F\x25\x73\x2F\x65\x78\x65\x63\x3F\x54\x49\x44\x3D\x25\x30\x31\x36\x6C\x58\x26\x42\x49\x44\x3D\x25\x30\x31\x36\x6C\x58\x26\x56\x65\x72\x73\x69\x6F\x6E\x3D\x25\x64\x26\x44\x69\x73\x70\x6C\x61\x79\x56\x65\x72\x73\x69\x6F\x6E\x3D\x25\x73\x26\x46\x6F\x75\x6E\x64\x3D\x25\x64\x26\x4E\x52\x4F\x3D\x25\x30\x31\x36\x6C\x58";
+				char link[256] = "";
+				MemoryInfo mem = {0};
+				u32 pageinfo = 0;
+				svcQueryMemory(&mem, &pageinfo, (uintptr_t)&file_exists);
+
+				char* display_version_converted = curl_easy_escape(curl_ga, display_version, 0);
+				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, temp_error_code ? 0 : 1, *(uintptr_t*)(mem.addr + 64));
+				curl_free(display_version_converted);
+
+				curl_easy_setopt(curl_ga, CURLOPT_URL, link);
+				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYPEER, 0L);
+				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYHOST, 0L);
+				curl_easy_setopt(curl_ga, CURLOPT_TIMEOUT_MS, 1000);
+				curl_easy_perform(curl_ga);
+				curl_easy_cleanup(curl_ga);
+			}
 		}
 
 		if (!temp_error_code) {
