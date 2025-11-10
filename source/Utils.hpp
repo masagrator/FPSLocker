@@ -329,20 +329,6 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
     return;
 }
 
-template<class T>
-int inline findAndReplace(T& source, const T& find, const T& replace)
-{
-    int num=0;
-    typename T::size_type fLen = find.size();
-    typename T::size_type rLen = replace.size();
-    for (typename T::size_type pos=0; (pos=source.find(find, pos))!=T::npos; pos+=rLen)
-    {
-        num++;
-        source.replace(pos, fLen, replace);
-    }
-    return num;
-}
-
 void downloadPatch(void*) {
 
 	Result temp_error_code = -1;
@@ -488,7 +474,7 @@ void downloadPatch(void*) {
 				curl_easy_setopt(curl_ga, CURLOPT_URL, link);
 				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYPEER, 0L);
 				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYHOST, 0L);
-				curl_easy_setopt(curl_ga, CURLOPT_TIMEOUT_MS, 2000);
+				curl_easy_setopt(curl_ga, CURLOPT_TIMEOUT_MS, 1000);
 				curl_easy_perform(curl_ga);
 				curl_easy_cleanup(curl_ga);
 			}
