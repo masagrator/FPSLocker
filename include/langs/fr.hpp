@@ -85,9 +85,9 @@ namespace FRA {
 		"Pas d'internet!",
 		"Aucun patch n'est nécessaire pour ce jeu!",
 		"Ce jeu n'est pas listé dans le Warehouse!",
-		"Ce jeu est listé dans le Warehouse,\nmais avec une version différente.\nLes autres versions ne nécessitent pas de patch, votre\nversion non plus probablement!",
-		"Ce jeu est listé dans le Warehouse,\nmais avec une version différente.\nLes autres versions recommandes l'utilisation de patch,\nmais aucune config n'est disponible!",
-		"Ce jeu est listé dans le Warehouse,\nmais avec une version différente.\nLes autres versions ont une config disponible!",
+		"Ce jeu est listé dans le Warehouse,\nmais avec une version différente.\n%s ne nécessitent pas de patch, votre\nversion non plus probablement!",
+		"Ce jeu est listé dans le Warehouse,\nmais avec une version différente.\n%s recommandes l'utilisation de patch,\nmais aucune config n'est disponible!",
+		"Ce jeu est listé dans le Warehouse,\nmais avec une version différente.\n%s ont une config disponible!",
 		"Ce jeu est listé dans le Warehouse\navec le patch recommandé pour cette\nversion, mais la config est indisponible!",
 		"Erreur de connexion! RC: 0x%x",
 		
