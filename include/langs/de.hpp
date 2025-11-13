@@ -61,7 +61,7 @@ namespace GER {
 		"FPSLocker Patches",
 		"Ein!",
 		"Starte Spiel nach der Konvertierung neu!",
-		"Konvertiere Konfiguration,\num Datei zu patchen",
+		"Konvertiere Konfiguration, um Datei zu patchen",
 		"Patch-Datei wurde erfolgreich erstellt.\nNeustarte das Spiel und ändere\nFPS-Ziel um den Patch anzuwenden!",
 		"Fehler bei Patcherstellung: 0x%x",
 		"Lösche Patch-Datei",
