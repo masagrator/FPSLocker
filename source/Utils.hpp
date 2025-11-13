@@ -329,6 +329,8 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
     return;
 }
 
+char expected_display_version[0x10] = "";
+
 void downloadPatch(void*) {
 
 	Result temp_error_code = -1;
@@ -461,15 +463,17 @@ void downloadPatch(void*) {
 			CURL *curl_ga = curl_easy_init();
 			if (curl_ga) {
 				const char macro_id[] = "\x41\x4B\x66\x79\x63\x62\x78\x72\x77\x45\x30\x51\x66\x75\x39\x34\x4A\x38\x44\x6E\x69\x53\x46\x6A\x33\x61\x73\x73\x6C\x68\x78\x42\x46\x43\x2D\x50\x52\x7A\x50\x64\x55\x6E\x37\x41\x5F\x4C\x4D\x61\x69\x37\x4F\x56\x57\x42\x70\x6E\x62\x73\x61\x53\x77\x55\x4D\x42\x72\x44\x69\x45\x69\x6F\x57\x65\x33\x77";
-				const char m_template[] = "\x68\x74\x74\x70\x73\x3A\x2F\x2F\x73\x63\x72\x69\x70\x74\x2E\x67\x6F\x6F\x67\x6C\x65\x2E\x63\x6F\x6D\x2F\x6D\x61\x63\x72\x6F\x73\x2F\x73\x2F\x25\x73\x2F\x65\x78\x65\x63\x3F\x54\x49\x44\x3D\x25\x30\x31\x36\x6C\x58\x26\x42\x49\x44\x3D\x25\x30\x31\x36\x6C\x58\x26\x56\x65\x72\x73\x69\x6F\x6E\x3D\x25\x64\x26\x44\x69\x73\x70\x6C\x61\x79\x56\x65\x72\x73\x69\x6F\x6E\x3D\x25\x73\x26\x46\x6F\x75\x6E\x64\x3D\x25\x64\x26\x4E\x52\x4F\x3D\x25\x30\x31\x36\x6C\x58";
+				const char m_template[] = "\x68\x74\x74\x70\x73\x3a\x2f\x2f\x73\x63\x72\x69\x70\x74\x2e\x67\x6f\x6f\x67\x6c\x65\x2e\x63\x6f\x6d\x2f\x6d\x61\x63\x72\x6f\x73\x2f\x73\x2f\x25\x73\x2f\x65\x78\x65\x63\x3f\x54\x49\x44\x3d\x25\x30\x31\x36\x6c\x58\x26\x42\x49\x44\x3d\x25\x30\x31\x36\x6c\x58\x26\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x64\x26\x44\x69\x73\x70\x6c\x61\x79\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x73\x26\x46\x6f\x75\x6e\x64\x3d\x25\x64\x26\x4e\x52\x4f\x3d\x25\x30\x31\x36\x6c\x58\x26\x41\x70\x70\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x73";
 				char link[256] = "";
 				MemoryInfo mem = {0};
 				u32 pageinfo = 0;
 				svcQueryMemory(&mem, &pageinfo, (uintptr_t)&file_exists);
 
 				char* display_version_converted = curl_easy_escape(curl_ga, display_version, 0);
-				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, temp_error_code ? 0 : 1, *(uintptr_t*)(mem.addr + 64));
+				char* app_version_converted = curl_easy_escape(curl_ga, APP_VERSION, 0);
+				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, temp_error_code ? 0 : 1, *(uintptr_t*)(mem.addr + 64), APP_VERSION);
 				curl_free(display_version_converted);
+				curl_free(app_version_converted);
 
 				curl_easy_setopt(curl_ga, CURLOPT_URL, link);
 				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -586,6 +590,19 @@ void downloadPatch(void*) {
 					else {
 						strcpy(BID_search, ") |");
 						auto end = std::search(start, &buffer[filesize], &BID_search[0], &BID_search[3]);
+						for (int i = -1; i >= -16; i--) {
+							if (end[i] == ',' && end[i+1] == ' ' && end[i+2] != 'v') {
+								size_t offset = 0;
+								for (int x = i+2; x <= i+18; x++) {
+									if (end[x] == ')') {
+										expected_display_version[offset] = 0;
+										break;
+									}
+									expected_display_version[offset++] = end[x];
+								}
+								break;
+							}
+						}
 						snprintf(BID_search, sizeof(BID_search), "`%016lX` (◯", BID);
 						if (std::search(start, end, &BID_search[0], &BID_search[strlen(BID_search)]) != end) {
 							temp_error_code = 0x1001;
