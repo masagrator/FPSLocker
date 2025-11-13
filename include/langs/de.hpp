@@ -48,11 +48,11 @@ namespace GER {
 		"An",
 		"Aus",
 		"Semi",
-		"Config-Datei nicht gefunden\nTID: %016lX\nBID: %016lX",
-		"Config Fehler: 0x%X",
-		"Patch-Datei existiert nicht.\nUse \"Konvertiere Config zu Patch-Datei\"\nzur Erstellung!",
+		"Konfigurations-Datei nicht gefunden\nTID: %016lX\nBID: %016lX",
+		"Konfiguration Fehler: 0x%X",
+		"Patch-Datei existiert nicht.\nUse \"Konvertiere Konfiguration zu Patch-Datei\"\nzur Erstellung!",
 		"Patch-Datei existiert nicht.",
-		"Neue Config erfolgreich heruntergeladen.\nBenutze \"Konvertiere Config zu Patch-Datei\"\num es verwendbar zu machen!",
+		"Neue Konfiguration erfolgreich\nheruntergeladen.\nBenutze \"Konvertiere Konfiguration zu\nPatch-Datei\" um es verwendbar zu machen!",
 		"Patch-Datei existiert.",
 		"GPU API Interface: NVN",
 		"Window Sync Wait",
@@ -61,14 +61,14 @@ namespace GER {
 		"FPSLocker Patches",
 		"Ein!",
 		"Starte Spiel nach der Konvertierung neu!",
-		"Konvertiere Config, um Datei zu patchen",
+		"Konvertiere Konfiguration,\num Datei zu patchen",
 		"Patch-Datei wurde erfolgreich erstellt.\nNeustarte das Spiel und ändere\nFPS-Ziel um den Patch anzuwenden!",
 		"Fehler bei Patcherstellung: 0x%x",
 		"Lösche Patch-Datei",
 		"Patch-Datei erfolgreich gelöscht.",
 		"Das kann bis zu 30 Sekunden dauern.",
-		"Config-Datei überprüfen/herunterladen",
-		"Überprüfe Warehouse für Config...\nBeenden für Abschluss nicht möglich!",
+		"Konfigurations-Datei überprüfen/herunterladen",
+		"Überprüfe Warehouse für Konfiguration...\nBeenden für Abschluss nicht möglich!",
 		"Sonstiges",
 		"Unfokussiertes Spiel stoppen",
 		"Patch wurde in das Spiel geladen.",
@@ -77,18 +77,18 @@ namespace GER {
 		"Set/Aktive/Verfügbare Puffer: %d/%d/%d",
 		"Aktive Puffer: %d",
 		"Verbindungstimeout!",
-		"Config ist nicht verfügbar! RC: 0x%x",
-		"Config ist nicht verfügbar!\nÜberprüfung des Warehouse\nfür weitere Informationen...\nBeenden für Abschluss nicht möglich!",
-		"Config ist nicht verfügbar!\nÜberprüfung des Warehouse\nfür weitere Informationen...\nTimeout! Überprüfung dauerte zu lange.",
-		"Config ist nicht verfügbar!\nÜberprüfung des Warehouse\nfür weitere Informationen...\nVerbindungsfehler!",
-		"Keine neue Config verfügbar.",
+		"Konfiguration ist nicht verfügbar!\nRC: 0x%x",
+		"Konfiguration ist nicht verfügbar!\nÜberprüfung des Warehouse\nfür weitere Informationen...\nBeenden für Abschluss nicht möglich!",
+		"Konfiguration ist nicht verfügbar!\nÜberprüfung des Warehouse\nfür weitere Informationen...\nTimeout! Überprüfung dauerte zu lange.",
+		"Konfiguration ist nicht verfügbar!\nÜberprüfung des Warehouse\nfür weitere Informationen...\nVerbindungsfehler!",
+		"Keine neue Konfiguration verfügbar.",
 		"Internetverbindung nicht verfügbar!",
 		"Patch wird für dieses Spiel nicht benötigt!",
 		"Dieses Spiel ist nicht im Warehouse aufgelistet!",
-		"Dieses Spiel ist im Warehouse gelistet,\naber mit einer anderen Version.\n%s braucht keinen Patch, deine\nVersion braucht es eventuell auch nicht!",
-		"Dieses Spiel ist im Warehouse gelistet,\naber mit einer anderen Version.\n%s empfiehlt einen Patch,\naber Config ist nicht verfügbar!",
+		"Dieses Spiel ist im Warehouse gelistet,\naber mit einer anderen Version.\n%s braucht keinen Patch,\ndeine Version vielleicht auch nicht!",
+		"Dieses Spiel ist im Warehouse gelistet,\naber mit einer anderen Version.\n%s empfiehlt einen Patch,\naber Konfiguration ist nicht verfügbar!",
 		"Dieses Spiel ist im Warehouse gelistet,\naber mit einer anderen Version.\n%s hat Patch verfügbar!",
-		"Dieses Spiel ist im Warehouse gelistet\nmit einem empfohlenen Patch für \ndiese Version, aber Config ist nicht verfügbar!",
+		"Dieses Spiel ist im Warehouse gelistet\nmit einem empfohlenen Patch für \ndiese Version,\naber Konfiguration ist nicht verfügbar!",
 		"Verbindungsfehler! RC: 0x%x",
 
 		//Display Settings
@@ -153,7 +153,7 @@ namespace GER {
 		"Erlaube Patches um 60 Hz zu erwzingen",
 		"Nutze niedrigste Wiederholungsrate für nicht übereinstimmende FPS-Ziele",
 		"n/d",
-		"Maximale Wiederholungsrate verfügbar: %u Hz\nmyDP Link Rate: %s\nConfig ID: %08X",
+		"Maximale Wiederholungsrate verfügbar: %u Hz\nmyDP Link Rate: %s\nKonfigurations ID: %08X",
 		"Docked Display Einstellungen",
 
 		"Erlaube %dp Wiederholungsraten",
@@ -192,7 +192,7 @@ namespace GER {
 
 	const std::array teslaStrings = {
 	   "Zurück",
-	   "OK" 
+	   "OK"
 	};
 
 	static_assert(teslaStrings.size() == 2);
