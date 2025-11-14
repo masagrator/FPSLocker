@@ -185,10 +185,9 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 all		: $(OUTPUT).ovl
 
-$(OUTPUT).ovl: $(OUTPUT).elf $(OUTPUT).nacp
-    @elf2nro $< $@ --nacp=$(OUTPUT).nacp
-    @echo "built ... $(notdir $(OUTPUT).ovl)"
-    @printf 'H21+' >> $@
+$(OUTPUT).ovl	: $(OUTPUT).elf $(OUTPUT).nacp 
+	@elf2nro $< $@ $(NROFLAGS)
+	@echo "built ... $(notdir $(OUTPUT).ovl)"
 
 $(OUTPUT).elf	: $(OFILES)
 
