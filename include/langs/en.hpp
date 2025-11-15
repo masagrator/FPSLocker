@@ -85,9 +85,9 @@ namespace ENG {
 		"Internet connection not available!",
 		"Patch is not needed for this game!",
 		"This game is not listed in Warehouse!",
-		"This game is listed in Warehouse,\nbut with different version. Other\nversion doesn't need a patch, your\nversion maybe doesn't need it too!",
-		"This game is listed in Warehouse,\nbut with different version.\nOther version recommends patch,\nbut config is not available even for it!",
-		"This game is listed in Warehouse,\nbut with different version.\nOther version has config available!",
+		"This game is listed in Warehouse,\nbut with different version.\n%s doesn't need a patch,\nyour version maybe doesn't need it too!",
+		"This game is listed in Warehouse,\nbut with different version.\n%s recommends patch,\nbut config is not available even for it!",
+		"This game is listed in Warehouse,\nbut with different version.\n%s has config available!",
 		"This game is listed in Warehouse\nwith patch recommended for this\nversion, but config is not available!",
 		"Connection error! RC: 0x%x",
 		

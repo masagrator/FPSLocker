@@ -458,13 +458,13 @@ public:
 				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsNotListedInWarehouse));
 			}
 			else if (rc == 0x1003) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNotNeeded));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNotNeeded), expected_display_version);
 			}
 			else if (rc == 0x1004) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNeeded));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNeeded), expected_display_version);
 			}
 			else if (rc == 0x1005) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionConfigAvailable));
+				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionConfigAvailable), expected_display_version);
 			}
 			else if (rc == 0x1006) {
 				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseConfigNotAvailable));

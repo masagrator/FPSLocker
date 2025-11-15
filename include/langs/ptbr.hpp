@@ -85,10 +85,10 @@ namespace PTBR {
 		"Internet não disponível!",
 		"Patch não necessário para este jogo!",
 		"Jogo não está no Warehouse!",
-		"Jogo no Warehouse, mas com outra versão.\nOutra versão não precisa de patch; a sua talvez também não!",
-		"Jogo no Warehouse, mas outra versão recomenda patch,\nporém config não disponível nem para ela!",
-		"Jogo no Warehouse, mas outra versão tem config disponível!",
-		"Jogo no Warehouse recomenda patch para esta versão,\nporém config não disponível!",
+		"Jogo listado no Warehouse,\nmas com uma versão diferente.\n%s não precisa de patch,\ntalvez a sua também não precise!",
+		"Jogo listado no Warehouse,\nmas com uma versão diferente.\n%s recomenda patch,\nmas a configuração não está disponível!",
+		"Jogo listado no Warehouse,\nmas com uma versão diferente.\n%s tem configuração\ndisponível!",
+		"Jogo no Warehouse recomenda patch\npara esta versão,\nporém config não disponível!",
 		"Erro de conexão! RC: 0x%x",
 		
 		//Display Settings
