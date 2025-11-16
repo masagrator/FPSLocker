@@ -471,7 +471,7 @@ void downloadPatch(void*) {
 
 				char* display_version_converted = curl_easy_escape(curl_ga, display_version, 0);
 				char* app_version_converted = curl_easy_escape(curl_ga, APP_VERSION, 0);
-				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, temp_error_code ? 0 : 1, *(uintptr_t*)(mem.addr + 64), APP_VERSION);
+				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, temp_error_code ? 0 : 1, *(uint64_t*)(mem.addr + 64), APP_VERSION);
 				curl_free(display_version_converted);
 				curl_free(app_version_converted);
 
@@ -846,4 +846,5 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
+
 }
