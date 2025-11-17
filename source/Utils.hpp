@@ -458,7 +458,7 @@ void downloadPatch(void*) {
 		}
 	
 		static uint64_t last_TID_checked = 0;
-		if (TID != last_TID_checked) {
+		if (TID != last_TID_checked && temp_error_code != 0x312) {
 			last_TID_checked = TID;
 			CURL *curl_ga = curl_easy_init();
 			if (curl_ga) {
@@ -848,3 +848,4 @@ bool saveSettings() {
 	return true;
 
 }
+
