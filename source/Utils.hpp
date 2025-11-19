@@ -458,7 +458,7 @@ void downloadPatch(void*) {
 		}
 	
 		static uint64_t last_TID_checked = 0;
-		if (TID != last_TID_checked && temp_error_code != 0x312) {
+		if (TID != last_TID_checked) {
 			last_TID_checked = TID;
 			CURL *curl_ga = curl_easy_init();
 			if (curl_ga) {
@@ -471,7 +471,11 @@ void downloadPatch(void*) {
 
 				char* display_version_converted = curl_easy_escape(curl_ga, display_version, 0);
 				char* app_version_converted = curl_easy_escape(curl_ga, APP_VERSION, 0);
-				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, temp_error_code ? 0 : 1, *(uint64_t*)(mem.addr + 64), APP_VERSION);
+				uint8_t valid = 1;
+				if (temp_error_code == 0x404) valid = 0;
+				else if (temp_error_code == 0x312) valid = 2;
+				else valid = 3;
+				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, valid, *(uint64_t*)(mem.addr + 64), APP_VERSION);
 				curl_free(display_version_converted);
 				curl_free(app_version_converted);
 
@@ -848,4 +852,5 @@ bool saveSettings() {
 	return true;
 
 }
+
 
