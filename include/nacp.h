@@ -1,1 +1,0 @@
-Result nacpGetLanguageEntry2(NacpStruct* nacp, NacpLanguageEntry** langentry);
