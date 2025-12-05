@@ -752,10 +752,6 @@ bool CheckPort () {
 	return false;
 }
 
-extern "C" {
-	#include "nacp.h"
-}
-
 /**
  * @brief Gets the \ref NsApplicationControlData for the specified application.
  * @note Only available on [19.0.0+].
@@ -816,7 +812,7 @@ std::string getAppName(uint64_t Tid)
 	
 	NacpLanguageEntry *languageEntry = nullptr;
 	smInitialize();
-	rc = nacpGetLanguageEntry2(&(appControlData -> nacp), &languageEntry);
+	rc = nacpGetLanguageEntry(&(appControlData -> nacp), &languageEntry);
 	smExit();
 	if (R_FAILED(rc)) {
 		free(appControlData);
@@ -902,4 +898,5 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
+
 }
