@@ -471,11 +471,7 @@ void downloadPatch(void*) {
 
 				char* display_version_converted = curl_easy_escape(curl_ga, display_version, 0);
 				char* app_version_converted = curl_easy_escape(curl_ga, APP_VERSION, 0);
-				uint8_t valid = 1;
-				if (temp_error_code == 0x404) valid = 0;
-				else if (temp_error_code == 0x312) valid = 2;
-				else valid = 3;
-				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, valid, *(uint64_t*)(mem.addr + 64), APP_VERSION);
+				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, temp_error_code ? 0 : 1, *(uintptr_t*)(mem.addr + 64), APP_VERSION);
 				curl_free(display_version_converted);
 				curl_free(app_version_converted);
 
@@ -751,11 +747,58 @@ extern "C" {
 	#include "nacp.h"
 }
 
+/**
+ * @brief Gets the \ref NsApplicationControlData for the specified application.
+ * @note Only available on [19.0.0+].
+ * @param[in] source Source, official sw uses ::NsApplicationControlSource_Storage.
+ * @param[in] application_id ApplicationId.
+ * @param[out] buffer \ref NsApplicationControlData
+ * @param[in] flag1 Default is 0. 0xFF speeds up execution.
+ * @param[in] flag2 Default is 0.
+ * @param[in] size Size of the buffer.
+ * @param[out] actual_size Actual output size.
+ * @param[out] unk Returned with size, always 0.
+ */
+Result nsGetApplicationControlData2(NsApplicationControlSource source, u64 application_id, NsApplicationControlData* buffer, u8 flag1, u8 flag2, size_t size, u64* actual_size, u32* unk) {
+    if (hosversionBefore(19,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+    Service srv={0}, *srv_ptr = &srv;
+    Result rc=0;
+    u32 cmd_id = 6;
+    rc = nsGetReadOnlyApplicationControlDataInterface(&srv);
+
+    const struct {
+        u8 source;
+        u8 flags[2];
+        u8 pad[5];
+        u64 application_id;
+    } in = { source, {flag1, flag2}, {0}, application_id };
+
+    u64 tmp=0;
+
+    if (R_SUCCEEDED(rc)) rc = serviceDispatchInOut(srv_ptr, cmd_id, in, tmp,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { buffer, size } },
+    );
+    if (R_SUCCEEDED(rc)) {
+        if (actual_size) *actual_size = tmp >> 32;
+        if (unk) *unk = (u32)tmp;
+    }
+
+    serviceClose(&srv);
+    return rc;
+}
+
 std::string getAppName(uint64_t Tid)
 {
 	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(sizeof(NsApplicationControlData));
-	size_t appControlDataSize = 0;
-	if (R_FAILED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), &appControlDataSize))) {
+
+	Result rc = -1;
+	if (hosversionBefore(19,0,0)) {
+		rc = nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), nullptr);
+	}
+	else rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, 0xFF, 0, sizeof(NsApplicationControlData), nullptr, nullptr);
+	if (R_FAILED(rc)) {
 		free(appControlData);
 		char returnTID[18];
 		sprintf(returnTID, "%016lx-", Tid);
@@ -764,7 +807,7 @@ std::string getAppName(uint64_t Tid)
 	
 	NacpLanguageEntry *languageEntry = nullptr;
 	smInitialize();
-	Result rc = nacpGetLanguageEntry2(&(appControlData -> nacp), &languageEntry);
+	rc = nacpGetLanguageEntry2(&(appControlData -> nacp), &languageEntry);
 	smExit();
 	if (R_FAILED(rc)) {
 		free(appControlData);
@@ -850,7 +893,4 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
-
 }
-
-
