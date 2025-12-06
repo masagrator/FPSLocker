@@ -172,8 +172,10 @@ public:
 class AdvancedGui : public tsl::Gui {
 public:
 	bool exitPossible = true;
+	char progressBar[5];
     AdvancedGui() {
 		patchChar[0] = 0;
+		progressBar[0] = 0;
 		configValid = LOCK::readConfig(configPath);
 		if (R_FAILED(configValid)) {
 			if (configValid == 0x202) {
@@ -308,8 +310,12 @@ public:
 			}
 			else {
 				renderer->drawString(lockInvalid, false, x, y+20, 20, renderer->a(0xFFFF));
-				if (patchChar[0] != 0)
+				if (patchChar[0] != 0) {
 					renderer->drawString(patchChar, false, x, y+84, 20, renderer->a(0xF99F));
+					if (progressBar[0] != 0) {
+						renderer->drawString(progressBar, false, x+300, y+50, 20, renderer->a(0xF99F));
+					}
+				}
 				else renderer->drawString(lockVersionExpected, false, x, y+84, 20, renderer->a(0xFFFF));
 			}
 				
@@ -354,6 +360,7 @@ public:
 			if ((keys & HidNpadButton_A) && PluginRunning && exitPossible) {
 				exitPossible = false;
 				sprintf(patchChar, getStringID(Lang::Id_CheckingWarehouseForConfig));
+				
 				threadCreate(&t1, downloadPatch, NULL, NULL, 0x20000, 0x3F, 3);
 				threadStart(&t1);
 				return true;
@@ -414,74 +421,82 @@ public:
 	}
 
     virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
-		if (exitPossible) {
-			if (keysDown & HidNpadButton_B) {
-				tsl::goBack();
-				return true;
-			}
-		}
-		else if (!exitPossible) {
-			if (keysDown & HidNpadButton_B)
-				return true;
-			Result rc = error_code;
-			if (rc != UINT32_MAX && rc != 0x404) {
+		if (keysDown & HidNpadButton_B) {
+			if (!exitPossible) {
+				atomic_store(&cancel_flag, 1);
 				threadWaitForExit(&t1);
 				threadClose(&t1);
 				exitPossible = true;
+				atomic_store(&cancel_flag, 0);
 				error_code = UINT32_MAX;
 			}
-			if (rc == 0x316) {
-				sprintf(patchChar, getStringID(Lang::Id_ConnectionTimeout));
+			tsl::goBack();
+			return true;
+		}
+		Result rc = error_code;
+		if (rc != UINT32_MAX && rc != 0x404) {
+			threadWaitForExit(&t1);
+			threadClose(&t1);
+			exitPossible = true;
+			error_code = UINT32_MAX;
+			progressBar[0] = 0;
+		}
+		if (rc == 0x316) {
+			strcpy(patchChar, getStringID(Lang::Id_ConnectionTimeout));
+		}
+		else if (rc == 0x212 || rc == 0x312) {
+			sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableRC), rc);
+		}
+		else if (rc == 0x404) {
+			if (data_to_download != 0) {
+				strcpy(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableExitNotPossibleUntilFinished));
+				snprintf(progressBar, sizeof(progressBar), "%lu%%", (size_t)(data_downloaded * 100) / data_to_download);
+
 			}
-			else if (rc == 0x212 || rc == 0x312) {
-				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableRC), rc);
+			else strcpy(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableExitNotPossibleUntilFinished));
+		}
+		else if (rc == 0x405) {
+			strcpy(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableTimeout));
+		}
+		else if (rc == 0x406) {
+			strcpy(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableConnectionError));
+		}
+		else if (rc == 0x104) {
+			strcpy(patchChar, getStringID(Lang::Id_NoNewConfigAvailable));
+		}
+		else if (rc == 0x412) {
+			strcpy(patchChar, getStringID(Lang::Id_InternetConnectionNotAvailable));
+		}
+		else if (rc == 0x1001) {
+			strcpy(patchChar, getStringID(Lang::Id_PatchIsNotNeededForThisGame));
+		}
+		else if (rc == 0x1002) {
+			strcpy(patchChar, getStringID(Lang::Id_ThisGameIsNotListedInWarehouse));
+		}
+		else if (rc == 0x1003) {
+			sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNotNeeded), expected_display_version);
+		}
+		else if (rc == 0x1004) {
+			sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNeeded), expected_display_version);
+		}
+		else if (rc == 0x1005) {
+			sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionConfigAvailable), expected_display_version);
+		}
+		else if (rc == 0x1006) {
+			strcpy(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseConfigNotAvailable));
+		}
+		else if (R_SUCCEEDED(rc)) {
+			FILE* fp = fopen(patchPath, "rb");
+			if (fp) {
+				fclose(fp);
+				remove(patchPath);
 			}
-			else if (rc == 0x404) {
-				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableExitNotPossibleUntilFinished));
-			}
-			else if (rc == 0x405) {
-				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableTimeout));
-			}
-			else if (rc == 0x406) {
-				sprintf(patchChar, getStringID(Lang::Id_ConfigIsNotAvailableConnectionError));
-			}
-			else if (rc == 0x104) {
-				sprintf(patchChar, getStringID(Lang::Id_NoNewConfigAvailable));
-			}
-			else if (rc == 0x412) {
-				sprintf(patchChar, getStringID(Lang::Id_InternetConnectionNotAvailable));
-			}
-			else if (rc == 0x1001) {
-				sprintf(patchChar, getStringID(Lang::Id_PatchIsNotNeededForThisGame));
-			}
-			else if (rc == 0x1002) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsNotListedInWarehouse));
-			}
-			else if (rc == 0x1003) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNotNeeded), expected_display_version);
-			}
-			else if (rc == 0x1004) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionPatchNeeded), expected_display_version);
-			}
-			else if (rc == 0x1005) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseWithDifferentVersionConfigAvailable), expected_display_version);
-			}
-			else if (rc == 0x1006) {
-				sprintf(patchChar, getStringID(Lang::Id_ThisGameIsListedInWarehouseConfigNotAvailable));
-			}
-			else if (R_SUCCEEDED(rc)) {
-				FILE* fp = fopen(patchPath, "rb");
-				if (fp) {
-					fclose(fp);
-					remove(patchPath);
-				}
-				tsl::goBack();
-				tsl::changeTo<AdvancedGui>();
-				return true;
-			}
-			else if (rc != UINT32_MAX) {
-				sprintf(patchChar, getStringID(Lang::Id_ConnectionErrorRC), rc);
-			}
+			tsl::goBack();
+			tsl::changeTo<AdvancedGui>();
+			return true;
+		}
+		else if (rc != UINT32_MAX) {
+			sprintf(patchChar, getStringID(Lang::Id_ConnectionErrorRC), rc);
 		}
         return false;   // Return true here to signal the inputs have been consumed
     }

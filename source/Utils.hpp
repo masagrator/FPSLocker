@@ -101,7 +101,7 @@ Result configValid = 10;
 Result patchValid = 0x202;
 char lockInvalid[96] = "";
 char lockVersionExpected[40] = "";
-char patchChar[192] = "";
+char patchChar[256] = "";
 char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
 Thread t0;
@@ -334,8 +334,13 @@ char expected_display_version[0x10] = "";
 
 _Atomic(int) cancel_flag = 0;
 
+curl_off_t data_to_download = 0;
+curl_off_t data_downloaded = 0;
+
 static int xfer_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
                          curl_off_t ultotal, curl_off_t ulnow) {
+	data_to_download = dltotal;
+	data_downloaded = dlnow;
     if (atomic_load(&cancel_flag)) {
         return 1; // Abort
     }
@@ -592,6 +597,8 @@ Result downloadPatchImpl(bool secondSource) {
 				curl_easy_setopt(curl, CURLOPT_URL, "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/README.md");
 			}
 			else curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
+			data_to_download = 0;
+			data_downloaded = 0;
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
 				curl_easy_cleanup(curl);
