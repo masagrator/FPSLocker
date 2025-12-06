@@ -461,6 +461,60 @@ void downloadPatch(void*) {
 			else temp_error_code = 0;
 			free(buffer);
 		}
+
+		//Chinese mirror
+
+		bool ChineseMirror = false;
+		if (temp_error_code == 0x312) {
+			ChineseMirror = true;
+			snprintf(download_path, sizeof(download_path), "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+			FILE* fp = fopen(file_path, "wb+");
+			if (fp) {
+				curl_easy_cleanup(curl);
+				curl = curl_easy_init();
+				curl_easy_setopt(curl, CURLOPT_URL, download_path);
+				curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
+				curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+				curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+				curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+				curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
+				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+				msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
+				CURLcode res = curl_easy_perform(curl);
+				if (res != CURLE_OK) {
+					fclose(fp);
+					remove(file_path);
+					if (res == CURLE_OPERATION_TIMEDOUT) temp_error_code = 0x316;
+					else temp_error_code = 0x200 + res;
+				}
+				else {
+					size_t filesize = ftell(fp);
+					if (filesize > 512) {
+						filesize = 512;
+					}
+					fseek(fp, 0, SEEK_SET);
+					char* buffer = (char*)calloc(1, filesize + 1);
+					fread(buffer, 1, filesize, fp);
+					fclose(fp);
+					char BID_char[18] = "";
+					snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
+					if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
+						remove(file_path);
+						char Not_found[] = "{\"message\":\"404 File Not Found\"}";
+						if (!strncmp(buffer, Not_found, strlen(Not_found))) {
+							temp_error_code = 0x404;
+						}
+						else temp_error_code = 0x312;
+					}
+					else temp_error_code = 0;
+					free(buffer);
+				}
+			}
+
+		}
 	
 		static uint64_t last_TID_checked = 0;
 		if (TID != last_TID_checked) {
@@ -545,6 +599,9 @@ void downloadPatch(void*) {
 						std::string temp = "";
 						LOCK::tree["Addons"][i] >> temp;
 						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/" + temp;
+						if (ChineseMirror) {
+							dpath = "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/" + temp;
+						}
 						std::string path = "sdmc:/" + temp;
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
@@ -568,7 +625,10 @@ void downloadPatch(void*) {
 		}
 		else if (temp_error_code == 0x404) {
 			error_code = 0x404;
-			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
+			if (ChineseMirror) {
+				curl_easy_setopt(curl, CURLOPT_URL, "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/README.md");
+			}
+			else curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
 				curl_easy_cleanup(curl);
@@ -752,6 +812,10 @@ bool CheckPort () {
 	return false;
 }
 
+extern "C" {
+	#include "nacp.h"
+}
+
 /**
  * @brief Gets the \ref NsApplicationControlData for the specified application.
  * @note Only available on [19.0.0+].
@@ -812,7 +876,7 @@ std::string getAppName(uint64_t Tid)
 	
 	NacpLanguageEntry *languageEntry = nullptr;
 	smInitialize();
-	rc = nacpGetLanguageEntry(&(appControlData -> nacp), &languageEntry);
+	rc = nacpGetLanguageEntry2(&(appControlData -> nacp), &languageEntry);
 	smExit();
 	if (R_FAILED(rc)) {
 		free(appControlData);
@@ -898,5 +962,4 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
-
 }
