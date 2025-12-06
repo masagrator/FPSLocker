@@ -369,7 +369,7 @@ Result downloadPatchImpl(bool secondSource) {
     };
 
 	uint64_t startTick = svcGetSystemTick();
-	uint64_t timeoutTick = startTick + (30 * systemtickfrequency); //30 seconds
+	uint64_t timeoutTick = startTick + (20 * systemtickfrequency); //20 seconds
 	long msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 
 	smInitialize();
@@ -484,7 +484,7 @@ Result downloadPatchImpl(bool secondSource) {
 		}
 	
 		static uint64_t last_TID_checked = 0;
-		if (TID != last_TID_checked) {
+		if ((!secondSource || (secondSource && temp_error_code == 0)) && TID != last_TID_checked) {
 			last_TID_checked = TID;
 			CURL *curl_ga = curl_easy_init();
 			if (curl_ga) {
@@ -702,11 +702,13 @@ void downloadPatch(void*) {
 		error_code = 0x312;
 		return;
 	}
-	if (rc == 0x312 || rc == 0x405 || rc == 0x406) {
+	Result last_error_code = rc;
+	if (rc) {
 		error_code = UINT32_MAX;
-		rc = downloadPatchImpl(false);
+		Result rc2 = downloadPatchImpl(false);
+		if (rc2 != 0x312 && rc2 != 0x316 && rc2 != 0x405 && rc2 != 0x406) last_error_code = rc2; 
 	}
-	error_code = rc;
+	error_code = last_error_code;
 	return;
 }
 
