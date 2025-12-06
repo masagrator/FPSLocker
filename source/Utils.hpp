@@ -346,11 +346,11 @@ void downloadPatch(void*) {
 
         .tcp_tx_buf_size = 0x8000,
         .tcp_rx_buf_size = 0x8000,
-        .tcp_tx_buf_max_size = 0x20000,
-        .tcp_rx_buf_max_size = 0x20000,
+        .tcp_tx_buf_max_size = 0x100000,
+        .tcp_rx_buf_max_size = 0x100000,
 
-        .udp_tx_buf_size = 0,
-        .udp_rx_buf_size = 0,
+        .udp_tx_buf_size = 0x1000,
+        .udp_rx_buf_size = 0x1000,
 
         .sb_efficiency = 1,
 		.bsd_service_type = BsdServiceType_Auto
@@ -481,6 +481,7 @@ void downloadPatch(void*) {
 				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
 				curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+				startTick = svcGetSystemTick();
 				timeoutTick = startTick + (30 * systemtickfrequency);
 				msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 				curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
