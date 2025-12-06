@@ -437,7 +437,6 @@ void sendConfirmation(Result temp_error_code) {
 			curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYPEER, 0L);
 			curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYHOST, 0L);
 			curl_easy_setopt(curl_ga, CURLOPT_TIMEOUT_MS, 1000);
-			curl_easy_setopt(curl_ga, CURLOPT_XFERINFOFUNCTION, xfer_callback);
 			curl_easy_perform(curl_ga);
 			curl_easy_cleanup(curl_ga);
 		}
@@ -451,41 +450,10 @@ Result downloadPatchImpl(const char* source, const char* noFileResponse) {
 
 	curl_timeout = false;
 
-    static const SocketInitConfig socketInitConfig = {
-
-        .tcp_tx_buf_size = 0x8000,
-        .tcp_rx_buf_size = 0x8000,
-        .tcp_tx_buf_max_size = 0x80000,
-        .tcp_rx_buf_max_size = 0x80000,
-
-        .udp_tx_buf_size = 0,
-        .udp_rx_buf_size = 0,
-
-        .sb_efficiency = 1,
-		.bsd_service_type = BsdServiceType_Auto
-    };
-
 	uint64_t startTick = svcGetSystemTick();
 	uint64_t timeoutTick = startTick + (20 * systemtickfrequency); //20 seconds
 	long msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 
-	smInitialize();
-
-
-	nifmInitialize(NifmServiceType_System);
-	u32 dummy = 0;
-	NifmInternetConnectionType NifmConnectionType = (NifmInternetConnectionType)-1;
-	NifmInternetConnectionStatus NifmConnectionStatus = (NifmInternetConnectionStatus)-1;
-	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
-		nifmExit();
-		smExit();
-		return 0x412;
-	}
-	nifmExit();
-
-	socketInitialize(&socketInitConfig);
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
 	CURL *curl = curl_easy_init();
 
     if (curl) {
@@ -716,9 +684,6 @@ Result downloadPatchImpl(const char* source, const char* noFileResponse) {
         curl_easy_cleanup(curl);
     }
 
-    curl_global_cleanup();
-	socketExit();
-	smExit();
 	return temp_error_code;
 }
 
@@ -728,17 +693,53 @@ void downloadPatch(void*) {
 		error_code = 0x316;
 		return;
 	}
+
+	static const SocketInitConfig socketInitConfig = {
+
+        .tcp_tx_buf_size = 0x8000,
+        .tcp_rx_buf_size = 0x8000,
+        .tcp_tx_buf_max_size = 0x80000,
+        .tcp_rx_buf_max_size = 0x80000,
+
+        .udp_tx_buf_size = 0,
+        .udp_rx_buf_size = 0,
+
+        .sb_efficiency = 1,
+		.bsd_service_type = BsdServiceType_Auto
+    };
+
+	smInitialize();
+	nifmInitialize(NifmServiceType_System);
+	u32 dummy = 0;
+	NifmInternetConnectionType NifmConnectionType = (NifmInternetConnectionType)-1;
+	NifmInternetConnectionStatus NifmConnectionStatus = (NifmInternetConnectionStatus)-1;
+	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
+		nifmExit();
+		smExit();
+		error_code = 0x412;
+		return;
+	}
+	nifmExit();
+	socketInitialize(&socketInitConfig);
+	smExit();
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
 	Result last_error_code = error_code;
+	bool exitImmediately = false;
 	for (size_t i = 0; i < sources.size(); i++) {
 		Result rc = downloadPatchImpl(sources[i].first, sources[i].second);
 		if (atomic_load(&cancel_flag)) {
-			error_code = 0x312;
-			return;
+			last_error_code = 0x312;
+			exitImmediately = true;
+			break;
 		}
 		if (rc != 0x312 && rc != 0x316 && rc != 0x405 && rc != 0x406) last_error_code = rc; 
 		if (R_SUCCEEDED(rc)) break;
 	}
-	sendConfirmation(last_error_code);
+	if (!exitImmediately) sendConfirmation(last_error_code);
+    curl_global_cleanup();
+	socketExit();
 	error_code = last_error_code;
 	return;
 }
