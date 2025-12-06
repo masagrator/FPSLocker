@@ -346,11 +346,11 @@ void downloadPatch(void*) {
 
         .tcp_tx_buf_size = 0x8000,
         .tcp_rx_buf_size = 0x8000,
-        .tcp_tx_buf_max_size = 0x100000,
-        .tcp_rx_buf_max_size = 0x100000,
+        .tcp_tx_buf_max_size = 0x80000,
+        .tcp_rx_buf_max_size = 0x80000,
 
-        .udp_tx_buf_size = 0x1000,
-        .udp_rx_buf_size = 0x1000,
+        .udp_tx_buf_size = 0,
+        .udp_rx_buf_size = 0,
 
         .sb_efficiency = 1,
 		.bsd_service_type = BsdServiceType_Auto
@@ -467,7 +467,7 @@ void downloadPatch(void*) {
 		bool ChineseMirror = false;
 		if (temp_error_code == 0x312) {
 			ChineseMirror = true;
-			snprintf(download_path, sizeof(download_path), "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+			snprintf(download_path, sizeof(download_path), "https://gitee.com/sskyswitch/FPSLocker-Warehouse/raw/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
 			FILE* fp = fopen(file_path, "wb+");
 			if (fp) {
 				curl_easy_cleanup(curl);
@@ -505,7 +505,7 @@ void downloadPatch(void*) {
 					snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
 					if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
 						remove(file_path);
-						char Not_found[] = "{\"message\":\"404 File Not Found\"}";
+						char Not_found[] = "[session-";
 						if (!strncmp(buffer, Not_found, strlen(Not_found))) {
 							temp_error_code = 0x404;
 						}
@@ -602,7 +602,7 @@ void downloadPatch(void*) {
 						LOCK::tree["Addons"][i] >> temp;
 						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/" + temp;
 						if (ChineseMirror) {
-							dpath = "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/" + temp;
+							dpath = "https://gitee.com/sskyswitch/FPSLocker-Warehouse/raw/v4/" + temp;
 						}
 						std::string path = "sdmc:/" + temp;
 						strncpy(&download_path[0], dpath.c_str(), 255);
@@ -628,7 +628,7 @@ void downloadPatch(void*) {
 		else if (temp_error_code == 0x404) {
 			error_code = 0x404;
 			if (ChineseMirror) {
-				curl_easy_setopt(curl, CURLOPT_URL, "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/README.md");
+				curl_easy_setopt(curl, CURLOPT_URL, "https://gitee.com/sskyswitch/FPSLocker-Warehouse/raw/v4/README.md");
 			}
 			else curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
