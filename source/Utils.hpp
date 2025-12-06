@@ -1,5 +1,6 @@
 #pragma once
 #include <curl/curl.h>
+#include <stdatomic.h>
 
 const unsigned char data[] = {
 	#embed "titleids_with_patches.bin"
@@ -100,7 +101,7 @@ Result configValid = 10;
 Result patchValid = 0x202;
 char lockInvalid[96] = "";
 char lockVersionExpected[40] = "";
-char patchChar[192] = "";
+char patchChar[256] = "";
 char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
 Thread t0;
@@ -331,12 +332,23 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
 
 char expected_display_version[0x10] = "";
 
-void downloadPatch(void*) {
+_Atomic(int) cancel_flag = 0;
 
-	if (!TID || !BID) {
-		error_code = 0x316;
-		return;
-	}
+curl_off_t data_to_download = 0;
+curl_off_t data_downloaded = 0;
+
+static int xfer_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
+                         curl_off_t ultotal, curl_off_t ulnow) {
+	data_to_download = dltotal;
+	data_downloaded = dlnow;
+    if (atomic_load(&cancel_flag)) {
+        return 1; // Abort
+    }
+    return 0;
+}
+
+Result downloadPatchImpl(bool secondSource) {
+
 
 	Result temp_error_code = -1;
 
@@ -346,8 +358,8 @@ void downloadPatch(void*) {
 
         .tcp_tx_buf_size = 0x8000,
         .tcp_rx_buf_size = 0x8000,
-        .tcp_tx_buf_max_size = 0x20000,
-        .tcp_rx_buf_max_size = 0x20000,
+        .tcp_tx_buf_max_size = 0x80000,
+        .tcp_rx_buf_max_size = 0x80000,
 
         .udp_tx_buf_size = 0,
         .udp_rx_buf_size = 0,
@@ -357,7 +369,7 @@ void downloadPatch(void*) {
     };
 
 	uint64_t startTick = svcGetSystemTick();
-	uint64_t timeoutTick = startTick + (30 * systemtickfrequency); //30 seconds
+	uint64_t timeoutTick = startTick + (20 * systemtickfrequency); //20 seconds
 	long msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 
 	smInitialize();
@@ -370,8 +382,7 @@ void downloadPatch(void*) {
 	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
 		nifmExit();
 		smExit();
-		error_code = 0x412;
-		return;
+		return 0x412;
 	}
 	nifmExit();
 
@@ -414,11 +425,11 @@ void downloadPatch(void*) {
 			curl_global_cleanup();
 			socketExit();
 			smExit();
-			error_code = 0x101;
-			return;
+			return 0x101;
 		}
 
-		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+		if (!secondSource) snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+		else snprintf(download_path, sizeof(download_path), "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
         curl_easy_setopt(curl, CURLOPT_URL, download_path);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -428,6 +439,7 @@ void downloadPatch(void*) {
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+		curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_callback);
 		msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 
@@ -452,18 +464,27 @@ void downloadPatch(void*) {
 			snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
 			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
 				remove(file_path);
-				char Not_found[] = "404: Not Found";
-				if (!strncmp(buffer, Not_found, strlen(Not_found))) {
-					temp_error_code = 0x404;
+				if (secondSource) {
+					char Not_found[] = "{\"message\":\"404 File Not Found\"}";
+					if (!strncmp(buffer, Not_found, strlen(Not_found))) {
+						temp_error_code = 0x404;
+					}
+					else temp_error_code = 0x312;
 				}
-				else temp_error_code = 0x312;
+				else {
+					char Not_found[] = "404: Not Found";
+					if (!strncmp(buffer, Not_found, strlen(Not_found))) {
+						temp_error_code = 0x404;
+					}
+					else temp_error_code = 0x312;
+				}
 			}
 			else temp_error_code = 0;
 			free(buffer);
 		}
 	
 		static uint64_t last_TID_checked = 0;
-		if (TID != last_TID_checked) {
+		if ((!secondSource || (secondSource && temp_error_code == 0)) && TID != last_TID_checked) {
 			last_TID_checked = TID;
 			CURL *curl_ga = curl_easy_init();
 			if (curl_ga) {
@@ -488,6 +509,7 @@ void downloadPatch(void*) {
 				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYPEER, 0L);
 				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYHOST, 0L);
 				curl_easy_setopt(curl_ga, CURLOPT_TIMEOUT_MS, 1000);
+				curl_easy_setopt(curl_ga, CURLOPT_XFERINFOFUNCTION, xfer_callback);
 				curl_easy_perform(curl_ga);
 				curl_easy_cleanup(curl_ga);
 			}
@@ -545,6 +567,9 @@ void downloadPatch(void*) {
 						std::string temp = "";
 						LOCK::tree["Addons"][i] >> temp;
 						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/" + temp;
+						if (secondSource) {
+							dpath = "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/" + temp;
+						}
 						std::string path = "sdmc:/" + temp;
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
@@ -568,15 +593,19 @@ void downloadPatch(void*) {
 		}
 		else if (temp_error_code == 0x404) {
 			error_code = 0x404;
-			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
+			if (secondSource) {
+				curl_easy_setopt(curl, CURLOPT_URL, "https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/README.md");
+			}
+			else curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
+			data_to_download = 0;
+			data_downloaded = 0;
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
 				curl_easy_cleanup(curl);
 				curl_global_cleanup();
 				socketExit();
 				smExit();
-				error_code = 0x101;
-				return;
+				return 0x101;
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 			msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
@@ -658,7 +687,28 @@ void downloadPatch(void*) {
     curl_global_cleanup();
 	socketExit();
 	smExit();
-	error_code = temp_error_code;
+	return temp_error_code;
+}
+
+void downloadPatch(void*) {
+
+	if (!TID || !BID) {
+		error_code = 0x316;
+		return;
+	}
+
+	Result rc = downloadPatchImpl(true);
+	if (atomic_load(&cancel_flag)) {
+		error_code = 0x312;
+		return;
+	}
+	Result last_error_code = rc;
+	if (rc) {
+		error_code = UINT32_MAX;
+		Result rc2 = downloadPatchImpl(false);
+		if (rc2 != 0x312 && rc2 != 0x316 && rc2 != 0x405 && rc2 != 0x406) last_error_code = rc2; 
+	}
+	error_code = last_error_code;
 	return;
 }
 
@@ -898,5 +948,4 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
-
 }
