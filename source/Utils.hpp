@@ -443,6 +443,8 @@ void sendConfirmation(Result temp_error_code) {
 	}
 }
 
+#define timeout_in_seconds 30
+
 Result downloadPatchImpl(const char* source) {
 
 
@@ -451,7 +453,7 @@ Result downloadPatchImpl(const char* source) {
 	curl_timeout = false;
 
 	uint64_t startTick = svcGetSystemTick();
-	uint64_t timeoutTick = startTick + (20 * systemtickfrequency); //20 seconds
+	uint64_t timeoutTick = startTick + (timeout_in_seconds * systemtickfrequency);
 	long msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 
 	CURL *curl = curl_easy_init();

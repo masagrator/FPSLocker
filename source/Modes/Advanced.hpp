@@ -353,7 +353,9 @@ public:
 			list->addItem(clickableListItem2);
 		}
 		if (R_FAILED(configValid)) {
-			list->addItem(new tsl::elm::NoteHeader(getStringID(Lang::Id_ThisCanTakeUpTo30Seconds), true, {0xF, 0x3, 0x3, 0xF}));
+			char temp[128] = "";
+			snprintf(temp, sizeof(temp), etStringID(Lang::Id_ThisCanTakeUpTo30Seconds), timeout_in_seconds * sources.size());
+			list->addItem(new tsl::elm::NoteHeader(temp, true, {0xF, 0x3, 0x3, 0xF}));
 		}
 		auto *clickableListItem4 = new tsl::elm::MiniListItem(getStringID(Lang::Id_CheckDownloadConfigFile));
 		clickableListItem4->setClickListener([this](u64 keys) { 
