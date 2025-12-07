@@ -390,8 +390,9 @@ static int xfer_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 }
 
 std::array sources = {
-	"https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/",
-	"https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/"
+	std::pair<const char*, const char*>("https://api.gitcode.com/api/v5/repos/masagratordev/FPSLocker-Warehouse/raw/", 
+		"\x3f\x61\x63\x63\x65\x73\x73\x5f\x74\x6f\x6b\x65\x6e\x3d\x5f\x70\x71\x38\x45\x75\x4a\x34\x54\x4c\x45\x76\x31\x4e\x63\x44\x44\x78\x61\x78\x4a\x71\x52\x33"), //it's read only limited to repos, so don't bother. Valid until 2028-10-01
+	std::pair<const char*, const char*>("https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/", "")
 };
 
 void sendConfirmation(Result temp_error_code) {
@@ -445,7 +446,7 @@ void sendConfirmation(Result temp_error_code) {
 
 #define timeout_in_seconds 30
 
-Result downloadPatchImpl(const char* source) {
+Result downloadPatchImpl(const char* source, const char* suffix) {
 
 
 	Result temp_error_code = -1;
@@ -477,7 +478,7 @@ Result downloadPatchImpl(const char* source) {
 			return 0x101;
 		}
 
-		snprintf(download_path, sizeof(download_path), "%sSaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", source, TID, BID);
+		snprintf(download_path, sizeof(download_path), "%sSaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml%s", source, TID, BID, suffix);
         curl_easy_setopt(curl, CURLOPT_URL, download_path);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -589,6 +590,7 @@ Result downloadPatchImpl(const char* source) {
 			error_code = 0x404;
 			std::string readme_path = source;
 			readme_path += "README.md";
+			readme_path += suffix;
 			curl_easy_setopt(curl, CURLOPT_URL, readme_path.c_str());
 			data_to_download = 0;
 			data_downloaded = 0;
@@ -736,7 +738,7 @@ void downloadPatch(void*) {
 	Result last_bad_error_code = 0x316;
 	bool exitImmediately = false;
 	for (size_t i = 0; i < sources.size(); i++) {
-		Result rc = downloadPatchImpl(sources[i]);
+		Result rc = downloadPatchImpl(sources[i].first, sources[i].second);
 		if (atomic_load(&cancel_flag)) {
 			last_error_code = 0x312;
 			exitImmediately = true;
