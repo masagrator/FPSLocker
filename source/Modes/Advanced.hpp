@@ -307,13 +307,16 @@ public:
 					renderer->drawString(patchChar, false, x, y+64, 20, renderer->a(0xF99F));
 				}
 				else renderer->drawString(patchChar, false, x, y+64, 20, renderer->a(0xFFFF));
+				if (progressBar[0] != 0) {
+					renderer->drawString(progressBar, false, x+300, y+(base_height), 20, renderer->a(0xF99F));
+				}
 			}
 			else {
 				renderer->drawString(lockInvalid, false, x, y+20, 20, renderer->a(0xFFFF));
 				if (patchChar[0] != 0) {
 					renderer->drawString(patchChar, false, x, y+84, 20, renderer->a(0xF99F));
 					if (progressBar[0] != 0) {
-						renderer->drawString(progressBar, false, x+300, y+50, 20, renderer->a(0xF99F));
+						renderer->drawString(progressBar, false, x+300, y+(base_height), 20, renderer->a(0xF99F));
 					}
 				}
 				else renderer->drawString(lockVersionExpected, false, x, y+84, 20, renderer->a(0xFFFF));
