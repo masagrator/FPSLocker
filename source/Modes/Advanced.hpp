@@ -354,7 +354,7 @@ public:
 		}
 		if (R_FAILED(configValid)) {
 			char temp[128] = "";
-			snprintf(temp, sizeof(temp), etStringID(Lang::Id_ThisCanTakeUpTo30Seconds), timeout_in_seconds * sources.size());
+			snprintf(temp, sizeof(temp), getStringID(Lang::Id_ThisCanTakeUpTo30Seconds), timeout_in_seconds * sources.size());
 			list->addItem(new tsl::elm::NoteHeader(temp, true, {0xF, 0x3, 0x3, 0xF}));
 		}
 		auto *clickableListItem4 = new tsl::elm::MiniListItem(getStringID(Lang::Id_CheckDownloadConfigFile));
