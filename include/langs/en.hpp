@@ -66,7 +66,7 @@ namespace ENG {
 		"Error while creating patch: 0x%x",
 		"Delete patch file",
 		"Patch file deleted successfully.",
-		"This can take up to 30 seconds.",
+		"This can take up to %d seconds.",
 		"Check/download config file",
 		"Checking Warehouse for config...\nExit not possible until finished!",
 		"Misc",

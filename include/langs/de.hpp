@@ -66,7 +66,7 @@ namespace GER {
 		"Fehler bei Patcherstellung: 0x%x",
 		"Lösche Patch-Datei",
 		"Patch-Datei erfolgreich gelöscht.",
-		"Das kann bis zu 30 Sekunden dauern.",
+		"Das kann bis zu %d Sekunden dauern.",
 		"Konfigurations-Datei überprüfen/herunterladen",
 		"Überprüfe Warehouse für Konfiguration...\nBeenden für Abschluss nicht möglich!",
 		"Sonstiges",

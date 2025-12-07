@@ -66,7 +66,7 @@ namespace FRA {
 		"Erreur lors de la création du patch: 0x%x",
 		"Effacer le patch",
 		"Patch effacé avec succès.",
-		"Cela peut prendre jusqu'à 30 secondes.",
+		"Cela peut prendre jusqu'à %d secondes.",
 		"Vérifier/télécharger le fichier de config",
 		"Vérification du Warehouse pour\nla config...\nImpossible de quitter avant la fin!",
 		"Divers",

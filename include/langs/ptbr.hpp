@@ -66,7 +66,7 @@ namespace PTBR {
 		"Erro ao criar patch: 0x%x",
 		"Excluir patch",
 		"Patch excluído com sucesso.",
-		"Isso pode levar até 30 segundos.",
+		"Isso pode levar até %d segundos.",
 		"Verificar/baixar config",
 		"Verificando Warehouse por config...\nNão é possível sair até terminar!",
 		"Diversos",
