@@ -390,8 +390,7 @@ static int xfer_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 }
 
 std::array sources = {
-	std::pair<const char*, const char*>("https://api.gitcode.com/api/v5/repos/masagratordev/FPSLocker-Warehouse/raw/", 
-		"\x3f\x61\x63\x63\x65\x73\x73\x5f\x74\x6f\x6b\x65\x6e\x3d\x5f\x70\x71\x38\x45\x75\x4a\x34\x54\x4c\x45\x76\x31\x4e\x63\x44\x44\x78\x61\x78\x4a\x71\x52\x33"), //it's read only limited to repos, so don't bother. Valid until 2028-10-01
+	std::pair<const char*, const char*>("https://gitee.com/sskyswitch/FPSLocker-Warehouse/raw/v4/", ""),
 	std::pair<const char*, const char*>("https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/", "")
 };
 
@@ -478,6 +477,8 @@ Result downloadPatchImpl(const char* source, const char* suffix) {
 			return 0x101;
 		}
 
+		//FILE* logfileerr = fopen("sdmc:/log_err.txt", "ab");
+
 		snprintf(download_path, sizeof(download_path), "%sSaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml%s", source, TID, BID, suffix);
         curl_easy_setopt(curl, CURLOPT_URL, download_path);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
@@ -489,12 +490,15 @@ Result downloadPatchImpl(const char* source, const char* suffix) {
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 		curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_callback);
+		//curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+		//curl_easy_setopt(curl, CURLOPT_STDERR, logfileerr);
 		msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 
         CURLcode res = curl_easy_perform(curl);
-
+		
 		fclose(fp);
+		//fclose(logfileerr);
 		if (res != CURLE_OK) {
 			remove(file_path);
 			if (res == CURLE_OPERATION_TIMEDOUT) temp_error_code = 0x316;
@@ -506,7 +510,7 @@ Result downloadPatchImpl(const char* source, const char* suffix) {
 			if (http_code == 200) {
 				temp_error_code = 0;
 			}
-			else if (http_code == 404) {
+			else if (http_code == 404 || http_code == 400) {
 				temp_error_code = 0x404;
 			}
 			else temp_error_code = 0x312;
