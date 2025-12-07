@@ -686,6 +686,13 @@ Result downloadPatchImpl(const char* source) {
 	return temp_error_code;
 }
 
+void updateErrorcode(Result rc, Result* last_error_code, Result* last_bad_error_code) {
+	if (rc > 0 && rc < 0x1000) {
+		*last_bad_error_code = rc;
+	}
+	else *last_error_code = rc;
+}
+
 void downloadPatch(void*) {
 
 	if (!TID || !BID) {
@@ -720,11 +727,11 @@ void downloadPatch(void*) {
 	}
 	nifmExit();
 	socketInitialize(&socketInitConfig);
-	smExit();
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-	Result last_error_code = error_code;
+	Result last_error_code = UINT32_MAX;
+	Result last_bad_error_code = 0x316;
 	bool exitImmediately = false;
 	for (size_t i = 0; i < sources.size(); i++) {
 		Result rc = downloadPatchImpl(sources[i]);
@@ -733,12 +740,14 @@ void downloadPatch(void*) {
 			exitImmediately = true;
 			break;
 		}
-		last_error_code = rc;
+		updateErrorcode(rc, &last_error_code, &last_bad_error_code);
 		if (R_SUCCEEDED(rc)) break;
 	}
 	if (!exitImmediately) sendConfirmation(last_error_code);
+	if (last_error_code == UINT32_MAX) last_error_code = last_bad_error_code;
     curl_global_cleanup();
 	socketExit();
+	smExit();
 	error_code = last_error_code;
 	return;
 }
