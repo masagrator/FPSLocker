@@ -390,8 +390,8 @@ static int xfer_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 }
 
 std::array sources = {
-	std::pair<const char*, const char*>("https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/", "{\"message\":\"404 File Not Found\"}"),
-	std::pair<const char*, const char*>("https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/", "404: Not Found"),
+	"https://raw.gitcode.com/masagratordev/FPSLocker-Warehouse/raw/v4/",
+	"https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/"
 };
 
 void sendConfirmation(Result temp_error_code) {
@@ -443,7 +443,7 @@ void sendConfirmation(Result temp_error_code) {
 	}
 }
 
-Result downloadPatchImpl(const char* source, const char* noFileResponse) {
+Result downloadPatchImpl(const char* source) {
 
 
 	Result temp_error_code = -1;
@@ -491,32 +491,23 @@ Result downloadPatchImpl(const char* source, const char* noFileResponse) {
 
         CURLcode res = curl_easy_perform(curl);
 
+		fclose(fp);
 		if (res != CURLE_OK) {
-			fclose(fp);
 			remove(file_path);
 			if (res == CURLE_OPERATION_TIMEDOUT) temp_error_code = 0x316;
 			else temp_error_code = 0x200 + res;
 		}
 		else {
-			size_t filesize = ftell(fp);
-			if (filesize > 512) {
-				filesize = 512;
+			long http_code = 0;
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+			if (http_code == 200) {
+				temp_error_code = 0;
 			}
-			fseek(fp, 0, SEEK_SET);
-			char* buffer = (char*)calloc(1, filesize + 1);
-			fread(buffer, 1, filesize, fp);
-			fclose(fp);
-			char BID_char[18] = "";
-			snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
-			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
-				remove(file_path);
-				if (!strncmp(buffer, noFileResponse, strlen(noFileResponse))) {
-					temp_error_code = 0x404;
-				}
-				else temp_error_code = 0x312;
+			else if (http_code == 404) {
+				temp_error_code = 0x404;
 			}
-			else temp_error_code = 0;
-			free(buffer);
+			else temp_error_code = 0x312;
+			if (temp_error_code) remove(file_path);
 		}
 
 		if (!temp_error_code) {
@@ -613,6 +604,14 @@ Result downloadPatchImpl(const char* source, const char* noFileResponse) {
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 			CURLcode res = curl_easy_perform(curl);
 			if (res == CURLE_OK) {
+				long http_code = 0;
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+				if (http_code != 200) {
+					fclose(fp);
+					remove("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md");
+					curl_easy_cleanup(curl);
+					return 0x406;
+				}
 				size_t filesize = ftell(fp);
 				fseek(fp, 0, SEEK_SET);
 				char* buffer = (char*)calloc(1, filesize + 1);
@@ -728,13 +727,13 @@ void downloadPatch(void*) {
 	Result last_error_code = error_code;
 	bool exitImmediately = false;
 	for (size_t i = 0; i < sources.size(); i++) {
-		Result rc = downloadPatchImpl(sources[i].first, sources[i].second);
+		Result rc = downloadPatchImpl(sources[i]);
 		if (atomic_load(&cancel_flag)) {
 			last_error_code = 0x312;
 			exitImmediately = true;
 			break;
 		}
-		if (rc != 0x312 && rc != 0x316 && rc != 0x405 && rc != 0x406) last_error_code = rc; 
+		last_error_code = rc;
 		if (R_SUCCEEDED(rc)) break;
 	}
 	if (!exitImmediately) sendConfirmation(last_error_code);
