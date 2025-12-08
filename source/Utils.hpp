@@ -1,5 +1,6 @@
 #pragma once
 #include <curl/curl.h>
+#include <stdatomic.h>
 
 const unsigned char data[] = {
 	#embed "titleids_with_patches.bin"
@@ -100,7 +101,7 @@ Result configValid = 10;
 Result patchValid = 0x202;
 char lockInvalid[96] = "";
 char lockVersionExpected[40] = "";
-char patchChar[192] = "";
+char patchChar[256] = "";
 char patchAppliedChar[64] = "";
 uint8_t* patchApplied_shared = 0;
 Thread t0;
@@ -141,6 +142,48 @@ struct DisplayData {
 
 std::vector<Title> titles;
 std::string TV_name = "Unknown";
+
+/**
+ * @brief Gets the \ref NsApplicationControlData for the specified application.
+ * @note Only available on [19.0.0+].
+ * @param[in] source Source, official sw uses ::NsApplicationControlSource_Storage.
+ * @param[in] application_id ApplicationId.
+ * @param[out] buffer \ref NsApplicationControlData
+ * @param[in] flag1 Default is 0. 0xFF speeds up execution.
+ * @param[in] flag2 Default is 0.
+ * @param[in] size Size of the buffer.
+ * @param[out] actual_size Actual output size.
+ * @param[out] unk Returned with size, always 0.
+ */
+Result nsGetApplicationControlData2(NsApplicationControlSource source, u64 application_id, NsApplicationControlData* buffer, size_t size, u8 flag1, u8 flag2, u64* actual_size, u32* unk) {
+    if (hosversionBefore(19,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+    Service srv={0}, *srv_ptr = &srv;
+    Result rc=0;
+    u32 cmd_id = 6;
+    rc = nsGetReadOnlyApplicationControlDataInterface(&srv);
+
+    const struct {
+        u8 source;
+        u8 flags[2];
+        u8 pad[5];
+        u64 application_id;
+    } in = { source, {flag1, flag2}, {0}, application_id };
+
+    u64 tmp=0;
+
+    if (R_SUCCEEDED(rc)) rc = serviceDispatchInOut(srv_ptr, cmd_id, in, tmp,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { buffer, size } },
+    );
+    if (R_SUCCEEDED(rc)) {
+        if (actual_size) *actual_size = tmp >> 32;
+        if (unk) *unk = (u32)tmp;
+    }
+
+    serviceClose(&srv);
+    return rc;
+}
 
 bool file_exists(const char *filename)
 {
@@ -331,53 +374,88 @@ void SaveDockedModeAllowedSave(DockedModeRefreshRateAllowed rr, DockedAdditional
 
 char expected_display_version[0x10] = "";
 
-void downloadPatch(void*) {
+_Atomic(int) cancel_flag = 0;
 
-	if (!TID || !BID) {
-		error_code = 0x316;
-		return;
+curl_off_t data_to_download = 0;
+curl_off_t data_downloaded = 0;
+
+static int xfer_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
+                         curl_off_t ultotal, curl_off_t ulnow) {
+	data_to_download = dltotal;
+	data_downloaded = dlnow;
+    if (atomic_load(&cancel_flag)) {
+        return 1; // Abort
+    }
+    return 0;
+}
+
+std::array sources = {
+	std::pair<const char*, const char*>("https://gitee.com/sskyswitch/FPSLocker-Warehouse/raw/v4/", ""),
+	std::pair<const char*, const char*>("https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/", "")
+};
+
+void sendConfirmation(Result temp_error_code) {
+	s32 appContentMetaStatusSize = 0;
+	NsApplicationControlData* appControlData = new NsApplicationControlData;
+	NsApplicationContentMetaStatus* appContentMetaStatus = new NsApplicationContentMetaStatus[2];
+	char display_version[sizeof(appControlData -> nacp.display_version)] = "";
+	uint32_t version = 0;
+	if (R_SUCCEEDED(nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr))) {
+		strcpy(display_version, appControlData->nacp.display_version);
+		if (R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
+			u32 index = 0;
+			if (appContentMetaStatusSize == 2 && appContentMetaStatus[1].meta_type == NcmContentMetaType_Patch) index = 1;
+			version = appContentMetaStatus[index].version / 65536;
+		}
 	}
+	delete appControlData;
+	delete[] appContentMetaStatus;
+
+	static uint64_t last_TID_checked = 0;
+	if (TID != last_TID_checked) {
+		last_TID_checked = TID;
+		CURL *curl_ga = curl_easy_init();
+		if (curl_ga) {
+			const char macro_id[] = "\x41\x4B\x66\x79\x63\x62\x78\x72\x77\x45\x30\x51\x66\x75\x39\x34\x4A\x38\x44\x6E\x69\x53\x46\x6A\x33\x61\x73\x73\x6C\x68\x78\x42\x46\x43\x2D\x50\x52\x7A\x50\x64\x55\x6E\x37\x41\x5F\x4C\x4D\x61\x69\x37\x4F\x56\x57\x42\x70\x6E\x62\x73\x61\x53\x77\x55\x4D\x42\x72\x44\x69\x45\x69\x6F\x57\x65\x33\x77";
+			const char m_template[] = "\x68\x74\x74\x70\x73\x3a\x2f\x2f\x73\x63\x72\x69\x70\x74\x2e\x67\x6f\x6f\x67\x6c\x65\x2e\x63\x6f\x6d\x2f\x6d\x61\x63\x72\x6f\x73\x2f\x73\x2f\x25\x73\x2f\x65\x78\x65\x63\x3f\x54\x49\x44\x3d\x25\x30\x31\x36\x6c\x58\x26\x42\x49\x44\x3d\x25\x30\x31\x36\x6c\x58\x26\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x64\x26\x44\x69\x73\x70\x6c\x61\x79\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x73\x26\x46\x6f\x75\x6e\x64\x3d\x25\x64\x26\x4e\x52\x4f\x3d\x25\x30\x31\x36\x6c\x58\x26\x41\x70\x70\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x73";
+			char link[256] = "";
+			MemoryInfo mem = {0};
+			u32 pageinfo = 0;
+			svcQueryMemory(&mem, &pageinfo, (uintptr_t)&file_exists);
+
+			char* display_version_converted = curl_easy_escape(curl_ga, display_version, 0);
+			char* app_version_converted = curl_easy_escape(curl_ga, APP_VERSION, 0);
+			uint8_t valid = 1;
+			if (temp_error_code == 0x404) valid = 0;
+			else if (temp_error_code == 0x312) valid = 2;
+			else valid = 3;
+			snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, valid, *(uint64_t*)(mem.addr + 64), APP_VERSION);
+			curl_free(display_version_converted);
+			curl_free(app_version_converted);
+
+			curl_easy_setopt(curl_ga, CURLOPT_URL, link);
+			curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYPEER, 0L);
+			curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYHOST, 0L);
+			curl_easy_setopt(curl_ga, CURLOPT_TIMEOUT_MS, 1000);
+			curl_easy_perform(curl_ga);
+			curl_easy_cleanup(curl_ga);
+		}
+	}
+}
+
+#define timeout_in_seconds 30
+
+Result downloadPatchImpl(const char* source, const char* suffix) {
+
 
 	Result temp_error_code = -1;
 
 	curl_timeout = false;
 
-    static const SocketInitConfig socketInitConfig = {
-
-        .tcp_tx_buf_size = 0x8000,
-        .tcp_rx_buf_size = 0x8000,
-        .tcp_tx_buf_max_size = 0x20000,
-        .tcp_rx_buf_max_size = 0x20000,
-
-        .udp_tx_buf_size = 0,
-        .udp_rx_buf_size = 0,
-
-        .sb_efficiency = 1,
-		.bsd_service_type = BsdServiceType_Auto
-    };
-
 	uint64_t startTick = svcGetSystemTick();
-	uint64_t timeoutTick = startTick + (30 * systemtickfrequency); //30 seconds
+	uint64_t timeoutTick = startTick + (timeout_in_seconds * systemtickfrequency);
 	long msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 
-	smInitialize();
-
-
-	nifmInitialize(NifmServiceType_System);
-	u32 dummy = 0;
-	NifmInternetConnectionType NifmConnectionType = (NifmInternetConnectionType)-1;
-	NifmInternetConnectionStatus NifmConnectionStatus = (NifmInternetConnectionStatus)-1;
-	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
-		nifmExit();
-		smExit();
-		error_code = 0x412;
-		return;
-	}
-	nifmExit();
-
-	socketInitialize(&socketInitConfig);
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
 	CURL *curl = curl_easy_init();
 
     if (curl) {
@@ -390,35 +468,18 @@ void downloadPatch(void*) {
 
 		snprintf(file_path, sizeof(file_path), "sdmc:/SaltySD/plugins/FPSLocker/patches/%016lX/temp.yaml", TID);
 
-		size_t appControlDataSize = 0;
-		s32 appContentMetaStatusSize = 0;
-		NsApplicationControlData* appControlData = new NsApplicationControlData;
-		NsApplicationContentMetaStatus* appContentMetaStatus = new NsApplicationContentMetaStatus[2];
-		char display_version[sizeof(appControlData -> nacp.display_version)] = "";
-		uint32_t version = 0;
-		if (R_SUCCEEDED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), &appControlDataSize))) {
-			strcpy(display_version, appControlData->nacp.display_version);
-			if (R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
-				u32 index = 0;
-				if (appContentMetaStatusSize == 2 && appContentMetaStatus[1].meta_type == NcmContentMetaType_Patch) index = 1;
-				version = appContentMetaStatus[index].version / 65536;
-			}
-		}
-		delete appControlData;
-		delete[] appContentMetaStatus;
-		
-
 		FILE* fp = fopen(file_path, "wb+");
 		if (!fp) {
 			curl_easy_cleanup(curl);
 			curl_global_cleanup();
 			socketExit();
 			smExit();
-			error_code = 0x101;
-			return;
+			return 0x101;
 		}
 
-		snprintf(download_path, sizeof(download_path), "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/SaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml", TID, BID);
+		//FILE* logfileerr = fopen("sdmc:/log_err.txt", "ab");
+
+		snprintf(download_path, sizeof(download_path), "%sSaltySD/plugins/FPSLocker/patches/%016lX/%016lX.yaml%s", source, TID, BID, suffix);
         curl_easy_setopt(curl, CURLOPT_URL, download_path);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -428,69 +489,32 @@ void downloadPatch(void*) {
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+		curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_callback);
+		//curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+		//curl_easy_setopt(curl, CURLOPT_STDERR, logfileerr);
 		msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 
         CURLcode res = curl_easy_perform(curl);
-
+		
+		fclose(fp);
+		//fclose(logfileerr);
 		if (res != CURLE_OK) {
-			fclose(fp);
 			remove(file_path);
 			if (res == CURLE_OPERATION_TIMEDOUT) temp_error_code = 0x316;
 			else temp_error_code = 0x200 + res;
 		}
 		else {
-			size_t filesize = ftell(fp);
-			if (filesize > 512) {
-				filesize = 512;
+			long http_code = 0;
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+			if (http_code == 200) {
+				temp_error_code = 0;
 			}
-			fseek(fp, 0, SEEK_SET);
-			char* buffer = (char*)calloc(1, filesize + 1);
-			fread(buffer, 1, filesize, fp);
-			fclose(fp);
-			char BID_char[18] = "";
-			snprintf(BID_char, sizeof(BID_char), " %016lX", BID);
-			if (std::search(&buffer[0], &buffer[filesize], &BID_char[0], &BID_char[17]) == &buffer[filesize]) {
-				remove(file_path);
-				char Not_found[] = "404: Not Found";
-				if (!strncmp(buffer, Not_found, strlen(Not_found))) {
-					temp_error_code = 0x404;
-				}
-				else temp_error_code = 0x312;
+			else if (http_code == 404 || http_code == 400) {
+				temp_error_code = 0x404;
 			}
-			else temp_error_code = 0;
-			free(buffer);
-		}
-	
-		static uint64_t last_TID_checked = 0;
-		if (TID != last_TID_checked) {
-			last_TID_checked = TID;
-			CURL *curl_ga = curl_easy_init();
-			if (curl_ga) {
-				const char macro_id[] = "\x41\x4B\x66\x79\x63\x62\x78\x72\x77\x45\x30\x51\x66\x75\x39\x34\x4A\x38\x44\x6E\x69\x53\x46\x6A\x33\x61\x73\x73\x6C\x68\x78\x42\x46\x43\x2D\x50\x52\x7A\x50\x64\x55\x6E\x37\x41\x5F\x4C\x4D\x61\x69\x37\x4F\x56\x57\x42\x70\x6E\x62\x73\x61\x53\x77\x55\x4D\x42\x72\x44\x69\x45\x69\x6F\x57\x65\x33\x77";
-				const char m_template[] = "\x68\x74\x74\x70\x73\x3a\x2f\x2f\x73\x63\x72\x69\x70\x74\x2e\x67\x6f\x6f\x67\x6c\x65\x2e\x63\x6f\x6d\x2f\x6d\x61\x63\x72\x6f\x73\x2f\x73\x2f\x25\x73\x2f\x65\x78\x65\x63\x3f\x54\x49\x44\x3d\x25\x30\x31\x36\x6c\x58\x26\x42\x49\x44\x3d\x25\x30\x31\x36\x6c\x58\x26\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x64\x26\x44\x69\x73\x70\x6c\x61\x79\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x73\x26\x46\x6f\x75\x6e\x64\x3d\x25\x64\x26\x4e\x52\x4f\x3d\x25\x30\x31\x36\x6c\x58\x26\x41\x70\x70\x56\x65\x72\x73\x69\x6f\x6e\x3d\x25\x73";
-				char link[256] = "";
-				MemoryInfo mem = {0};
-				u32 pageinfo = 0;
-				svcQueryMemory(&mem, &pageinfo, (uintptr_t)&file_exists);
-
-				char* display_version_converted = curl_easy_escape(curl_ga, display_version, 0);
-				char* app_version_converted = curl_easy_escape(curl_ga, APP_VERSION, 0);
-				uint8_t valid = 1;
-				if (temp_error_code == 0x404) valid = 0;
-				else if (temp_error_code == 0x312) valid = 2;
-				else valid = 3;
-				snprintf(link, sizeof(link), m_template, macro_id, TID, BID, version, display_version_converted, valid, *(uint64_t*)(mem.addr + 64), APP_VERSION);
-				curl_free(display_version_converted);
-				curl_free(app_version_converted);
-
-				curl_easy_setopt(curl_ga, CURLOPT_URL, link);
-				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYPEER, 0L);
-				curl_easy_setopt(curl_ga, CURLOPT_SSL_VERIFYHOST, 0L);
-				curl_easy_setopt(curl_ga, CURLOPT_TIMEOUT_MS, 1000);
-				curl_easy_perform(curl_ga);
-				curl_easy_cleanup(curl_ga);
-			}
+			else temp_error_code = 0x312;
+			if (temp_error_code) remove(file_path);
 		}
 
 		if (!temp_error_code) {
@@ -544,7 +568,7 @@ void downloadPatch(void*) {
 					for (size_t i = 0; i < LOCK::tree["Addons"].num_children(); i++) {
 						std::string temp = "";
 						LOCK::tree["Addons"][i] >> temp;
-						std::string dpath = "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/" + temp;
+						std::string dpath = source + temp;
 						std::string path = "sdmc:/" + temp;
 						strncpy(&download_path[0], dpath.c_str(), 255);
 						strncpy(&file_path[0], path.c_str(), 191);
@@ -568,15 +592,19 @@ void downloadPatch(void*) {
 		}
 		else if (temp_error_code == 0x404) {
 			error_code = 0x404;
-			curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/README.md");
+			std::string readme_path = source;
+			readme_path += "README.md";
+			readme_path += suffix;
+			curl_easy_setopt(curl, CURLOPT_URL, readme_path.c_str());
+			data_to_download = 0;
+			data_downloaded = 0;
 			fp = fopen("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md", "wb+");
 			if (!fp) {
 				curl_easy_cleanup(curl);
 				curl_global_cleanup();
 				socketExit();
 				smExit();
-				error_code = 0x101;
-				return;
+				return 0x101;
 			}
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 			msPeriod = (timeoutTick - svcGetSystemTick()) / (systemtickfrequency / 1000);
@@ -584,6 +612,14 @@ void downloadPatch(void*) {
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, msPeriod);
 			CURLcode res = curl_easy_perform(curl);
 			if (res == CURLE_OK) {
+				long http_code = 0;
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+				if (http_code != 200) {
+					fclose(fp);
+					remove("sdmc:/SaltySD/plugins/FPSLocker/patches/README.md");
+					curl_easy_cleanup(curl);
+					return 0x406;
+				}
 				size_t filesize = ftell(fp);
 				fseek(fp, 0, SEEK_SET);
 				char* buffer = (char*)calloc(1, filesize + 1);
@@ -655,10 +691,72 @@ void downloadPatch(void*) {
         curl_easy_cleanup(curl);
     }
 
+	return temp_error_code;
+}
+
+void updateErrorcode(Result rc, Result* last_error_code, Result* last_bad_error_code) {
+	if (rc > 0 && rc < 0x1000) {
+		*last_bad_error_code = rc;
+	}
+	else *last_error_code = rc;
+}
+
+void downloadPatch(void*) {
+
+	if (!TID || !BID) {
+		error_code = 0x316;
+		return;
+	}
+
+	static const SocketInitConfig socketInitConfig = {
+
+        .tcp_tx_buf_size = 0x8000,
+        .tcp_rx_buf_size = 0x8000,
+        .tcp_tx_buf_max_size = 0x80000,
+        .tcp_rx_buf_max_size = 0x80000,
+
+        .udp_tx_buf_size = 0,
+        .udp_rx_buf_size = 0,
+
+        .sb_efficiency = 1,
+		.bsd_service_type = BsdServiceType_Auto
+    };
+
+	smInitialize();
+	nifmInitialize(NifmServiceType_System);
+	u32 dummy = 0;
+	NifmInternetConnectionType NifmConnectionType = (NifmInternetConnectionType)-1;
+	NifmInternetConnectionStatus NifmConnectionStatus = (NifmInternetConnectionStatus)-1;
+	if (R_FAILED(nifmGetInternetConnectionStatus(&NifmConnectionType, &dummy, &NifmConnectionStatus)) || NifmConnectionStatus != NifmInternetConnectionStatus_Connected) {
+		nifmExit();
+		smExit();
+		error_code = 0x412;
+		return;
+	}
+	nifmExit();
+	socketInitialize(&socketInitConfig);
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
+	Result last_error_code = UINT32_MAX;
+	Result last_bad_error_code = 0x316;
+	bool exitImmediately = false;
+	for (size_t i = 0; i < sources.size(); i++) {
+		Result rc = downloadPatchImpl(sources[i].first, sources[i].second);
+		if (atomic_load(&cancel_flag)) {
+			last_error_code = 0x312;
+			exitImmediately = true;
+			break;
+		}
+		updateErrorcode(rc, &last_error_code, &last_bad_error_code);
+		if (R_SUCCEEDED(rc)) break;
+	}
+	if (!exitImmediately) sendConfirmation(last_error_code);
+	if (last_error_code == UINT32_MAX) last_error_code = last_bad_error_code;
     curl_global_cleanup();
 	socketExit();
 	smExit();
-	error_code = temp_error_code;
+	error_code = last_error_code;
 	return;
 }
 
@@ -752,48 +850,6 @@ bool CheckPort () {
 	return false;
 }
 
-/**
- * @brief Gets the \ref NsApplicationControlData for the specified application.
- * @note Only available on [19.0.0+].
- * @param[in] source Source, official sw uses ::NsApplicationControlSource_Storage.
- * @param[in] application_id ApplicationId.
- * @param[out] buffer \ref NsApplicationControlData
- * @param[in] flag1 Default is 0. 0xFF speeds up execution.
- * @param[in] flag2 Default is 0.
- * @param[in] size Size of the buffer.
- * @param[out] actual_size Actual output size.
- * @param[out] unk Returned with size, always 0.
- */
-Result nsGetApplicationControlData2(NsApplicationControlSource source, u64 application_id, NsApplicationControlData* buffer, u8 flag1, u8 flag2, size_t size, u64* actual_size, u32* unk) {
-    if (hosversionBefore(19,0,0))
-        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
-    Service srv={0}, *srv_ptr = &srv;
-    Result rc=0;
-    u32 cmd_id = 6;
-    rc = nsGetReadOnlyApplicationControlDataInterface(&srv);
-
-    const struct {
-        u8 source;
-        u8 flags[2];
-        u8 pad[5];
-        u64 application_id;
-    } in = { source, {flag1, flag2}, {0}, application_id };
-
-    u64 tmp=0;
-
-    if (R_SUCCEEDED(rc)) rc = serviceDispatchInOut(srv_ptr, cmd_id, in, tmp,
-        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
-        .buffers = { { buffer, size } },
-    );
-    if (R_SUCCEEDED(rc)) {
-        if (actual_size) *actual_size = tmp >> 32;
-        if (unk) *unk = (u32)tmp;
-    }
-
-    serviceClose(&srv);
-    return rc;
-}
-
 std::string getAppName(uint64_t Tid)
 {
 	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(sizeof(NsApplicationControlData));
@@ -802,7 +858,7 @@ std::string getAppName(uint64_t Tid)
 	if (hosversionBefore(19,0,0)) {
 		rc = nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), nullptr);
 	}
-	else rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, 0xFF, 0, sizeof(NsApplicationControlData), nullptr, nullptr);
+	else rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr);
 	if (R_FAILED(rc)) {
 		free(appControlData);
 		char returnTID[18];
@@ -898,5 +954,4 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
-
 }
