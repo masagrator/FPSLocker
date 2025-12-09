@@ -52,8 +52,8 @@ public:
 		clickableListItem->setClickListener([this](u64 keys) { 
 			if (keys & HidNpadButton_A) {
 				char path[512] = "";
-				if (_titleid != 0x1234567890ABCDEF) {
-					sprintf(path, "sdmc:/SaltySD/plugins/FPSLocker/%016lx.dat", _titleid);
+				if (_titleid != 0x1234567890ABCDEF) for (size_t i = 0; i < 0x10; i++) {
+					sprintf(path, "sdmc:/SaltySD/plugins/FPSLocker/%016lx.dat", _titleid + i);
 					remove(path);
 				}
 				else {
