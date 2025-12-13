@@ -73,7 +73,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
 
 > When game is not running
 
-You will have two submenus to choose from (if you are using OLED model, you will be redirected automatically to Games list):
+You will have two submenus to choose from:
 - `Games list`<br>
   It will list installed games (max 32) and as first option it's available "All" submenu.<br>
   Inside each one you will find two options:
