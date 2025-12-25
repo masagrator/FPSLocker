@@ -184,8 +184,9 @@ public:
 				s32 appContentMetaStatusSize = 0;
 				NsApplicationControlData appControlData;
 				NsApplicationContentMetaStatus appContentMetaStatus[2];
-				if (R_SUCCEEDED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, TID, &appControlData, sizeof(NsApplicationControlData), &appControlDataSize)) 
-					&& R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
+				uint64_t base_tid = TID & ~0xFFF;
+				if (R_SUCCEEDED(nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, base_tid, &appControlData, sizeof(NsApplicationControlData), &appControlDataSize)) 
+					&& R_SUCCEEDED(nsListApplicationContentMetaStatus(base_tid, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
 						u32 index = 0;
 						if (appContentMetaStatusSize == 2 && appContentMetaStatus[1].meta_type == NcmContentMetaType_Patch) index = 1;
 						if (appContentMetaStatus[index].version != 0)
