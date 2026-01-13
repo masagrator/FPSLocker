@@ -371,18 +371,13 @@ public:
 
 	// Called once every frame to handle inputs not handled by other UI elements
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
-		smInitialize();
-		if (R_SUCCEEDED(apmInitialize())) {
-			ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
-			apmGetPerformanceMode(&mode);
-			apmExit();
-			if (mode != ApmPerformanceMode_Boost) {
-				smExit();
+		AppletOperationMode mode;
+		if (R_SUCCEEDED(ommGetOperationMode(&mode))) {
+			if (mode != AppletOperationMode_Console) {
 				tsl::goBack();
 				return true;
 			}
 		}
-		smExit();
 		s32 width_impl = 0;
 		s32 height_impl = 0;
 		ommGetDefaultDisplayResolution(&width_impl, &height_impl);
@@ -478,22 +473,14 @@ bool blocked = false;
 
 class GuiTest : public tsl::Gui {
 public:
-	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
+	AppletOperationMode entry_mode = AppletOperationMode_Handheld;
 	bool render100Above = false;
 	bool pluginRanAtBoot = false;
 	bool noPatchDetectedButNeeded = false;
 	GuiTest(u8 arg1, u8 arg2, bool arg3) { 
 		
-		if (isLite) entry_mode = ApmPerformanceMode_Normal;
-		else {
-			smInitialize();
-			if (R_SUCCEEDED(apmInitialize())) {
-				apmGetPerformanceMode(&entry_mode);
-				apmExit();
-			}
-			else entry_mode = ApmPerformanceMode_Normal;
-			smExit();
-		}
+		if (isLite) entry_mode = AppletOperationMode_Handheld;
+		else ommGetOperationMode(&entry_mode);
 		if (TID != 0) {
 			if (std::find(titleids_needing_patch -> begin(), titleids_needing_patch -> end(), TID) != titleids_needing_patch -> end() && !file_exists(patchPath))
 				noPatchDetectedButNeeded = true;
@@ -548,7 +535,7 @@ public:
 
 		if (PluginRunning && (Shared -> pluginActive)) {
 			pluginRanAtBoot = true;
-			if (entry_mode == ApmPerformanceMode_Normal) {
+			if (entry_mode == AppletOperationMode_Handheld) {
 				auto *clickableListItem = new tsl::elm::ListItem2(getStringID(Lang::Id_IncreaseFPSTarget));
 				clickableListItem->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -648,7 +635,7 @@ public:
 				});
 				list->addItem(clickableListItem2);
 			}
-			else if (entry_mode == ApmPerformanceMode_Boost) {
+			else if (entry_mode == AppletOperationMode_Console) {
 				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_ChangeFPSTarget));
 				clickableListItem2->setClickListener([](u64 keys) { 
 					if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -663,18 +650,18 @@ public:
 			auto *clickableListItem4 = new tsl::elm::ListItem2(getStringID(Lang::Id_DisableCustomFPSTarget));
 			clickableListItem4->setClickListener([this](u64 keys) { 
 				if ((keys & HidNpadButton_A) && PluginRunning) {
-					if (entry_mode == ApmPerformanceMode_Normal && (Shared -> FPSlocked)) {
+					if (entry_mode == AppletOperationMode_Handheld && (Shared -> FPSlocked)) {
 						(Shared -> FPSlocked) = 0;
 					}
-					else if (entry_mode == ApmPerformanceMode_Boost && (Shared -> FPSlockedDocked)) {
+					else if (entry_mode == AppletOperationMode_Console && (Shared -> FPSlockedDocked)) {
 						(Shared -> FPSlockedDocked) = 0;
 					}
-					if ((entry_mode == ApmPerformanceMode_Normal) ? displaySync.ds.handheld : displaySync.ds.docked) {
+					if ((entry_mode == AppletOperationMode_Handheld) ? displaySync.ds.handheld : displaySync.ds.docked) {
 						if (!oldSalty && R_SUCCEEDED(SaltySD_Connect())) {
 							SaltySD_SetDisplayRefreshRate(60);
 							SaltySD_Term();
-							if (entry_mode == ApmPerformanceMode_Normal) displaySync.ds.handheld = false;
-							else if (entry_mode == ApmPerformanceMode_Boost) displaySync.ds.docked = false;
+							if (entry_mode == AppletOperationMode_Handheld) displaySync.ds.handheld = false;
+							else if (entry_mode == AppletOperationMode_Console) displaySync.ds.docked = false;
 						}
 					}
 					saveSettings();
@@ -734,10 +721,10 @@ public:
 					default:
 						sprintf(FPSMode_c, getStringID(Lang::Id_IntervalModeWrong), (Shared -> FPSmode));
 				}
-				if ((entry_mode == ApmPerformanceMode_Normal) ? !(Shared -> FPSlocked) : !(Shared -> FPSlockedDocked)) {
+				if ((entry_mode == AppletOperationMode_Handheld) ? !(Shared -> FPSlocked) : !(Shared -> FPSlockedDocked)) {
 					sprintf(FPSTarget_c, getStringID(Lang::Id_CustomFPSTargetDisabled));
 				}
-				else sprintf(FPSTarget_c, getStringID(Lang::Id_CustomFPSTarget), (entry_mode == ApmPerformanceMode_Normal) ? (Shared -> FPSlocked) : (Shared -> FPSlockedDocked));
+				else sprintf(FPSTarget_c, getStringID(Lang::Id_CustomFPSTarget), (entry_mode == AppletOperationMode_Handheld) ? (Shared -> FPSlocked) : (Shared -> FPSlockedDocked));
 				uint8_t value = (Shared -> FPS);
 				sprintf(PFPS_c, "%d", value);
 				if (value >= 100) render100Above = true;
@@ -752,19 +739,14 @@ public:
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		refreshRate_g = *refreshRate_shared;
 		if (!isLite) {
-			smInitialize();
-			if (R_SUCCEEDED(apmInitialize())) {
-				ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
-				apmGetPerformanceMode(&mode);
-				apmExit();
+			AppletOperationMode mode;
+			if (R_SUCCEEDED(ommGetOperationMode(&mode))) {
 				if (mode != entry_mode) {
-					smExit();
 					tsl::goBack();
 					tsl::changeTo<GuiTest>(0, 1, true);
 					return true;
 				}
 			}
-			smExit();
 		}
 		if (PluginRunning && (Shared -> pluginActive) && !pluginRanAtBoot) {
 			tsl::goBack();

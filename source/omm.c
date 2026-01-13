@@ -34,3 +34,16 @@ Result ommGetDefaultDisplayResolution(s32* width, s32* height) { //[3.0.0+]
 
     return rc;
 }
+
+Result ommGetOperationMode(AppletOperationMode* s) {
+
+    u32 out;
+
+    Result rc = serviceDispatchOut(&g_ommSrv, 0, out);
+
+    if (R_SUCCEEDED(rc)) {
+        *s = out;
+    }
+
+    return rc;
+}
