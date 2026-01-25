@@ -4,6 +4,7 @@
 #include "langs/ru.hpp"
 #include "langs/zhcn.hpp"
 #include "langs/ptbr.hpp"
+#include "langs/zhtw.hpp"
 #include <switch.h>
 #include "Langs.hpp"
 
@@ -13,6 +14,7 @@ static_assert(Lang::Id_total_number == ZHCN::strings.size());
 static_assert(Lang::Id_total_number == FRA::strings.size());
 static_assert(Lang::Id_total_number == RUS::strings.size());
 static_assert(Lang::Id_total_number == PTBR::strings.size());
+static_assert(Lang::Id_total_number == ZHTW::strings.size());
 
 SetLanguage language = SetLanguage_ENUS;
 
@@ -31,7 +33,9 @@ const char* getStringID(std::size_t id) {
         case SetLanguage_PTBR:
             return PTBR::strings[id];
         case SetLanguage_ZHTW:
+            return ZHTW::strings[id];
         case SetLanguage_ZHHANT:
+            return ZHTW::strings[id];
         case SetLanguage_IT:
         case SetLanguage_JA:
         case SetLanguage_ES:
@@ -62,7 +66,9 @@ const char* getTeslaStringID(std::size_t id) {
         case SetLanguage_PTBR:
             return PTBR::teslaStrings[id];
         case SetLanguage_ZHTW:
+            return ZHTW::teslaStrings[id];
         case SetLanguage_ZHHANT:
+            return ZHTW::teslaStrings[id];
         case SetLanguage_IT:
         case SetLanguage_JA:
         case SetLanguage_ES:
@@ -76,4 +82,5 @@ const char* getTeslaStringID(std::size_t id) {
         default:
             return ENG::teslaStrings[id];
     }
+
 }
