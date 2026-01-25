@@ -33,7 +33,6 @@ const char* getStringID(std::size_t id) {
         case SetLanguage_PTBR:
             return PTBR::strings[id];
         case SetLanguage_ZHTW:
-            return ZHTW::strings[id];
         case SetLanguage_ZHHANT:
             return ZHTW::strings[id];
         case SetLanguage_IT:
@@ -66,7 +65,6 @@ const char* getTeslaStringID(std::size_t id) {
         case SetLanguage_PTBR:
             return PTBR::teslaStrings[id];
         case SetLanguage_ZHTW:
-            return ZHTW::teslaStrings[id];
         case SetLanguage_ZHHANT:
             return ZHTW::teslaStrings[id];
         case SetLanguage_IT:
