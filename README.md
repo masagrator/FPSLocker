@@ -124,6 +124,7 @@ Translation:
 - Russian: ~usagi, ~redraz
 - Brazilian Portuguese: ~Fl4sh
 - Chinese Simplified: ~Soneoy, ~Tone Darkwell
+- Chinese Traditional: [david082321](https://github.com/david082321)
 
 # Sync Wait
 In those games, you can disable double buffer vsync by turning off Window Sync Wait in FPSLocker:
