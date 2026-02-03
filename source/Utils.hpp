@@ -143,48 +143,6 @@ struct DisplayData {
 std::vector<Title> titles;
 std::string TV_name = "Unknown";
 
-/**
- * @brief Gets the \ref NsApplicationControlData for the specified application.
- * @note Only available on [19.0.0+].
- * @param[in] source Source, official sw uses ::NsApplicationControlSource_Storage.
- * @param[in] application_id ApplicationId.
- * @param[out] buffer \ref NsApplicationControlData
- * @param[in] flag1 Default is 0. 0xFF speeds up execution.
- * @param[in] flag2 Default is 0.
- * @param[in] size Size of the buffer.
- * @param[out] actual_size Actual output size.
- * @param[out] unk Returned with size, always 0.
- */
-Result nsGetApplicationControlData2(NsApplicationControlSource source, u64 application_id, NsApplicationControlData* buffer, size_t size, u8 flag1, u8 flag2, u64* actual_size, u32* unk) {
-    if (hosversionBefore(19,0,0))
-        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
-    Service srv={0}, *srv_ptr = &srv;
-    Result rc=0;
-    u32 cmd_id = 6;
-    rc = nsGetReadOnlyApplicationControlDataInterface(&srv);
-
-    const struct {
-        u8 source;
-        u8 flags[2];
-        u8 pad[5];
-        u64 application_id;
-    } in = { source, {flag1, flag2}, {0}, application_id };
-
-    u64 tmp=0;
-
-    if (R_SUCCEEDED(rc)) rc = serviceDispatchInOut(srv_ptr, cmd_id, in, tmp,
-        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
-        .buffers = { { buffer, size } },
-    );
-    if (R_SUCCEEDED(rc)) {
-        if (actual_size) *actual_size = tmp >> 32;
-        if (unk) *unk = (u32)tmp;
-    }
-
-    serviceClose(&srv);
-    return rc;
-}
-
 bool file_exists(const char *filename)
 {
     struct stat buffer;
@@ -954,4 +912,5 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
+
 }
