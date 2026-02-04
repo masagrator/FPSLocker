@@ -19,7 +19,7 @@ How to set up everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad092
 
 # Usage
 
-Supported languages: English, German, French, Russian, Brazilian Portuguese, Chinese Simplified.
+Supported languages: English, German, French, Russian, Brazilian Portuguese, Chinese Simplified, Chinese Traditional.
 
 Overlay runs in two modes:<br>
 > When the game is running
