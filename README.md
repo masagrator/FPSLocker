@@ -75,7 +75,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
 
 You will have two submenus to choose from:
 - `Games list`<br>
-  It will list installed games (max 32) and as first option it's available "All" submenu.<br>
+  It will list installed games (max 32), first option available is "All" submenu.<br>
   Inside each one you will find two options:
   - `Delete settings` - as name implies
   - `Delete patches` - it will delete file created by "Convert config to patch file" option
