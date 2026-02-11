@@ -11,7 +11,7 @@ Max supported YAML size is 32kB, though it can be expanded in the next updates.
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 1.6.0+](https://github.com/masagrator/SaltyNX/releases)
+- [My fork of SaltyNX, version 1.8.0+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
 - Overclocking toolset (And don't expect to run games in docked mode at locked 60 FPS without ridiculously beefy clocks, no - 1963/998/2133 clocks are not beefy enough in most cases)
 - If you have Switch OLED and you plan to play docked with display that supports refresh rates higher than 60 Hz, it is adviced to install [sys-dock](https://github.com/masagrator/sys-dock/releases) and read its [README](https://github.com/masagrator/sys-dock/blob/main/README.md) to unlock 120 Hz in OLED dock + possibly other ones.
