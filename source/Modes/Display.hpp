@@ -605,6 +605,7 @@ private:
 	DockedAdditionalSettings as;
 	uint8_t highestRefreshRate;
 	uint8_t linkRate;
+	uint8_t laneCount;
 	ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
 	bool block = false;
 	s32 height = 0;
@@ -618,7 +619,7 @@ public:
 		LoadDockedModeAllowedSave(rr, as, &crc32, height == 720);
 		highestRefreshRate = 60;
 		linkRate = 10;
-		getDockedHighestRefreshRate(&highestRefreshRate, &linkRate);
+		getDockedHighestRefreshRate(&highestRefreshRate, &linkRate, &laneCount);
 		char linkMode[5] = "HBR";
 		if (linkRate == 30) strcpy(linkMode, "HBR3");
 		else if (linkRate == 20) strcpy(linkMode, "HBR2");
@@ -649,7 +650,8 @@ public:
 
 			renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
 			if (!block) {
-				if (linkRate < 20) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
+				uint32_t bwTotal = (uint32_t)linkRate * laneCount;
+				if (bwTotal < 40) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
 				else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
 			}
 
