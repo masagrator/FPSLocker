@@ -424,7 +424,7 @@ Result SaltySD_SetMatchLowestRR(bool isTrue)
 	return ret;
 }
 
-Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate, uint8_t* linkRate)
+Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate, uint8_t* linkRate, uint8_t* laneCount)
 {
 	Result ret = 0;
 
@@ -457,7 +457,8 @@ Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate, uint8_t* linkRa
 			u64 result;
 			u32 refreshRate;
 			u32 linkRate;
-			u64 reserved;
+			u32 laneCount;
+			u32 reserved;
 		} *resp = (output*)r.Raw;
 
 		ret = resp->result;
@@ -466,6 +467,7 @@ Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate, uint8_t* linkRa
 		{
 			*refreshRate = (uint8_t)(resp->refreshRate);
 			*linkRate = (uint8_t)(resp->linkRate);
+			*laneCount = (uint8_t)(resp->laneCount);
 		}
 	}
 	
