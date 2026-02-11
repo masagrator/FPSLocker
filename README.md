@@ -120,6 +120,7 @@ Thanks to:
 - ~CTCaer for info about Samsung OLED panels
 - ~NaGa for tests on Retro Remake SUPER5 display and providing me with a Switch OLED unit
   - and backers, including: Jorge Conceição, zany tofu, Lei Feng, brandon foster, AlM, Alex Haley, Stefano Bigio, Le Duc, Sylvixor x
+- Anonymous contributor who found how to unlock full refresh rate range for Switch OLED in dock.
  
 Translation:
 - German: ~Lightos_
