@@ -650,9 +650,14 @@ public:
 
 			renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
 			if (!block) {
-				uint32_t bwTotal = (uint32_t)linkRate * laneCount;
-				if (bwTotal < 40) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
-				else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
+				if (laneCount == 2 || laneCount == 4) {
+					if ((linkRate * laneCount) < 40) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
+				}
+				else {
+					if (linkRate < 20) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
+				}
 			}
 
 			
@@ -1129,4 +1134,5 @@ public:
 
         return frame;
     }
+
 };
