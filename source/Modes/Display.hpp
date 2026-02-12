@@ -656,12 +656,12 @@ public:
 			auto string_width = renderer->drawString(second_line.c_str(), false, x, y+fontsize, fontsize, renderer->a(0x0000)).first;
 			if (!block) {
 				if (laneCount == 2 || laneCount == 4) {
-					if ((linkRate * laneCount) < 40) renderer->drawString("\uE14C", false, x+fontsize+string_width, y+(fontsize*2), fontsize, renderer->a(0xF00F));
-					else renderer->drawString("\uE14B", false, x+fontsize+string_width, y+(fontsize*2), fontsize, renderer->a(0xF0F0));
+					if ((linkRate * laneCount) < 40) renderer->drawString("\uE14C", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF0F0));
 				}
 				else {
-					if (linkRate < 20) renderer->drawString("\uE14C", false, x+fontsize+string_width, y+(fontsize*2), fontsize, renderer->a(0xF00F));
-					else renderer->drawString("\uE14B", false, x+fontsize+string_width, y+(fontsize*2), fontsize, renderer->a(0xF0F0));
+					if (linkRate < 20) renderer->drawString("\uE14C", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF0F0));
 				}
 			}
 
