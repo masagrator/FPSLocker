@@ -648,15 +648,16 @@ public:
 
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 
-			renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
+			auto dimensions = renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
+			auto string_width = dimensions.first;
 			if (!block) {
 				if (laneCount == 2 || laneCount == 4) {
-					if ((linkRate * laneCount) < 40) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
-					else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
+					if ((linkRate * laneCount) < 40) renderer->drawString("\uE14C", false, x+20+string_width, y+40, 20, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+20+string_width, y+40, 20, renderer->a(0xF0F0));
 				}
 				else {
-					if (linkRate < 20) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
-					else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
+					if (linkRate < 20) renderer->drawString("\uE14C", false, x+20+string_width, y+40, 20, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+20+string_width, y+40, 20, renderer->a(0xF0F0));
 				}
 			}
 
@@ -1136,3 +1137,4 @@ public:
     }
 
 };
+
