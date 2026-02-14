@@ -309,14 +309,13 @@ public:
 	s32 height = 720;
 	uint8_t highestRefreshRate = 60;
 	DockedFPSTargetGui() {
-		getDockedHighestRefreshRate(&highestRefreshRate);
 		s32 width = 0;
 		ommGetDefaultDisplayResolution(&width, &height);
 		if (height == 1080 || height == 720) {
 			LoadDockedModeAllowedSave(rr, as, nullptr, (height == 720) ? true : false);
 		}
 		if (height == 720 || height == 1080) for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowed); i++) {
-			if (rr[i] == true && DockedModeRefreshRateAllowedValues[i] <= highestRefreshRate) {
+			if (rr[i] == true) {
 				AllowedFPSTargets[sizeofAllowedFPSTargets++] = DockedModeRefreshRateAllowedValues[i];
 			}
 		}
