@@ -448,22 +448,9 @@ public:
 
 		auto list = new tsl::elm::List();
 
-		for (size_t i = 0; i < 4; i++) {
-			char Hz[] = "120 Hz";
-			snprintf(Hz, sizeof(Hz), "%d Hz", DockedModeRefreshRateAllowedValues[i]);
-			auto *clickableListItem = new tsl::elm::ToggleListItem(Hz, rr[i]);
-			clickableListItem->setClickListener([this, i](u64 keys) { 
-				if (keys & HidNpadButton_A) {
-					rr[i] = !rr[i];
-					return true;
-				}
-				return false;
-			});
-			list->addItem(clickableListItem);	
-		}
-		for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
 			if (maxRefreshRate < DockedModeRefreshRateAllowedValues[i]) break;
-			char Hz[] = "120 Hz";
+			char Hz[7];
 			snprintf(Hz, sizeof(Hz), "%d Hz", DockedModeRefreshRateAllowedValues[i]);
 			auto *clickableListItem = new tsl::elm::ToggleListItem(Hz, rr[i]);
 			clickableListItem->setClickListener([this, i](u64 keys) { 
