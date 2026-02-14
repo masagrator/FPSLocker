@@ -149,16 +149,18 @@ bool file_exists(const char *filename)
     return stat(filename, &buffer) == 0 ? true : false;
 }
 
-void getDockedHighestRefreshRate(uint8_t* highestRefreshRate, uint8_t* setLinkRate = nullptr) {
+void getDockedHighestRefreshRate(uint8_t* highestRefreshRate, uint8_t* setLinkRate = nullptr, uint8_t* setLaneCount = nullptr) {
 	if (SaltySD_Connect()) {
 		*highestRefreshRate = 60;
 		return;
 	}
 	uint8_t refreshRate = 60;
 	uint8_t linkRate = 10;
-	Result rc = SaltySD_GetDockedHighestRefreshRate(&refreshRate, &linkRate);
+	uint8_t laneCount = 0;
+	Result rc = SaltySD_GetDockedHighestRefreshRate(&refreshRate, &linkRate, &laneCount);
 	SaltySD_Term();
 	if (R_SUCCEEDED(rc) && setLinkRate) *setLinkRate = linkRate;
+	if (R_SUCCEEDED(rc) && setLaneCount) *setLaneCount = laneCount;
 	if (R_SUCCEEDED(rc) && refreshRate > 60) *highestRefreshRate = refreshRate;
 	else *highestRefreshRate = 60;
 

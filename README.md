@@ -11,9 +11,10 @@ Max supported YAML size is 32kB, though it can be expanded in the next updates.
 
 # Requirements
 - [Atmosphere CFW](https://github.com/Atmosphere-NX/Atmosphere/releases)
-- [My fork of SaltyNX, version 1.6.0+](https://github.com/masagrator/SaltyNX/releases)
-- Tesla environment: [ovlloader](https://github.com/WerWolv/nx-ovlloader/releases) + [Tesla Menu](https://github.com/WerWolv/Tesla-Menu/releases)
+- [My fork of SaltyNX, version 1.7.4+](https://github.com/masagrator/SaltyNX/releases)
+- Tesla environment: [Ultrahand](https://github.com/ppkantorski/Ultrahand-Overlay/releases)
 - Overclocking toolset (And don't expect to run games in docked mode at locked 60 FPS without ridiculously beefy clocks, no - 1963/998/2133 clocks are not beefy enough in most cases)
+- If you have Switch OLED and you plan to play docked with display that supports refresh rates higher than 60 Hz, it is adviced to install [sys-dock](https://github.com/masagrator/sys-dock/releases) and read its [README](https://github.com/masagrator/sys-dock/blob/main/README.md) to unlock 120 Hz in OLED dock + possibly other ones.
 
 How to set up everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
 
@@ -60,7 +61,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
   - `60 HZ in HOME Menu` - if Handheld Display Sync is turned on, whenever you go to HOME Menu while game is running SaltyNX will always make sure to run it at 60 Hz in handheld.
   - `Retro Remake Mode` - this option shows only for people that use Lite with screen `InnoLux 2J055IA-27A (Rev B1)` or `Retro Remake SUPER5` (first revision only). That is because Retro Remake displays require special approach to change refresh rate, and first version of SUPER5 is spoofing ID of already existing display, which makes it impossible to detect which one is in use, so user must manually enable it if they are using SUPER5 display. All other Retro Remake displays are detected automatically.
   - `Docked Settings` - submenu related to display refresh rate of external displays. Not accessible for Lite units. Consists of:
-      - `myDP link rate` - It will report `HBR` or `HBR2` mode. HBR mode doesn't allow going higher than 75 Hz at 1080p (60 Hz is max if you want audio to work). More at the bottom of readme.
+      - `myDP link rate` - It will report `HBR` or `HBR2` mode. HBR mode doesn't allow going higher than 75 Hz at 1080p for non-OLED units, for OLED units it depends on how much DP lanes your dock supports (all original docks have 2 active DP lanes which means max 75 Hz at 1080p). In case of 75 Hz being max at 1080p, 60 Hz is the real max if you want audio to work. More at the bottom of readme.
       - `Config ID` - What is the name of config file used to store settings for your currently connected display. You can find file in `SaltySD/plugins/FPSLocker/ExtDisplays` folder.
       - `Allowed refresh rates` - you can check and edit manually which refresh rates are enabled for currently connected external display. It consists of 40, 45, 50 and 55 Hz. By default 50 is turned on, everything else is turned off.
       - `Display underclock wizard` - it goes automatically through refresh rates from 40 to 55, user is asked to press required button to confirm it's working, if not pressed for 15 seconds it goes to next refresh rate. After checking all refresh rates you are moved to `Allowed refresh rates` menu to check results.
@@ -108,7 +109,7 @@ Cap was set to 120 Hz as this is the max refresh rate supported by the OG dock a
 
 Many displays are locked to max 75Hz at 1080p because, from what I understand, something hinders the connection between the Switch and dock, which ends in failed HBR2 training implemented in HOS, leaving the connection in HBR mode. HBR mode with 2 lanes is where the 180 MHz limit, which is slightly above what 1080p 75 Hz expects, comes from. The issue may come from the Switch and/or the dock itself. Being in HBR mode can also result in audio not being passed to the dock above 60 Hz at 1080p. Trying to manually do HBR2 training results in resetting the signal, which HOS tries to restore, so any attempt at manual training gets blocked.
 
-<!-- OLED is a curious case because Nintendo applied software PCIE lane bandwidth cap to be at 10 Gbps per lane instead of standard 20. This means it works in HBR2 mode properly only if dock supports 4 DP lanes - which afaik is not the case for any original dock. -->
+OLED is a curious case because Nintendo applied software PCIE lane bandwidth cap forcing it to be always in HBR mode. sys-dock sysmodule allows overriding those limitations.
 
 From tests, HOS applets can get unstable at 100 Hz and higher. That means, e.g., if a currently running game wants to pop the user selection applet, this may result in the game's crash. Some games can get unstable on their own. As an example, "Batman: The Enemy Within", when being closed above a certain refresh rate, will crash.
 
@@ -119,6 +120,7 @@ Thanks to:
 - ~CTCaer for info about Samsung OLED panels
 - ~NaGa for tests on Retro Remake SUPER5 display and providing me with a Switch OLED unit
   - and backers, including: Jorge Conceição, zany tofu, Lei Feng, brandon foster, AlM, Alex Haley, Stefano Bigio, Le Duc, Sylvixor x
+- Anonymous contributor who found how to unlock full refresh rate range for Switch OLED in dock.
  
 Translation:
 - German: ~Lightos_
