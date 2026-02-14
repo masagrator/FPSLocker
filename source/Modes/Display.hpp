@@ -448,7 +448,7 @@ public:
 
 		auto list = new tsl::elm::List();
 
-		for (size_t i = 0; i < 4; i++) {
+		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
 			char Hz[] = "120 Hz";
 			snprintf(Hz, sizeof(Hz), "%d Hz", DockedModeRefreshRateAllowedValues[i]);
 			auto *clickableListItem = new tsl::elm::ToggleListItem(Hz, rr[i]);
@@ -605,6 +605,7 @@ private:
 	DockedAdditionalSettings as;
 	uint8_t highestRefreshRate;
 	uint8_t linkRate;
+	uint8_t laneCount;
 	ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
 	bool block = false;
 	s32 height = 0;
@@ -618,7 +619,7 @@ public:
 		LoadDockedModeAllowedSave(rr, as, &crc32, height == 720);
 		highestRefreshRate = 60;
 		linkRate = 10;
-		getDockedHighestRefreshRate(&highestRefreshRate, &linkRate);
+		getDockedHighestRefreshRate(&highestRefreshRate, &linkRate, &laneCount);
 		char linkMode[5] = "HBR";
 		if (linkRate == 30) strcpy(linkMode, "HBR3");
 		else if (linkRate == 20) strcpy(linkMode, "HBR2");
@@ -647,10 +648,21 @@ public:
 
 		list->addItem(new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, s32 x, s32 y, s32 w, s32 h) {
 
-			renderer->drawString(Docked_c, false, x, y+20, 20, renderer->a(0xFFFF));
+			const u32 fontsize = 20;
+			renderer->drawString(Docked_c, false, x, y+fontsize, fontsize, renderer->a(0xFFFF));
+			const char* start = strchr(Docked_c, '\n') + 1;
+			const char* end = strchr(start, '\n');
+			std::string second_line(start, end - start);
+			auto string_width = renderer->drawString(second_line.c_str(), false, x, y+fontsize, fontsize, renderer->a(0x0000)).first;
 			if (!block) {
-				if (linkRate < 20) renderer->drawString("\uE14C", false, x+220, y+40, 20, renderer->a(0xF00F));
-				else renderer->drawString("\uE14B", false, x+220, y+40, 20, renderer->a(0xF0F0));
+				if (laneCount == 2 || laneCount == 4) {
+					if ((linkRate * laneCount) < 40) renderer->drawString("\uE14C", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF0F0));
+				}
+				else {
+					if (linkRate < 20) renderer->drawString("\uE14C", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF00F));
+					else renderer->drawString("\uE14B", false, x+(fontsize/2)+string_width, y+(fontsize*2), fontsize, renderer->a(0xF0F0));
+				}
 			}
 
 			
@@ -757,7 +769,9 @@ class DockedRefreshRateChangeGui : public tsl::Gui {
 public:
 	DockedModeRefreshRateAllowed rr;
 	DockedAdditionalSettings as;
-	DockedRefreshRateChangeGui () {
+	uint8_t maxRefreshRate = 60;
+	DockedRefreshRateChangeGui (uint8_t maxRefreshRate_impl) {
+		if (maxRefreshRate_impl >= 70) maxRefreshRate = maxRefreshRate_impl;
 		s32 width = 0;
 		s32 height = 1080;
 		ommGetDefaultDisplayResolution(&width, &height);
@@ -775,6 +789,8 @@ public:
 		auto list = new tsl::elm::List();
 
 		for (size_t i = 0; i < sizeof(rr); i++) {
+			if (maxRefreshRate < DockedModeRefreshRateAllowedValues[i])
+				break;
 			if (rr[i] == false)
 				continue;
 			char Hz[] = "254 Hz";
@@ -829,6 +845,7 @@ private:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 	bool isPossiblyRetroRemake = false;
 	bool RetroRemakeMode = false;
+	uint8_t highestRefreshRate = 60;
 public:
     DisplayGui() {
 		if (isLite) {
@@ -843,6 +860,7 @@ public:
 			}
 		}
 		else {
+			getDockedHighestRefreshRate(&highestRefreshRate);
 			smInitialize();
 			if (R_SUCCEEDED(apmInitialize())) {
 				apmGetPerformanceMode(&entry_mode);
@@ -904,9 +922,9 @@ public:
 		}
 		else if (entry_mode == ApmPerformanceMode_Boost && displaySync.ds.docked) {
 			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_ChangeRefreshRate)); //Change refresh rate
-			clickableListItem2->setClickListener([](u64 keys) { 
+			clickableListItem2->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
-					tsl::changeTo<DockedRefreshRateChangeGui>();
+					tsl::changeTo<DockedRefreshRateChangeGui>(highestRefreshRate);
 					return true;
 				}
 				return false;
@@ -1127,4 +1145,6 @@ public:
 
         return frame;
     }
+
 };
+
