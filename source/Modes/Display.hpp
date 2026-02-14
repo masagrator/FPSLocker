@@ -448,9 +448,22 @@ public:
 
 		auto list = new tsl::elm::List();
 
-		for (size_t i = 0; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
+		for (size_t i = 0; i < 4; i++) {
+			char Hz[] = "120 Hz";
+			snprintf(Hz, sizeof(Hz), "%d Hz", DockedModeRefreshRateAllowedValues[i]);
+			auto *clickableListItem = new tsl::elm::ToggleListItem(Hz, rr[i]);
+			clickableListItem->setClickListener([this, i](u64 keys) { 
+				if (keys & HidNpadButton_A) {
+					rr[i] = !rr[i];
+					return true;
+				}
+				return false;
+			});
+			list->addItem(clickableListItem);	
+		}
+		for (size_t i = 5; i < sizeof(DockedModeRefreshRateAllowedValues); i++) {
 			if (maxRefreshRate < DockedModeRefreshRateAllowedValues[i]) break;
-			char Hz[7];
+			char Hz[] = "120 Hz";
 			snprintf(Hz, sizeof(Hz), "%d Hz", DockedModeRefreshRateAllowedValues[i]);
 			auto *clickableListItem = new tsl::elm::ToggleListItem(Hz, rr[i]);
 			clickableListItem->setClickListener([this, i](u64 keys) { 
@@ -756,7 +769,9 @@ class DockedRefreshRateChangeGui : public tsl::Gui {
 public:
 	DockedModeRefreshRateAllowed rr;
 	DockedAdditionalSettings as;
-	DockedRefreshRateChangeGui () {
+	uint8_t maxRefreshRate = 60;
+	DockedRefreshRateChangeGui (uint8_t maxRefreshRate_impl) {
+		if (maxRefreshRate_impl >= 70) maxRefreshRate = maxRefreshRate_impl;
 		s32 width = 0;
 		s32 height = 1080;
 		ommGetDefaultDisplayResolution(&width, &height);
@@ -774,6 +789,8 @@ public:
 		auto list = new tsl::elm::List();
 
 		for (size_t i = 0; i < sizeof(rr); i++) {
+			if (maxRefreshRate < DockedModeRefreshRateAllowedValues[i])
+				break;
 			if (rr[i] == false)
 				continue;
 			char Hz[] = "254 Hz";
@@ -828,6 +845,7 @@ private:
 	ApmPerformanceMode entry_mode = ApmPerformanceMode_Invalid;
 	bool isPossiblyRetroRemake = false;
 	bool RetroRemakeMode = false;
+	uint8_t highestRefreshRate = 60;
 public:
     DisplayGui() {
 		if (isLite) {
@@ -842,6 +860,7 @@ public:
 			}
 		}
 		else {
+			getDockedHighestRefreshRate(&highestRefreshRate);
 			smInitialize();
 			if (R_SUCCEEDED(apmInitialize())) {
 				apmGetPerformanceMode(&entry_mode);
@@ -903,9 +922,9 @@ public:
 		}
 		else if (entry_mode == ApmPerformanceMode_Boost && displaySync.ds.docked) {
 			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_ChangeRefreshRate)); //Change refresh rate
-			clickableListItem2->setClickListener([](u64 keys) { 
+			clickableListItem2->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
-					tsl::changeTo<DockedRefreshRateChangeGui>();
+					tsl::changeTo<DockedRefreshRateChangeGui>(highestRefreshRate);
 					return true;
 				}
 				return false;

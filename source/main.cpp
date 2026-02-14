@@ -309,11 +309,7 @@ public:
 	s32 height = 720;
 	uint8_t highestRefreshRate = 60;
 	DockedFPSTargetGui() {
-		if (R_SUCCEEDED(SaltySD_Connect())) {
-			SaltySD_GetDockedHighestRefreshRate(&highestRefreshRate, nullptr, nullptr);
-			SaltySD_Term();
-			if (highestRefreshRate < 60 || highestRefreshRate > 120) highestRefreshRate = 60;
-		}
+		getDockedHighestRefreshRate(&highestRefreshRate);
 		s32 width = 0;
 		ommGetDefaultDisplayResolution(&width, &height);
 		if (height == 1080 || height == 720) {
