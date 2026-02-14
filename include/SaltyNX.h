@@ -465,9 +465,9 @@ Result SaltySD_GetDockedHighestRefreshRate(uint8_t* refreshRate, uint8_t* linkRa
 		
 		if (!ret)
 		{
-			*refreshRate = (uint8_t)(resp->refreshRate);
-			*linkRate = (uint8_t)(resp->linkRate);
-			*laneCount = (uint8_t)(resp->laneCount);
+			if (refreshRate) *refreshRate = (uint8_t)(resp->refreshRate);
+			if (linkRate) *linkRate = (uint8_t)(resp->linkRate);
+			if (laneCount) *laneCount = (uint8_t)(resp->laneCount);
 		}
 	}
 	
