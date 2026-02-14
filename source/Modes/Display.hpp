@@ -1145,6 +1145,4 @@ public:
 
         return frame;
     }
-
 };
-
