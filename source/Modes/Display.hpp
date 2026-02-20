@@ -920,7 +920,7 @@ public:
 
 			list->addItem(clickableListItem2);
 		}
-		else if (entry_mode == ApmPerformanceMode_Boost && displaySync.ds.docked) {
+		else if (entry_mode == ApmPerformanceMode_Boost && !displaySync.ds.docked) {
 			auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_ChangeRefreshRate)); //Change refresh rate
 			clickableListItem2->setClickListener([this](u64 keys) { 
 				if (keys & HidNpadButton_A) {
@@ -1145,4 +1145,5 @@ public:
 
         return frame;
     }
+
 };
