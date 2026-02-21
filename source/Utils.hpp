@@ -1,6 +1,7 @@
 #pragma once
 #include <curl/curl.h>
 #include <stdatomic.h>
+#include <zlib.h>
 
 const unsigned char data[] = {
 	#embed "titleids_with_patches.bin"
@@ -121,6 +122,109 @@ std::string overlayName = "sdmc:/switch/.overlays/";
 
 LEvent threadexit = {0};
 
+/// ApplicationControlDataCondition
+typedef struct {
+    u8 type[8];                                                                          ///< Type
+    struct {
+        u8 priority;                                                                     ///< Priority
+        u8 reserved_x1[0x7];                                                             ///< Reserved
+        u16 aoc_index;                                                                   ///< AocIndex
+        u8 reserved_xa[0x6];                                                             ///< Reserved
+    } data[8];
+    u8 count;                                                                            ///< Count
+} NacpApplicationControlDataCondition;
+
+typedef union {
+    NacpLanguageEntry lang[16];                                                          ///< \ref NacpLanguageEntry, use only if TitlesDataFormat == 0
+    struct {
+        u16 buffer_size;
+        u8 buffer[0x2FFE];
+    } compressed_data;                                                                   ///< ///< \ref use only if TitlesDataFormat == 1, uncompressed data matches NacpLanguageEntry[32]
+} NacpLanguageEntryData;
+
+/// ns ApplicationControlProperty
+typedef struct {
+	NacpLanguageEntryData lang_data;                                                     ///< \ref NacpLanguageEntryData
+    u8 isbn[0x25];                                                                       ///< Isbn
+    u8 startup_user_account;                                                             ///< StartupUserAccount
+    u8 user_account_switch_lock;                                                         ///< UserAccountSwitchLock
+    u8 add_on_content_registration_type;                                                 ///< AddOnContentRegistrationType
+    u32 attribute_flag;                                                                  ///< AttributeFlag
+    u32 supported_language_flag;                                                         ///< SupportedLanguageFlag
+    u32 parental_control_flag;                                                           ///< ParentalControlFlag
+    u8 screenshot;                                                                       ///< Screenshot
+    u8 video_capture;                                                                    ///< VideoCapture
+    u8 data_loss_confirmation;                                                           ///< DataLossConfirmation
+    u8 play_log_policy;                                                                  ///< PlayLogPolicy
+    u64 presence_group_id;                                                               ///< PresenceGroupId
+    s8 rating_age[0x20];                                                                 ///< RatingAge
+    char display_version[0x10];                                                          ///< DisplayVersion
+    u64 add_on_content_base_id;                                                          ///< AddOnContentBaseId
+    u64 save_data_owner_id;                                                              ///< SaveDataOwnerId
+    u64 user_account_save_data_size;                                                     ///< UserAccountSaveDataSize
+    u64 user_account_save_data_journal_size;                                             ///< UserAccountSaveDataJournalSize
+    u64 device_save_data_size;                                                           ///< DeviceSaveDataSize
+    u64 device_save_data_journal_size;                                                   ///< DeviceSaveDataJournalSize
+    u64 bcat_delivery_cache_storage_size;                                                ///< BcatDeliveryCacheStorageSize
+    u64 application_error_code_category;                                                 ///< ApplicationErrorCodeCategory
+    u64 local_communication_id[0x8];                                                     ///< LocalCommunicationId
+    u8 logo_type;                                                                        ///< LogoType
+    u8 logo_handling;                                                                    ///< LogoHandling
+    u8 runtime_add_on_content_install;                                                   ///< RuntimeAddOnContentInstall
+    u8 runtime_parameter_delivery;                                                       ///< RuntimeParameterDelivery
+    u8 appropriate_age_for_china;                                                        ///< AppropriateAgeForChina
+    u8 reserved_x30f5;                                                                   ///< Reserved
+    u8 crash_report;                                                                     ///< CrashReport
+    u8 hdcp;                                                                             ///< Hdcp
+    u64 pseudo_device_id_seed;                                                           ///< SeedForPseudoDeviceId
+    char bcat_passphrase[0x41];                                                          ///< BcatPassphrase
+    u8 startup_user_account_option;                                                      ///< StartupUserAccountOption
+    u8 reserved_for_user_account_save_data_operation[0x6];                               ///< ReservedForUserAccountSaveDataOperation
+    u64 user_account_save_data_size_max;                                                 ///< UserAccountSaveDataSizeMax
+    u64 user_account_save_data_journal_size_max;                                         ///< UserAccountSaveDataJournalSizeMax
+    u64 device_save_data_size_max;                                                       ///< DeviceSaveDataSizeMax
+    u64 device_save_data_journal_size_max;                                               ///< DeviceSaveDataJournalSizeMax
+    u64 temporary_storage_size;                                                          ///< TemporaryStorageSize
+    u64 cache_storage_size;                                                              ///< CacheStorageSize
+    u64 cache_storage_journal_size;                                                      ///< CacheStorageJournalSize
+    u64 cache_storage_data_and_journal_size_max;                                         ///< CacheStorageDataAndJournalSizeMax
+    u16 cache_storage_index_max;                                                         ///< CacheStorageIndexMax
+    u8 reserved_x318a;                                                                   ///< Reserved
+    u8 runtime_upgrade;                                                                  ///< RuntimeUpgrade
+    u32 supporting_limited_applications_licenses;                                        ///< SupportingLimitedApplicationLicenses
+    u64 play_log_queryable_application_id[0x10];                                         ///< PlayLogQueryableApplicationId
+    u8 play_log_query_capability;                                                        ///< PlayLogQueryCapability
+    u8 repair_flag;                                                                      ///< RepairFlag
+    u8 program_index;                                                                    ///< ProgramIndex
+    u8 required_network_service_license_on_launch;                                       ///< RequiredNetworkServiceLicenseOnLaunchFlag
+    u8 application_error_code_prefix;                                                    ///< [20.0.0+] ApplicationErrorCodePrefix
+    u8 titles_data_format;                                                               ///< [21.0.0+] TitlesDataFormat
+    u8 acd_index;                                                                        ///< [20.0.0+] AcdIndex
+    u8 apparent_platform;                                                                ///< [21.0.0+] ApparentPlatform
+    NacpNeighborDetectionClientConfiguration neighbor_detection_client_configuration;    ///< NeighborDetectionClientConfiguration
+    NacpApplicationJitConfiguration jit_configuration;                                   ///< JitConfiguration
+    u16 required_addon_contents_set_binary_descriptor[0x20];                             ///< RequiredAddOnContentsSetBinaryDescriptor
+    u8 play_report_permission;                                                           ///< PlayReportPermission
+    u8 crash_screenshot_for_prod;                                                        ///< CrashScreenshotForProd
+    u8 crash_screenshot_for_dev;                                                         ///< CrashScreenshotForDev
+    u8 contents_availability_transition_policy;                                          ///< ContentsAvailabilityTransitionPolicy
+    u8 supported_language_flag_for_nx_addon;                                             ///< [21.0.0+] SupportedLanguageFlagForNxAddon
+    u64 accessible_launch_required_version[0x8];                                         ///< AccessibleLaunchRequiredVersion
+    NacpApplicationControlDataCondition application_control_data_condition;              ///< [20.0.0+] ApplicationControlDataCondition
+    u8 initial_program_index;                                                            ///< [20.0.0+] InitialProgramIndex
+    u8 reserved_x34d2;                                                                   ///< Reserved
+    u32 accessible_program_index_flags;                                                  ///< [20.0.0+] AccessibleProgramIndexFlags
+    u8 album_file_export;                                                                ///< [20.0.0+] AlbumFileExport
+    u8 reserved_x34d9[0x7];                                                              ///< Reserved
+    u8 save_data_certificate_bytes[0x80];                                                ///< [20.0.0+] SaveDataCertificateBytes
+    u8 has_in_game_voice_char;                                                           ///< [20.0.0+] HasInGameVoiceChat
+    u8 reserved_x3561[0x3];                                                              ///< Reserved
+    u32 supported_extra_addon_content_flag;                                              ///< [20.0.0+] SupportedExtraAddOnContentFlag
+    u8 has_karaoke_feature;                                                              ///< [21.0.0+] HasKaraokeFeature
+    u8 reserved_x3569[0x697];                                                            ///< Reserved
+    u8 platform_specific_region[0x400];                                                  ///< [20.0.0+] PlatformSpecificRegion
+} NacpStruct2;
+
 struct Title
 {
 	uint64_t TitleID;
@@ -142,6 +246,7 @@ struct DisplayData {
 
 std::vector<Title> titles;
 std::string TV_name = "Unknown";
+
 
 bool file_exists(const char *filename)
 {
@@ -360,7 +465,14 @@ void sendConfirmation(Result temp_error_code) {
 	NsApplicationContentMetaStatus* appContentMetaStatus = new NsApplicationContentMetaStatus[2];
 	char display_version[sizeof(appControlData -> nacp.display_version)] = "";
 	uint32_t version = 0;
-	if (R_SUCCEEDED(nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr))) {
+	Result rc = 1;
+	if (hosversionBefore(19,0,0)) {
+		rc = nsGetApplicationControlData(NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), nullptr);
+	}
+	else {
+		rc = nsGetApplicationControlData2(NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr);
+	}
+	if (R_SUCCEEDED(rc)) {
 		strcpy(display_version, appControlData->nacp.display_version);
 		if (R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
 			u32 index = 0;
@@ -810,25 +922,70 @@ bool CheckPort () {
 	return false;
 }
 
+// Returns true if decompressed correctly.
+bool nacp_decompress(NsApplicationControlData* appControlData)
+{	
+	
+	NacpStruct2* nacp = (NacpStruct2*)&(appControlData -> nacp);
+	Bytef* temp_buffer = (Bytef*)calloc(32, sizeof(NacpLanguageEntry));
+	if (!temp_buffer)
+		return false;
+
+    z_stream strm = {0};
+
+    if (inflateInit2(&strm, -15) != Z_OK) {
+		free(temp_buffer);
+        return false;
+	}
+
+    strm.next_in   = (Bytef*)nacp->lang_data.compressed_data.buffer;
+    strm.avail_in  = nacp->lang_data.compressed_data.buffer_size;
+    strm.next_out  = temp_buffer;
+    strm.avail_out = sizeof(NacpLanguageEntry[32]);
+
+    int ret = inflate(&strm, Z_FINISH);
+	bool res = false;
+    if (ret == Z_STREAM_END) {
+		memcpy(&appControlData->nacp, temp_buffer, 0x3000);
+		res = true;
+	}
+
+    inflateEnd(&strm);
+	free(temp_buffer);
+    return res;
+}
+
 std::string getAppName(uint64_t Tid)
 {
-	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(sizeof(NsApplicationControlData));
+	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(0x24000);
 
 	Result rc = -1;
 	if (hosversionBefore(19,0,0)) {
 		rc = nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), nullptr);
 	}
-	else rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr);
+	else {
+		rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr);
+	}
 	if (R_FAILED(rc)) {
 		free(appControlData);
 		char returnTID[18];
 		sprintf(returnTID, "%016lx-", Tid);
 		return (std::string)returnTID;
 	}
+
+	NacpStruct2* nacp = (NacpStruct2*)&(appControlData -> nacp);
+	if (nacp->titles_data_format == 1) {
+		if (!nacp_decompress(appControlData)) {
+			free(appControlData);
+			char returnTID[18];
+			sprintf(returnTID, "%016lx-", Tid);
+			return (std::string)returnTID;			
+		}
+	}
 	
 	NacpLanguageEntry *languageEntry = nullptr;
 	smInitialize();
-	rc = nacpGetLanguageEntry(&(appControlData -> nacp), &languageEntry);
+	rc = nacpGetLanguageEntry((NacpStruct*)nacp, &languageEntry);
 	smExit();
 	if (R_FAILED(rc)) {
 		free(appControlData);
