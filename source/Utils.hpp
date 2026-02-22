@@ -459,6 +459,49 @@ std::array sources = {
 	std::pair<const char*, const char*>("https://raw.githubusercontent.com/masagrator/FPSLocker-Warehouse/v4/", "")
 };
 
+/**
+ * @brief Gets the \ref NsApplicationControlData for the specified application.
+ * @note Only available on [21.0.0+]. Faster than nsGetApplicationControlData2 while having the same functionality.
+ * @param[in] source Source, official sw uses ::NsApplicationControlSource_Storage.
+ * @param[in] application_id ApplicationId.
+ * @param[out] buffer \ref NsApplicationControlData
+ * @param[in] flag1 Default is 0. 0xFF speeds up execution.
+ * @param[in] flag2 Default is 0.
+ * @param[in] size Size of the buffer.
+ * @param[out] actual_size Actual output size.
+ * @param[out] unk Returned with size, always 0.
+ */
+Result nsGetApplicationControlData3(NsApplicationControlSource source, u64 application_id, NsApplicationControlData* buffer, size_t size, u8 flag1, u8 flag2, u64* actual_size) {
+    Service srv={0}, *srv_ptr = &srv;
+    Result rc=0;
+    u32 cmd_id = 20;
+    rc = nsGetReadOnlyApplicationControlDataInterface(&srv);
+
+    const struct {
+        u8 source;
+        u8 flags[2];
+        u8 pad[5];
+        u64 application_id;
+    } in = { source, {flag1, flag2}, {0}, application_id };
+
+    struct {
+		u32 unk1;
+		u32 size;
+		u32 unk2;
+	} tmp;
+
+    if (R_SUCCEEDED(rc)) rc = serviceDispatchInOut(srv_ptr, cmd_id, in, tmp,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { buffer, size } },
+    );
+    if (R_SUCCEEDED(rc)) {
+        if (actual_size) *actual_size = tmp.size;
+    }
+
+    serviceClose(&srv);
+    return rc;
+}
+
 void sendConfirmation(Result temp_error_code) {
 	s32 appContentMetaStatusSize = 0;
 	NsApplicationControlData* appControlData = new NsApplicationControlData;
@@ -469,9 +512,11 @@ void sendConfirmation(Result temp_error_code) {
 	if (hosversionBefore(19,0,0)) {
 		rc = nsGetApplicationControlData(NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), nullptr);
 	}
-	else {
+	else if (hosversionBefore(21,0,0)) {
 		rc = nsGetApplicationControlData2(NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr);
 	}
+	else rc = nsGetApplicationControlData3(NsApplicationControlSource_Storage, TID, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr);
+
 	if (R_SUCCEEDED(rc)) {
 		strcpy(display_version, appControlData->nacp.display_version);
 		if (R_SUCCEEDED(nsListApplicationContentMetaStatus(TID, 0, appContentMetaStatus, 2, &appContentMetaStatusSize))) {
@@ -963,8 +1008,11 @@ std::string getAppName(uint64_t Tid)
 	if (hosversionBefore(19,0,0)) {
 		rc = nsGetApplicationControlData(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), nullptr);
 	}
-	else {
+	else if (hosversionBefore(21,0,0)) {
 		rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr, nullptr);
+	}
+	else {
+		rc = nsGetApplicationControlData3(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr);
 	}
 	if (R_FAILED(rc)) {
 		free(appControlData);
