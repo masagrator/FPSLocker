@@ -957,7 +957,7 @@ bool nacp_decompress(NsApplicationControlData* appControlData)
 
 std::string getAppName(uint64_t Tid)
 {
-	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(0x24000);
+	NsApplicationControlData* appControlData = (NsApplicationControlData*)malloc(sizeof(NsApplicationControlData));
 
 	Result rc = -1;
 	if (hosversionBefore(19,0,0)) {
@@ -1071,5 +1071,6 @@ bool saveSettings() {
 		else return false;
 	}
 	return true;
+
 
 }
