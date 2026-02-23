@@ -14,7 +14,7 @@ Max supported YAML size is 32kB, though it can be expanded in the next updates.
 - [My fork of SaltyNX, version 1.7.4+](https://github.com/masagrator/SaltyNX/releases)
 - Tesla environment: [Ultrahand](https://github.com/ppkantorski/Ultrahand-Overlay/releases)
 - Overclocking toolset (And don't expect to run games in docked mode at locked 60 FPS without ridiculously beefy clocks, no - 1963/998/2133 clocks are not beefy enough in most cases)
-- If you have Switch OLED and you plan to play docked with display that supports refresh rates higher than 60 Hz, it is adviced to install [sys-dock](https://github.com/masagrator/sys-dock/releases) and read its [README](https://github.com/masagrator/sys-dock/blob/main/README.md) to unlock 120 Hz in OLED dock + possibly other ones.
+- [sys-dock](https://github.com/masagrator/sys-dock/releases) and read its [README](https://github.com/masagrator/sys-dock/blob/main/README.md) to unlock 120 Hz in OLEDs while docked + fix an issue with glitchy horizontal lines if you get them on any Switch while docked.
 
 How to set up everything: [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
 
