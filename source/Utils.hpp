@@ -34,8 +34,8 @@ struct NxFpsSharedBlock {
 		struct {
 			bool handheld: 1;
 			bool docked: 1;
-			unsigned int reserved: 6;
-		} PACKED ds;
+			bool reserved: 6;
+		} ds;
 		uint8_t general;
 	} displaySync;
 	resolutionCalls renderCalls[8];
