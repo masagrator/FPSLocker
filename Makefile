@@ -53,15 +53,15 @@ NO_ICON		:=  1
 #---------------------------------------------------------------------------------
 ARCH		:= -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE -flto=auto
 
-CFLAGS		:= -g -Wall -O2 -ffunction-sections -fdata-sections \
+CFLAGS		:= -g -Wall -O2 -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-unwind-tables \
 			$(ARCH) $(DEFINES)
 
 CFLAGS		+= $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -DNDEBUG -DASMJIT_EMBED -DASMJIT_BUILD_RELEASE -DASMJIT_NO_X86 -DASMJIT_NO_DEPRECATED -DASMJIT_NO_ABI_NAMESPACE -DASMJIT_NO_JIT -DASMJIT_NO_LOGGING -DASMJIT_NO_VALIDATION
 
-CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=c++23
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++23
 
 ASFLAGS		:= -g $(ARCH)
-LDFLAGS		= -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS		= -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map) -Wl,-wrap,__cxa_throw -Wl,-wrap,_Unwind_Resume -Wl,-wrap,__gxx_personality_v0
 
 LIBS		:= `curl-config --libs`
 
