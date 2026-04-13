@@ -1018,7 +1018,7 @@ std::string getAppName(uint64_t Tid)
 	}
 	//This is faster by 75% than function above on 22.0.0+
 	else {
-		rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 1, 0, nullptr);
+		rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 1, 0, nullptr, nullptr);
 	}
 	if (R_FAILED(rc)) {
 		free(appControlData);
