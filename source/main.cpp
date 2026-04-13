@@ -24,21 +24,23 @@ bool isLite = false;
 uint8_t refreshRate_g = 60;
 bool oldSalty = false;
 
-//This is done to save some space as they have no practical use in our case
-void* __real___cxa_throw(void *thrown_exception, void *pvar, void (*dest)(void *));
-void* __real__Unwind_Resume();
-void* __real___gxx_personality_v0();
+extern "C" {
+	//Linker tricks to make overlay smaller
+	void* __real___cxa_throw(void *thrown_exception, void *pvar, void (*dest)(void *));
+	void* __real__Unwind_Resume();
+	void* __real___gxx_personality_v0();
 
-void __wrap___cxa_throw(void *thrown_exception, void *pvar, void (*dest)(void *)) {
-    abort();
-}
+	void __wrap___cxa_throw(void *thrown_exception, void *pvar, void (*dest)(void *)) {
+		abort();
+	}
 
-void __wrap__Unwind_Resume() {
-    return;
-}
+	void __wrap__Unwind_Resume() {
+		return;
+	}
 
-void __wrap___gxx_personality_v0() {
-    return;
+	void __wrap___gxx_personality_v0() {
+		return;
+	}
 }
 
 #include "Modes/Advanced.hpp"
