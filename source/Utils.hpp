@@ -502,6 +502,64 @@ Result nsGetApplicationControlData3(NsApplicationControlSource source, u64 appli
     return rc;
 }
 
+/**
+ * @brief GetApplicationTitle. Returns \ref NacpLanguageEntry matching currently set system language for each specified ApplicationId.
+ * @note The data available with \ref asyncValueGet is a s32 for the offset within the buffer where the output data is located, \ref asyncValueGetSize returns the total byte-size of the data located here. The data located here is the \ref NacpLanguageEntry for each specified ApplicationId.
+ * @note Only available on [20.0.0+].
+ * @note NacpLanguageEntry is decompressed when necessary only on [21.0.0+].
+ * @param[out] a \ref AsyncValue
+ * @param[in] source Source, official sw uses ::NsApplicationControlSource_Storage.
+ * @param[in] application_ids Input array of ApplicationIds.
+ * @param[in] count Size of the application_ids array in entries.
+ * @param buffer 0x1000-byte aligned buffer for TransferMemory. This buffer must not be accessed until the async operation finishes.
+ * @param[in] size 0x1000-byte aligned buffer size for TransferMemory. This must be at least: count*sizeof(\ref NacpLanguageEntry) + count*sizeof(u64) + sizeof(\ref NsApplicationControlData).
+ */
+Result nsGetApplicationTitle(AsyncValue *a, NsApplicationControlSource source, const u64 *application_ids, s32 count, void* buffer, size_t size) {
+    if (hosversionBefore(20,0,0))
+        return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
+
+    Result rc=0;
+    TransferMemory tmem={0};
+	Service srv={0};
+	u32 cmd_id = 10;
+
+    rc = tmemCreateFromMemory(&tmem, buffer, size, Perm_R);
+    if (R_FAILED(rc))
+		return rc;
+
+	rc = nsGetReadOnlyApplicationControlDataInterface(&srv);
+
+	if (R_SUCCEEDED(rc)) {
+		const struct {
+			u8 source;
+			u8 pad[7];
+			u64 size;
+		} in = { source, {0}, tmem.size };
+
+		memset(a, 0, sizeof(*a));
+		Handle event = INVALID_HANDLE;
+		rc = serviceDispatchIn(&srv, cmd_id, in,
+			.buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
+			.buffers = { { application_ids, count*sizeof(u64) } },
+			.in_num_handles = 1,
+			.in_handles = { tmem.handle },
+			.out_num_objects = 1,
+			.out_objects = &a->s,
+			.out_handle_attrs = { SfOutHandleAttr_HipcCopy },
+			.out_handles = &event,
+		);
+
+		if (R_SUCCEEDED(rc))
+			eventLoadRemote(&a->event, event, false);
+
+		serviceClose(&srv);
+	}
+
+	tmemClose(&tmem);
+
+    return rc;
+}
+
 void sendConfirmation(Result temp_error_code) {
 	s32 appContentMetaStatusSize = 0;
 	NsApplicationControlData* appControlData = new NsApplicationControlData;
@@ -1016,10 +1074,6 @@ std::string getAppName(uint64_t Tid)
 	else if (hosversionBefore(22,0,0)) {
 		rc = nsGetApplicationControlData3(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 0xFF, 0, nullptr);
 	}
-	//This is faster by 75% than function above on 22.0.0+
-	else {
-		rc = nsGetApplicationControlData2(NsApplicationControlSource::NsApplicationControlSource_Storage, Tid, appControlData, sizeof(NsApplicationControlData), 1, 0, nullptr, nullptr);
-	}
 	if (R_FAILED(rc)) {
 		free(appControlData);
 		char returnTID[18];
@@ -1066,17 +1120,54 @@ Result getTitles(int32_t count)
 		free(appRecords);
 		return rc;
 	}
+	uint64_t* TIDs = (uint64_t*)malloc(actualAppRecordCnt*sizeof(uint64_t));
 	for (int32_t i = 0; i < actualAppRecordCnt; i++) {
-		if (appRecords[i].application_id != 0) {
+		TIDs[i] = appRecords[i].application_id;
+	}
+	free(appRecords);
+	if (hosversionBefore(22,0,0)) for (int32_t i = 0; i < actualAppRecordCnt; i++) {
+		uint64_t m_TID = TIDs[i];
+		if (m_TID != 0) {
 			Title title;
-			title.TitleID = appRecords[i].application_id;
-			title.TitleName = getAppName(appRecords[i].application_id);
+			title.TitleID = m_TID;
+			title.TitleName = getAppName(m_TID);
 			mutexLock(&TitlesAccess);
 			titles.emplace_back(title);
 			mutexUnlock(&TitlesAccess);
 		}
 	}
-	free(appRecords);
+	else {
+		size_t size = ((actualAppRecordCnt * 0x308) + sizeof(NsApplicationControlData) + 0x1000) & ~0xFFF;
+		void* buffer = aligned_alloc(0x1000, size);
+		AsyncValue _asyncValue;
+		rc = nsGetApplicationTitle(&_asyncValue, NsApplicationControlSource_Storage, TIDs, actualAppRecordCnt, buffer, size);
+		if (R_FAILED(rc)) {
+			free(TIDs);
+			free(buffer);
+			return rc;
+		}
+		s32 offset;
+		rc = asyncValueGet(&_asyncValue, &offset, sizeof(offset));
+		if (R_FAILED(rc)) {
+			free(TIDs);
+			free(buffer);
+			return rc;
+		}
+		NacpLanguageEntry* language_data = (NacpLanguageEntry*)(uintptr_t(buffer) + offset);
+		for (int32_t i = 0; i < actualAppRecordCnt; i++) {
+			if (language_data[i].name[0] == 0)
+				continue;
+			Title title;
+			title.TitleID = TIDs[i];
+			title.TitleName = language_data[i].name;
+			mutexLock(&TitlesAccess);
+			titles.emplace_back(title);
+			mutexUnlock(&TitlesAccess);
+		}
+		asyncValueClose(&_asyncValue);
+		free(buffer);
+	}
+	free(TIDs);
 	return rc;
 }
 
