@@ -26,17 +26,17 @@ INCLUDE_FLAGS = -I$(SRC_DIR)
 # -Wextra:    Enables even more warnings
 # -MMD -MP:   Generates dependency files (.d) for header tracking
 DEP_FLAGS = -MMD -MP
-COMMON_FLAGS = -g -Wall -Wextra $(DEP_FLAGS) $(INCLUDE_FLAGS) -DNDEBUG -DASMJIT_EMBED -DASMJIT_BUILD_RELEASE -DASMJIT_NO_X86 -DASMJIT_NO_DEPRECATED -DASMJIT_NO_ABI_NAMESPACE -DASMJIT_NO_JIT -DASMJIT_NO_LOGGING -DASMJIT_NO_VALIDATION
+COMMON_FLAGS = -g -Wall -Wextra $(DEP_FLAGS) $(INCLUDE_FLAGS) -DHOST_BUILD -DNDEBUG -DASMJIT_EMBED -DASMJIT_BUILD_RELEASE -DASMJIT_NO_X86 -DASMJIT_NO_DEPRECATED -DASMJIT_NO_ABI_NAMESPACE -DASMJIT_NO_JIT -DASMJIT_NO_LOGGING -DASMJIT_NO_VALIDATION
 
 # Flags for C compilation
-CFLAGS = -std=c23 $(COMMON_FLAGS)
+CFLAGS = -std=gnu17 $(COMMON_FLAGS)
 
 # Flags for C++ compilation
 CXXFLAGS = -std=c++23 $(COMMON_FLAGS)
 
 # --- Linker Flags ---
 LDFLAGS =
-LDLIBS =
+LDLIBS = -lm
 
 # =============================================================================
 # File Discovery (Recursive)
