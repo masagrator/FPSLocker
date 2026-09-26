@@ -1181,7 +1181,7 @@ size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t pare
 
     // for each child to be duplicated...
     size_t prev = after;
-    for(size_t i = src->first_child(node), icount = 0; i != NONE; ++icount, i = src->next_sibling(i))
+    for(size_t i = src->first_child(node); i != NONE; i = src->next_sibling(i))
     {
         if(is_seq(parent))
         {

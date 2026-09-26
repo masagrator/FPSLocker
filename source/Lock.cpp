@@ -631,8 +631,8 @@ namespace LOCK {
 		
 		size_t temp_size = 0;
 		size_t old_temp_size = 0;
-		static uint16_t call_count = 0;
-		call_count++;
+		//static uint16_t call_count = 0;
+		//call_count++;
 		
 		Result rc = calculateSize(entry, &temp_size, masterWrite);
 
