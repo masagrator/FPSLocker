@@ -1,4 +1,4 @@
-// This file is part of AsmJit project <https://asmjit.com>
+// This file is based on part of AsmJit project <https://asmjit.com>
 //
 // See <asmjit/core.h> or LICENSE.md for license and copyright information
 // SPDX-License-Identifier: Zlib
