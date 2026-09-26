@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <string>
+#include <unistd.h>
 
 #include "Lock.hpp"          // FPSLocker - the patch compiler
 #include "saltynx/lock.hpp"  // SaltyNX  - the patch runtime
@@ -24,18 +26,65 @@ namespace {
 		{ 1, 60 },
 	};
 
+#ifdef HOST_ABI32
+	constexpr bool IS_A32_VALIDATOR = true;
+#else
+	constexpr bool IS_A32_VALIDATOR = false;
+#endif
+
 	void usage(const char* argv0) {
-		printf("Usage: %s [-v] <path to yaml file>\n", argv0);
+		printf("Usage: %s [-v] [--a32 | --a64] <path to yaml file>\n", argv0);
+		printf("  --a32  validate as AArch32 game (default if the patch has asm_a32 entries)\n");
+		printf("  --a64  validate as AArch64 game\n");
+	}
+
+	// Returns true if the yaml has an `asm_a32` entry (comments are ignored).
+	bool hasAsmA32(const char* path) {
+		FILE* file = fopen(path, "r");
+		if (!file) return false;
+		char line[1024];
+		bool found = false;
+		while (!found && fgets(line, sizeof(line), file)) {
+			std::string text = line;
+			size_t comment = text.find('#');
+			if (comment != std::string::npos) text.resize(comment);
+			found = text.find("asm_a32") != std::string::npos;
+		}
+		fclose(file);
+		return found;
+	}
+
+	// Runs the AArch32 validator (my_program32 next to this executable) with the same arguments.
+	int forwardToA32(int argc, char* argv[]) {
+		char self[4096] = {0};
+		ssize_t len = readlink("/proc/self/exe", self, sizeof(self) - 1);
+		std::string exe = (len > 0) ? std::string(self, len) : std::string(argv[0]);
+		exe += "32";
+		char** args = (char**)calloc(argc + 2, sizeof(char*));
+		args[0] = exe.data();
+		for (int i = 1; i < argc; i++) args[i] = argv[i];
+		fflush(stdout);
+		execv(exe.c_str(), args);
+		printf("Could not run AArch32 validator: %s\n", exe.c_str());
+		free(args);
+		return 1;
 	}
 }
 
 int main(int argc, char *argv[]) {
 	const char* path = nullptr;
 	bool verbose = false;
+	int forced_arch = 0; // 32 or 64
 
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
 			verbose = true;
+		}
+		else if (strcmp(argv[i], "--a32") == 0) {
+			forced_arch = 32;
+		}
+		else if (strcmp(argv[i], "--a64") == 0) {
+			forced_arch = 64;
 		}
 		else if (argv[i][0] == '-') {
 			printf("Unknown option: %s\n", argv[i]);
@@ -53,6 +102,13 @@ int main(int argc, char *argv[]) {
 
 	if (!path) {
 		printf("No path to yaml file was provided!\n");
+		return 1;
+	}
+
+	bool want_a32 = forced_arch ? (forced_arch == 32) : hasAsmA32(path);
+	if (want_a32 != IS_A32_VALIDATOR) {
+		if (want_a32) return forwardToA32(argc, argv);
+		printf("This is the AArch32 validator, use my_program for AArch64 patches.\n");
 		return 1;
 	}
 
@@ -109,7 +165,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (verbose)
-		printf("OK: %s\n", path);
+		printf("OK (%s): %s\n", IS_A32_VALIDATOR ? "AArch32" : "AArch64", path);
 
 	return 0;
 }
