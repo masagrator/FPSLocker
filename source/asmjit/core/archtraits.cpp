@@ -16,6 +16,10 @@
   #include "../arm/a64archtraits_p.h"
 #endif
 
+#if !defined(ASMJIT_NO_AARCH32)
+  #include "../arm/a32archtraits_p.h"
+#endif
+
 ASMJIT_BEGIN_NAMESPACE
 
 static const constexpr ArchTraits noArchTraits = {
@@ -74,7 +78,11 @@ ASMJIT_VARAPI const ArchTraits _archTraits[uint32_t(Arch::kMaxValue) + 1] = {
   noArchTraits,
 
   // ARM architecture
+#if !defined(ASMJIT_NO_AARCH32)
+  a32::a32ArchTraits,
+#else
   noArchTraits,
+#endif
 
   // AArch64 architecture.
 #if !defined(ASMJIT_NO_AARCH64)

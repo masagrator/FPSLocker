@@ -15,6 +15,14 @@ source/saltynx/ subdirectory. That keeps them from overwriting FPSLocker's
 Lock.cpp / Lock.hpp on a case-insensitive filesystem, and makes the include in
 main.cpp unambiguous ("saltynx/lock.hpp").
 
+Two validators are built from the same sources:
+
+  * my_program    - SaltyNX runtime built for AArch64 games (LOCK_ABI64)
+  * my_program32  - SaltyNX runtime built for AArch32 games (LOCK_ABI32, -DHOST_ABI32)
+
+my_program automatically forwards patches that contain `asm_a32` entries to
+my_program32 (use --a32 / --a64 to force the architecture).
+
 SaltyNX is located in this order:
   1. $SALTYNX_PATH
   2. a sibling checkout at ../../SaltyNX
@@ -99,7 +107,7 @@ def main():
     print("\nCopying FPSLocker sources...")
     for d in ("c4", "rapidyaml", "asmjit"):
         copy_tree(os.path.join(FPSLOCKER_SRC, d), os.path.join("source", d))
-    for f in ("asmA64.cpp", "asmA64.hpp", "Lock.cpp", "Lock.hpp"):
+    for f in ("asmA64.cpp", "asmA64.hpp", "asmA32.cpp", "asmA32.hpp", "Lock.cpp", "Lock.hpp"):
         copy_file(os.path.join(FPSLOCKER_SRC, f), "source")
 
     print("\nCopying SaltyNX sources...")
@@ -121,7 +129,7 @@ def main():
     jobs = multiprocessing.cpu_count()
     print(f"\nRunning make with {jobs} jobs...")
     subprocess.run(["make", f"-j{jobs}"], check=True)
-    print("- build complete: my_program")
+    print("- build complete: my_program (AArch64), my_program32 (AArch32)")
 
 
 if __name__ == "__main__":

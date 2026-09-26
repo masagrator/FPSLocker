@@ -250,12 +250,21 @@ enum class DataType : uint32_t {
   //! 64-bit polynomial.
   kP64 = 15,
 
+  //! 8-bit integer (sign agnostic), specified as `.i8` in assembly (alias of `kS8`).
+  kI8 = kS8,
+  //! 16-bit integer (sign agnostic), specified as `.i16` in assembly (alias of `kS16`).
+  kI16 = kS16,
+  //! 32-bit integer (sign agnostic), specified as `.i32` in assembly (alias of `kS32`).
+  kI32 = kS32,
+  //! 64-bit integer (sign agnostic), specified as `.i64` in assembly (alias of `kS64`).
+  kI64 = kS64,
+
   //! Maximum value of `DataType`.
   kMaxValue = 15
 };
 
 static ASMJIT_INLINE_NODEBUG uint32_t dataTypeSize(DataType dt) noexcept {
-  static constexpr uint8_t table[] = { 0, 1, 2, 4, 8, 1, 2, 4, 8, 2, 4, 8, 1, 2, 8 };
+  static constexpr uint8_t table[] = { 0, 1, 2, 4, 8, 1, 2, 4, 8, 0, 2, 4, 8, 1, 2, 8 };
   return table[size_t(dt)];
 }
 

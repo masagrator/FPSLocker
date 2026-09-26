@@ -24,6 +24,10 @@
   #include "../arm/a64formatter_p.h"
 #endif
 
+#if !defined(ASMJIT_NO_AARCH32)
+  #include "../arm/a32instapi_p.h"
+#endif
+
 ASMJIT_BEGIN_NAMESPACE
 
 #if defined(ASMJIT_NO_COMPILER)
@@ -324,6 +328,12 @@ Error formatInstruction(
 #if !defined(ASMJIT_NO_AARCH64)
   if (Environment::isFamilyAArch64(arch)) {
     return a64::FormatterInternal::formatInstruction(sb, formatFlags, emitter, arch, inst, operands, opCount);
+  }
+#endif
+
+#if !defined(ASMJIT_NO_AARCH32)
+  if (Environment::isArchARM(arch)) {
+    return a32::InstInternal::formatInstruction(sb, formatFlags, emitter, arch, inst, operands, opCount);
   }
 #endif
 

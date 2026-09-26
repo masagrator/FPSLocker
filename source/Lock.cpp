@@ -3,6 +3,7 @@
 #include "Lock.hpp"
 #include "c4/std/string.hpp"
 #include "asmA64.hpp"
+#include "asmA32.hpp"
 #include <cmath>
 #include <vector>
 #include <unordered_map>
@@ -38,6 +39,13 @@ namespace LOCK {
 	std::unordered_map<uint32_t, declare_var> declared_variables;
 	std::unordered_map<uint32_t, uint64_t> declared_consts;
 	std::vector<std::pair<uint32_t, declare_code>> declared_codes;
+
+	// Architecture of `code` declarations (key: hash of "_name()"), deduced from asm entries that call them.
+	enum class CodeArch : uint8_t {
+		A64 = 0,
+		A32 = 1
+	};
+	std::unordered_map<uint32_t, CodeArch> declared_codes_arch;
 
 	void freeBuffers() {
 		for (int i = (buffers.size() - 1); i >= 0; i--) {
@@ -188,7 +196,7 @@ namespace LOCK {
 					}
 					else temp_size += getTypeSize(string_check);
 				}
-				else if (!string_check.compare("asm_a64")) {
+				else if (!string_check.compare("asm_a64") || !string_check.compare("asm_a32")) {
 					temp_size++; // address_region
 					temp_size += 4; // main_offset
 					temp_size++; // value_type
@@ -248,6 +256,7 @@ namespace LOCK {
 						else temp_size += getTypeSize(string_check);
 					}
 					else {
+						entry[i]["address"][1] >> string_check;
 						temp_size += declared_variables[hash32(string_check.c_str())].value_type % 0x10;
 					}
 				}
@@ -377,7 +386,8 @@ namespace LOCK {
 						if (R_FAILED(rc)) return rc;
 					}					
 				}
-				else if (!string_check.compare("asm_a64")) {
+				else if (!string_check.compare("asm_a64") || !string_check.compare("asm_a32")) {
+					bool is_a32 = !string_check.compare("asm_a32");
 					buffer[temp_size++] = 3; // type
 					uint32_t main_offset = 0;
 					entry[i]["main_offset"] >> main_offset;
@@ -393,12 +403,14 @@ namespace LOCK {
 							Result rc = 1;
 							uint8_t adjust_type = 0;
 							if (entry[i]["instructions"][x].is_seq()) {
-								rc = ASM::processArm64(entry[i]["instructions"][x], &inst, &adjust_type, main_offset, start_main_offset);
+								if (is_a32) rc = ASM::processArm32(entry[i]["instructions"][x], &inst, &adjust_type, main_offset, start_main_offset);
+								else rc = ASM::processArm64(entry[i]["instructions"][x], &inst, &adjust_type, main_offset, start_main_offset);
 								if (R_FAILED(rc)) return rc;
 							}
 							else entry[i]["instructions"][x] >> inst;
 							main_offset += 4;
-							buffer[temp_size++] = (adjust_type > 3) ? 0 : adjust_type;
+							// Adjustments 4 and 5 are only meaningful in code caves (branches/addresses relative to main).
+							buffer[temp_size++] = (adjust_type == 4 || adjust_type == 5 || (!is_a32 && adjust_type > 3)) ? 0 : adjust_type;
 							*(uint32_t*)(&buffer[temp_size]) = inst;
 							temp_size += 4;
 						}
@@ -729,7 +741,12 @@ namespace LOCK {
 			if (entry["instructions"][i].is_seq()) {
 				uint32_t instruction = 0;
 				uint8_t adjust_type = 0;
-				Result rc = ASM::processArm64(entry["instructions"][i], &instruction, &adjust_type, cave_offset, start_cave_offset, gotos);
+				Result rc = 0;
+				auto arch = declared_codes_arch.find(hash);
+				if (arch != declared_codes_arch.end() && arch->second == CodeArch::A32)
+					rc = ASM::processArm32(entry["instructions"][i], &instruction, &adjust_type, cave_offset, start_cave_offset, gotos);
+				else
+					rc = ASM::processArm64(entry["instructions"][i], &instruction, &adjust_type, cave_offset, start_cave_offset, gotos);
 				if (R_FAILED(rc)) {
 					freeDeclares();
 					return rc;
@@ -740,6 +757,96 @@ namespace LOCK {
 			}
 		}
 		declared_codes.push_back(std::pair(hash, declare_code(start_cave_offset, instruction_num, out_buffer, adjust_types_buffer)));
+		return 0;
+	}
+
+	// Collects `_name()` references from a list of instructions.
+	template <typename T>
+	void collectCodeCalls(T instructions, std::vector<uint32_t>& out) {
+		std::string string_check;
+		for (size_t i = 0; i < instructions.num_children(); i++) {
+			auto instruction = instructions[i];
+			if (!instruction.is_seq()) continue;
+			for (size_t x = 1; x < instruction.num_children(); x++) {
+				if (instruction[x].is_seq() || !instruction[x].has_val()) continue;
+				instruction[x] >> string_check;
+				if (string_check.size() > 3 && string_check[0] == '_' && !string_check.compare(string_check.size() - 2, 2, "()"))
+					out.push_back(hash32(string_check.c_str()));
+			}
+		}
+	}
+
+	// `code` declarations don't know their architecture, it's deduced from `asm_a32`/`asm_a64` entries in MASTER_WRITE
+	// that call them (and from other codes calling them). Codes called from both architectures are rejected.
+	Result NOINLINE deduceCodeArchitectures() {
+		declared_codes_arch.clear();
+		std::string string_check;
+		bool has_a32 = false, has_a64 = false;
+
+		auto assign = [](uint32_t hash, CodeArch arch) -> Result {
+			auto it = declared_codes_arch.find(hash);
+			if (it == declared_codes_arch.end()) {
+				declared_codes_arch[hash] = arch;
+				return 0;
+			}
+			return (it->second == arch) ? 0 : 0xE0002;
+		};
+
+		if (tree.rootref().has_child("MASTER_WRITE") && tree["MASTER_WRITE"].is_seq()) {
+			auto master = tree["MASTER_WRITE"];
+			for (size_t i = 0; i < master.num_children(); i++) {
+				if (!master[i].has_child("type") || !master[i].has_child("instructions")) continue;
+				master[i]["type"] >> string_check;
+				CodeArch arch;
+				if (!string_check.compare("asm_a32")) {arch = CodeArch::A32; has_a32 = true;}
+				else if (!string_check.compare("asm_a64")) {arch = CodeArch::A64; has_a64 = true;}
+				else continue;
+				std::vector<uint32_t> calls;
+				collectCodeCalls(master[i]["instructions"], calls);
+				for (uint32_t hash : calls) {
+					Result rc = assign(hash, arch);
+					if (R_FAILED(rc)) return rc;
+				}
+			}
+		}
+
+		if (!tree.rootref().has_child("DECLARATIONS") || !tree["DECLARATIONS"].is_seq())
+			return 0;
+
+		// Propagate architecture through codes calling other codes.
+		auto declarations = tree["DECLARATIONS"];
+		bool changed = true;
+		while (changed) {
+			changed = false;
+			for (size_t i = 0; i < declarations.num_children(); i++) {
+				if (!declarations[i].has_child("type")) continue;
+				declarations[i]["type"] >> string_check;
+				if (string_check.compare("code")) continue;
+				declarations[i]["name"] >> string_check;
+				auto it = declared_codes_arch.find(hash32(("_" + string_check + "()").c_str()));
+				if (it == declared_codes_arch.end()) continue;
+				CodeArch arch = it->second;
+				std::vector<uint32_t> calls;
+				collectCodeCalls(declarations[i]["instructions"], calls);
+				for (uint32_t hash : calls) {
+					bool known = declared_codes_arch.find(hash) != declared_codes_arch.end();
+					Result rc = assign(hash, arch);
+					if (R_FAILED(rc)) return rc;
+					if (!known) changed = true;
+				}
+			}
+		}
+
+		// Codes that are not called from anywhere follow the architecture of the patch (A64 by default).
+		for (size_t i = 0; i < declarations.num_children(); i++) {
+			if (!declarations[i].has_child("type")) continue;
+			declarations[i]["type"] >> string_check;
+			if (string_check.compare("code")) continue;
+			declarations[i]["name"] >> string_check;
+			uint32_t hash = hash32(("_" + string_check + "()").c_str());
+			if (declared_codes_arch.find(hash) == declared_codes_arch.end())
+				declared_codes_arch[hash] = (has_a32 && !has_a64) ? CodeArch::A32 : CodeArch::A64;
+		}
 		return 0;
 	}
 
@@ -777,7 +884,9 @@ namespace LOCK {
 		uint8_t compiledSize = 0;
 
 		if (tree.rootref().has_child("DECLARATIONS") == true) {
-			Result ret = registerDeclarations(tree["DECLARATIONS"]);
+			Result ret = deduceCodeArchitectures();
+			if (R_FAILED(ret)) return ret;
+			ret = registerDeclarations(tree["DECLARATIONS"]);
 			if (R_FAILED(ret)) return ret;
 		}
 
