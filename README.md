@@ -143,3 +143,6 @@ In those games, you can disable double buffer vsync by turning off Window Sync W
 - Xenoblade Chronicles 2
 - Xenoblade Chronicles 3
 - Xenoblade Chronicles X
+
+# Other
+Claude was used to generate host tester and add support for Aarch32 in my fork of asmjit.
