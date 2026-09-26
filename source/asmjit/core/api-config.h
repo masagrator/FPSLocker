@@ -90,6 +90,9 @@ namespace asmjit {
 //! Disables AArch64 backend.
 #define ASMJIT_NO_AARCH64
 
+//! Disables AArch32 backend.
+#define ASMJIT_NO_AARCH32
+
 //! Disables the use of `shm_open` on all targets even when it's supported.
 #define ASMJIT_NO_SHM_OPEN
 
@@ -128,6 +131,7 @@ namespace asmjit {
 
 #undef ASMJIT_NO_X86
 #undef ASMJIT_NO_AARCH64
+#undef ASMJIT_NO_AARCH32
 #undef ASMJIT_NO_FOREIGN
 
 #undef ASMJIT_NO_JIT
@@ -280,6 +284,10 @@ namespace asmjit {
 
   #if ASMJIT_ARCH_ARM != 64 && !defined(ASMJIT_NO_AARCH64)
     #define ASMJIT_NO_AARCH64
+  #endif
+
+  #if ASMJIT_ARCH_ARM != 32 && !defined(ASMJIT_NO_AARCH32)
+    #define ASMJIT_NO_AARCH32
   #endif
 #endif
 

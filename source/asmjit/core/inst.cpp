@@ -15,6 +15,10 @@
   #include "../arm/a64instapi_p.h"
 #endif
 
+#if !defined(ASMJIT_NO_AARCH32)
+  #include "../arm/a32instapi_p.h"
+#endif
+
 ASMJIT_BEGIN_NAMESPACE
 
 // InstAPI - InstId <-> String
@@ -34,6 +38,12 @@ Error InstAPI::instIdToString(Arch arch, InstId instId, InstStringifyOptions opt
   }
 #endif
 
+#if !defined(ASMJIT_NO_AARCH32)
+  if (Environment::isArchARM(arch)) {
+    return a32::InstInternal::instIdToString(instId, options, output);
+  }
+#endif
+
   return DebugUtils::errored(kErrorInvalidArch);
 }
 
@@ -47,6 +57,12 @@ InstId InstAPI::stringToInstId(Arch arch, const char* s, size_t len) noexcept {
 #if !defined(ASMJIT_NO_AARCH64)
   if (Environment::isFamilyAArch64(arch)) {
     return a64::InstInternal::stringToInstId(s, len);
+  }
+#endif
+
+#if !defined(ASMJIT_NO_AARCH32)
+  if (Environment::isArchARM(arch)) {
+    return a32::InstInternal::stringToInstId(s, len);
   }
 #endif
 
@@ -73,6 +89,12 @@ Error InstAPI::validate(Arch arch, const BaseInst& inst, const Operand_* operand
 #if !defined(ASMJIT_NO_AARCH64)
   if (Environment::isFamilyAArch64(arch)) {
     return a64::InstInternal::validate(inst, operands, opCount, validationFlags);
+  }
+#endif
+
+#if !defined(ASMJIT_NO_AARCH32)
+  if (Environment::isArchARM(arch)) {
+    return a32::InstInternal::validate(inst, operands, opCount, validationFlags);
   }
 #endif
 
