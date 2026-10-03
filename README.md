@@ -160,12 +160,12 @@ Which games are not fully compatible with it:
 | ----- | ------- | ---- |
 | Air Conflicts: Pacific Carriers | 1.0.2 |  |
 | Alan Wake | 1.0.1 |  |
-| Amnesia: Collection | 1.3.0 |  |
+| Amnesia Collection | 1.3.0 |  |
 | Beyond Good & Evil | 1.0.1 |  |
 | Captain Tsubasa: Rise of New Champions | 1.4.6 |  |
 | Card-en-Ciel | 1.9.1 |  |
 | Cars 3 | 1.0.2 |  |
-| DC Super Hero Girls | 1.0.1 |  |
+| DC Super Hero Girls: Teen Power | 1.0.1 |  |
 | Death end re;Quest 2 | 1.0.0 |  |
 | Divinity: Original Sin 2 | 1.0.12 |  |
 | Don't Starve Together | 1.29.0 |  |
