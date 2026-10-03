@@ -6,7 +6,8 @@ public:
 		auto frame = new tsl::elm::OverlayFrame(getStringID(Lang::Id_SetBuffering), " ");
 
 		auto list = new tsl::elm::List();
-		if (Shared->expectedSetBuffers == -1) list->addItem(new tsl::elm::NoteHeader(getStringID(Lang::Id_ItWillBeAppliedOnNextGameBoot), true, {0xF, 0x3, 0x3, 0xF}));
+		if (Shared->expectedSetBuffers == -1 || ((Shared -> Buffers) == 2 || ((Shared -> SetBuffers) == 5))) 
+			list->addItem(new tsl::elm::NoteHeader(getStringID(Lang::Id_ItWillBeAppliedOnNextGameBoot), true, {0xF, 0x3, 0x3, 0xF}));
 		auto *clickableListItem = new tsl::elm::ListItem2(getStringID(Lang::Id_Double));
 		clickableListItem->setClickListener([](u64 keys) { 
 			if ((keys & HidNpadButton_A) && PluginRunning) {
@@ -38,7 +39,7 @@ public:
 
 		}
 		else {
-			if ((Shared -> Buffers) >= 3) {
+			if ((Shared -> Buffers) >= 3 && (Shared -> SetBuffers) != 5) {
 				if ((Shared -> SetActiveBuffers) > 0) {
 				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_TripleForce));
 				clickableListItem2->setClickListener([](u64 keys) { 
@@ -70,6 +71,21 @@ public:
 					});
 					list->addItem(clickableListItem2);
 				}
+			}
+			
+			if ((Shared -> Buffers) == 2 || ((Shared -> SetBuffers) == 5)) {
+				auto *clickableListItem2 = new tsl::elm::ListItem2(getStringID(Lang::Id_TripleForce));
+				clickableListItem2->setClickListener([](u64 keys) { 
+					if ((keys & HidNpadButton_A) && PluginRunning) {
+						SetBuffers_save = 5;
+						saveSettings();
+						tsl::goBack();
+						tsl::goBack();
+						return true;
+					}
+					return false;
+				});
+				list->addItem(clickableListItem2);
 			}
 			
 			if ((Shared -> Buffers) == 4) {
@@ -252,17 +268,15 @@ public:
 						});
 						list->addItem(clickableListItem3);
 					}
-					if ((Shared -> Buffers) > 2) {
-						auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(Lang::Id_SetBuffering));
-						clickableListItem3->setClickListener([](u64 keys) { 
-							if ((keys & HidNpadButton_A) && PluginRunning) {
-								tsl::changeTo<SetBuffers>();
-								return true;
-							}
-							return false;
-						});
-						list->addItem(clickableListItem3);
-					}
+					auto *clickableListItem3 = new tsl::elm::MiniListItem(getStringID(Lang::Id_SetBuffering));
+					clickableListItem3->setClickListener([](u64 keys) { 
+						if ((keys & HidNpadButton_A) && PluginRunning) {
+							tsl::changeTo<SetBuffers>();
+							return true;
+						}
+						return false;
+					});
+					list->addItem(clickableListItem3);
 					break;
 				}
 				case 2:
