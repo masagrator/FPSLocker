@@ -43,7 +43,7 @@ The best approach if you want to run 30 FPS games at higher FPS:
 - `Advanced settings` - submenu which consists of:
   - If game is using NVN
     - `Window Sync Wait` - this is dangerous setting that disabled can crash game, but in some can bring benefit of disabling double buffer vsync at the cost of small graphical glitches (check list of games compatible with this solution at the bottom of README). Use it with caution. It won't show if game is not using double buffer. 
-    - `Set Buffering` - this option will show that will allow you to force game to run with other amount of buffers. Lowering buffer is recommended only for games that have near perfect performance at 30 or 60 FPS, but suffer from bad framepacing or big input lag. If you will force double buffer in games with uneven performance, FPS drops will be very severe. In some games it can be applied only at boot of game, so after changing buffering you may be forced to restart game (such info will pop up inside menu if it's needed). Double buffer games that report 0/2/2 forced to run at triple buffer may not boot or can crash in the later phase of game. Look at the list b<br> Explanation of `Set/Active/Available Buffers`: 
+    - `Set Buffering` - this option will show that will allow you to force game to run with other amount of buffers. Lowering buffer is recommended only for games that have near perfect performance at 30 or 60 FPS, but suffer from bad framepacing or big input lag. If you will force double buffer in games with uneven performance, FPS drops will be very severe. In some games it can be applied only at boot of game, so after changing buffering you may be forced to restart game (such info will pop up inside menu if it's needed). Double buffer games that report 0/2/2 forced to run at triple buffer may not boot or can crash in the later phase of game. [Look at the list.](#📷)<br> Explanation of `Set/Active/Available Buffers`: 
       - Set - how many buffers were set by using `nvnWindowSetNumActiveTextures`. If game is not using it, it will be 0. It can be used by games to set lower buffer value than reserved space allows. If this is detected to be used and lower than Available Buffers, you can use "(force)" variant next to default option. Without `(force)` it will reset to default settings.
       - Active - How many buffers are actually used by game. 
       - Available - How many buffers is actually provided to NVN. We can use this information to force games to utilize all buffers when they are not doing it.
@@ -152,7 +152,7 @@ Which games are not fully compatible with it:
 | Kirby and the Forgotten Land | 1.1.0 | Memory exhaustion in 4GB units, we need 26 MB, it gives only 16 MB |
 | Stubbs the Zombie in Rebel Without a Pulse | 1.0.3 | Memory exhaustion in 4GB units, changing exefs patch to match expected memory usage boots game with triple buffer, but any change between handheld and docked causes crash |
 
-<details>
+<a id="📷"></a><details>
 <summary>Tested games that passed initial tests (click on me to show list)</summary>
 
 | Title | Version | Note |
