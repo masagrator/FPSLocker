@@ -151,6 +151,7 @@ Which games are not fully compatible with it:
 | Death end re;Quest | 1.0.1 | Memory exhaustion in 4GB units |
 | Kirby and the Forgotten Land | 1.1.0 | Memory exhaustion in 4GB units, we need 26 MB, it gives only 16 MB |
 | Stubbs the Zombie in Rebel Without a Pulse | 1.0.3 | Memory exhaustion in 4GB units, changing exefs patch to match expected memory usage boots game with triple buffer, but any change between handheld and docked causes crash |
+| Tomodachi Life: Living the Dream | 1.0.0, 1.0.4 | Memory exhaustion in 4GB units |
 
 <a id="📷"></a>
 <details>
