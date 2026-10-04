@@ -145,7 +145,10 @@ In those games, you can disable double buffer vsync by turning off Window Sync W
 - Xenoblade Chronicles X
 
 # Double buffer to Triple buffer forcing
-Which games are not fully compatible with it:
+
+Unreal Engine 5 and 6 games are using on top of 2 front buffers one back buffer, so they are already technically triple buffer and you don't need to enable FPSLocker triple buffer for them.
+
+Which games are not fully compatible with it (4 games):
 | Title | Tested game version | Reason |
 | ----- | ------------------- | ------ |
 | Death end re;Quest | 1.0.1 | Memory exhaustion in 4GB units, crash at boot |
@@ -155,7 +158,7 @@ Which games are not fully compatible with it:
 
 <a id="📷"></a>
 <details>
-<summary>Tested games that passed initial tests (click on me to show list)</summary>
+<summary>Tested games that passed initial tests (46 games, click on me to show list)</summary>
 
 | Title | Version | Note |
 | ----- | ------- | ---- |
@@ -179,6 +182,11 @@ Which games are not fully compatible with it:
 | Luigi's Mansion 2 HD | 1.0.0 |  |
 | Mary Skelter Finale | 1.0.0 |  |
 | Majogami | 1.2.1 |  |
+| Metroid Dread | 2.1.0 |  |
+| Metroid Prime 4 | 1.1.0 |  |
+| Need for Speed: Hot Pursuit | 1.0.3 | Game is already using one back buffer, so there is no need to use triple buffer here. |
+| Paper Mario: The Origami King | 1.0.1 |  |
+| Paper Mario: The Thousand-Year Door | 1.0.1 |  |
 | Portal Knights | 1.7.2 |  |
 | Rebel Galaxy: Outlaw | 1.0.1 |  |
 | Secret Game: Killer Queen | 1.0.1 |  |
