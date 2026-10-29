@@ -731,7 +731,7 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result B(T entry_impl, uint8_t type, uint32_t subtype, const std::unordered_map<std::string, uint32_t> gotos = {}) {
+	template <typename T> Result B(T entry_impl, uint8_t type, uint32_t subtype, const std::unordered_map<std::string, uint32_t>& gotos = {}) {
 		if (entry_impl.num_children() != 2)
 			return 0xFF0060;
 		asmjit::a64::Assembler a(&code);
@@ -913,7 +913,7 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result CBZ(T entry_impl, uint8_t type, const std::unordered_map<std::string, uint32_t> gotos = {}) {
+	template <typename T> Result CBZ(T entry_impl, uint8_t type, const std::unordered_map<std::string, uint32_t>& gotos = {}) {
 		if (entry_impl.num_children() != 3)
 			return 0xFF00B0;
 		asmjit::a64::Assembler a(&code);
@@ -926,7 +926,8 @@ namespace ASM {
 		if (inst.c_str()[0] == ':') {
 			auto it = gotos.find(inst);
 			if (it == gotos.end()) return 0xFF00B3;
-			address = m_pc_start + it->second;
+			// Labels already hold absolute cave offsets (they include start_cave_offset)
+			address = it->second;
 		}
 		else if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
 			bool passed = getInteger(inst, &address);
@@ -939,7 +940,7 @@ namespace ASM {
 		return 0;
 	}
 
-	template <typename T> Result TBZ(T entry_impl, uint8_t type = 0, const std::unordered_map<std::string, uint32_t> gotos = {}) {
+	template <typename T> Result TBZ(T entry_impl, uint8_t type = 0, const std::unordered_map<std::string, uint32_t>& gotos = {}) {
 		if (entry_impl.num_children() != 4)
 			return 0xFF00C0;
 		asmjit::a64::Assembler a(&code);
@@ -956,7 +957,8 @@ namespace ASM {
 		if (inst.c_str()[0] == ':') {
 			auto it = gotos.find(inst);
 			if (it == gotos.end()) return 0xFF00C3;
-			address = m_pc_start + it->second;
+			// Labels already hold absolute cave offsets (they include start_cave_offset)
+			address = it->second;
 		}
 		else if (inst.c_str()[0] == '+' || inst.c_str()[0] == '-') {
 			bool passed = getInteger(inst, &address);
@@ -1364,7 +1366,7 @@ namespace ASM {
 	static_assert(!has_duplicates(hashes, std::size(hashes)), "Detected repeated hash!");
 	static_assert(!has_duplicates(hashes2, std::size(hashes2)), "Detected repeated hash!");
 
-	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, uintptr_t start_address, const std::unordered_map<std::string, uint32_t> gotos) {
+	Result processArm64(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, uintptr_t start_address, const std::unordered_map<std::string, uint32_t>& gotos) {
 		std::string inst;
 		entry[0] >> inst;
 		code.init(customEnv, pc_address);

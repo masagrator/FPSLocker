@@ -17,5 +17,6 @@ namespace LOCK {
 	
 	Result createPatch(const char* path);
 	Result readConfig(const char* path);
+	void parseConfigBuffer(size_t length);
 
 }

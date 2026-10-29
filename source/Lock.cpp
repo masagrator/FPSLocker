@@ -981,15 +981,83 @@ namespace LOCK {
 		return 0;
 	}
 
+	size_t NOINLINE estimateNodes(const char* src, size_t len) {
+		size_t nodes = 1; // root
+		size_t flow_depth = 0;
+		bool line_has_content = false;
+		bool only_indent = true;
+		bool expect_value = false;
+		char quote = 0;
+		for (size_t i = 0; i < len; i++) {
+			char c = src[i];
+			if (c == '\n' || c == '\r') {
+				if (line_has_content && flow_depth == 0) nodes++;
+				line_has_content = false;
+				only_indent = true;
+				continue;
+			}
+			if (quote) {
+				if (c == quote) quote = 0;
+				else if (c == '\\' && quote == '"' && i + 1 < len) i++;
+				continue;
+			}
+			if (c == ' ' || c == '\t') continue;
+			if (c == '#' && (i == 0 || src[i-1] == ' ' || src[i-1] == '\t' || src[i-1] == '\n' || src[i-1] == '\r')) {
+				while (i + 1 < len && src[i+1] != '\n' && src[i+1] != '\r') i++;
+				continue;
+			}
+			if (c == '-' && only_indent && flow_depth == 0 && (i + 1 >= len || src[i+1] == ' ' || src[i+1] == '\t' || src[i+1] == '\n' || src[i+1] == '\r')) {
+				nodes++;
+				continue;
+			}
+			only_indent = false;
+			line_has_content = true;
+			switch (c) {
+				case '[':
+				case '{':
+					if (flow_depth) nodes++;
+					flow_depth++;
+					expect_value = true;
+					break;
+				case ']':
+				case '}':
+					if (flow_depth) flow_depth--;
+					expect_value = false;
+					break;
+				case ',':
+					expect_value = true;
+					break;
+				default:
+					if (flow_depth && expect_value) nodes++;
+					expect_value = false;
+					if (c == '"' || c == '\'') quote = c;
+					break;
+			}
+		}
+		if (line_has_content && flow_depth == 0) nodes++;
+		return nodes < 16 ? 16 : nodes; // 16 is the minimum rapidyaml reserves
+	}
+
+	void parseConfigBuffer(size_t length) {
+		if (length > sizeof(configBuffer) - 2)
+			length = sizeof(configBuffer) - 2;
+		configBuffer[length++] = '\n';
+		configBuffer[length] = 0;
+		tree = ryml::Tree();
+		tree.reserve(estimateNodes(configBuffer, length) + 16);
+		ryml::parse_in_place(ryml::substr(configBuffer, length), &tree);
+	}
+
 	Result readConfig(const char* path) {
+		master_write = false;
 		FILE* config = fopen(path, "r");
 		if (!config)
 			return 0x202;
-		fread(&configBuffer, 1, 32768, config);
+		size_t length = fread(&configBuffer, 1, 32768, config);
 		fclose(config);
-		strcat(&configBuffer[0], "\n");
+		memset(&configBuffer[length], 0, sizeof(configBuffer) - length);
 
-		tree = ryml::parse_in_place(configBuffer);
+		parseConfigBuffer(length);
 
 		if (!tree.rootref().is_map())
 			return 0x1104;

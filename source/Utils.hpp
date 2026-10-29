@@ -734,10 +734,9 @@ Result downloadPatchImpl(const char* source, const char* suffix) {
 				rename(file_path, configPath);
 				FILE* config = fopen(configPath, "r");
 				memset(&LOCK::configBuffer, 0, sizeof(LOCK::configBuffer));
-				fread(&LOCK::configBuffer, 1, 32768, config);
+				size_t config_length = fread(&LOCK::configBuffer, 1, 32768, config);
 				fclose(config);
-				strcat(&LOCK::configBuffer[0], "\n");
-				LOCK::tree = ryml::parse_in_place(LOCK::configBuffer);
+				LOCK::parseConfigBuffer(config_length);
 				size_t root_id = LOCK::tree.root_id();
 				if (LOCK::tree.is_map(root_id) && LOCK::tree.find_child(root_id, "Addons") != c4::yml::NONE && !LOCK::tree["Addons"].is_keyval() && LOCK::tree["Addons"].num_children() > 0) {
 					for (size_t i = 0; i < LOCK::tree["Addons"].num_children(); i++) {
