@@ -771,7 +771,7 @@ namespace {
 
 } // {anonymous}
 
-	Result processArm32(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, uintptr_t start_address, const std::unordered_map<std::string, uint32_t> gotos) {
+	Result processArm32(c4::yml::NodeRef entry, uint32_t* out, uint8_t* adjust_type_arg, uintptr_t pc_address, uintptr_t start_address, const std::unordered_map<std::string, uint32_t>& gotos) {
 		std::string inst;
 		entry[0] >> inst;
 
